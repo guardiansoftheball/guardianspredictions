@@ -10,6 +10,10 @@ export default defineConfig(() => {
         'frontend', // we need this to be able to access the app on localhost
         'localhost',
       ],
+      watch: {
+        usePolling: true,
+        interval: 500,
+      },
       proxy: {
         '/api': {
           target: apiProxyTarget,
