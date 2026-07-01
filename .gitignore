@@ -28,6 +28,12 @@ go.work
 .env
 .env-e
 
+# MCP config
+.mcp.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
 # Data files
 **/data/certbot
 **/data/postgres

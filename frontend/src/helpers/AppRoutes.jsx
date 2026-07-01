@@ -14,6 +14,8 @@ import User from '../pages/user/User';
 import Style from '../pages/style/Style';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import NotFound from '../pages/notfound/NotFound';
+import DesignPreview from '../pages/designpreview/DesignPreview';
+import NewHome from '../pages/newhome/NewHome';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
 const AppRoutes = () => {
@@ -41,6 +43,12 @@ const AppRoutes = () => {
     <Switch>
       {/* Stylepage */}
       <Route exact path='/style' component={Style} />
+
+      {/* Design Preview */}
+      <Route exact path='/design-preview' component={DesignPreview} />
+
+      {/* New Home Preview */}
+      <Route exact path='/new-home' component={NewHome} />
 
       {/* Public Routes */}
       <Route exact path='/about'>
