@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
-import { useHistory } from "react-router-dom";
 import { Button } from "../../ui/Button";
-import { Input }  from "../../ui/Input";
+import { Input } from "../../ui/Input";
 
 const imgLogo            = "/guardiansPredictionLogo.svg";
 const imgIconClose       = "/icons/icon-close.svg";
@@ -18,35 +17,10 @@ const SSO_PROVIDERS = [
   { icon: imgIconGuardiansID, alt: "Guardians ID" },
 ];
 
-const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRegister, onForgotPassword }) => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const history = useHistory();
-
-  const getPostLoginDestination = (mustChangePassword) => {
-    if (mustChangePassword) return "/changepassword";
-    const safeRedirects = new Set(["/", "/about", "/markets", "/polls", "/stats", "/style", "/new-home", "/new-markets"]);
-    return safeRedirects.has(redirectAfterLogin) ? redirectAfterLogin : "/markets";
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const result = await onLogin(username.trim(), password);
-      if (result?.success) {
-        onClose();
-        history.push(getPostLoginDestination(result.mustChangePassword));
-      }
-    } catch (err) {
-      setError(err.message || "An error occurred during login. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
+  const [email, setEmail]                     = useState("");
+  const [password, setPassword]               = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   if (!isOpen) return null;
 
@@ -73,27 +47,31 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         <div className="flex flex-col gap-3">
           <Input
             type="text"
-            placeholder="E-mail / Usuario"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
           />
           <Input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+            autoComplete="new-password"
+          />
+          <Input
+            type="password"
+            placeholder="Confirmar password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
           />
         </div>
 
-        {/* Error */}
-        {error && <p className="text-center text-sm text-red-300">{error}</p>}
-
-        {/* Siguiente */}
+        {/* Registrarme */}
         <div className="flex justify-end">
-          <Button variant="primary" onClick={handleSubmit} loading={loading} withArrow>
-            Siguiente
+          <Button variant="primary" withArrow>
+            Registrarme
           </Button>
         </div>
 
@@ -119,22 +97,13 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           ))}
         </div>
 
-        {/* Registrarme */}
-        <Button
-          variant="glass"
-          onClick={onSwitchToRegister}
-          className="h-[58px] w-full"
-        >
-          Registrarme
-        </Button>
-
-        {/* Forgot password */}
+        {/* Ya tengo cuenta */}
         <div className="flex justify-center">
           <button
-            onClick={onForgotPassword}
+            onClick={onSwitchToLogin}
             className="text-white/95 text-[16px] underline hover:text-white transition-colors"
           >
-            Olvide mi contraseña
+            Ya tengo una cuenta
           </button>
         </div>
 
@@ -144,4 +113,4 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
   );
 };
 
-export default LoginModal;
+export default RegisterModal;

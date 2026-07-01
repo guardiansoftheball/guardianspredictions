@@ -8,7 +8,7 @@ import teamCrest from "../../assets/png/ATM.png";
 
 const logo = teamCrest;
 
-const CARDS = [
+export const CARDS = [
   {
     type: "match",
     home: { name: "Real Madrid", logo, pct: 62 },

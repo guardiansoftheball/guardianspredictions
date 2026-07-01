@@ -16,6 +16,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import NotFound from '../pages/notfound/NotFound';
 import DesignPreview from '../pages/designpreview/DesignPreview';
 import NewHome from '../pages/newhome/NewHome';
+import NewMarkets from '../pages/newmarkets/NewMarkets';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
 const AppRoutes = () => {
@@ -49,6 +50,9 @@ const AppRoutes = () => {
 
       {/* New Home Preview */}
       <Route exact path='/new-home' component={NewHome} />
+
+      {/* New Markets Preview */}
+      <Route exact path='/new-markets' component={NewMarkets} />
 
       {/* Public Routes */}
       <Route exact path='/about'>

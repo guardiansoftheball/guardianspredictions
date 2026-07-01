@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
@@ -8,10 +8,14 @@ import {
   MenuGrowSVG,
   MenuShrinkSVG,
 } from "../../assets/components/SvgIcons";
+import LoginModal from "../modals/login/LoginModal";
+import RegisterModal from "../modals/register/RegisterModal";
+import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
+import { useAuth } from "../../helpers/AuthContent";
 
 const NAV_LINKS = [
   { label: "Trending", to: "/" },
-  { label: "Markets", to: "/markets" },
+  { label: "Markets", to: "/new-markets" },
   { label: "Polls", to: "/polls" },
   { label: "Stats", to: "/stats" },
 ];
@@ -27,12 +31,20 @@ const linkStyle = {
 
 const BOTTOM_NAV = [
   { label: "Trending", to: "/", Icon: HomeSVG },
-  { label: "Markets",  to: "/markets", Icon: MarketsSVG },
-  { label: "Stats",    to: "/stats", Icon: StatsSVG },
+  { label: "Markets", to: "/markets", Icon: MarketsSVG },
+  { label: "Stats", to: "/stats", Icon: StatsSVG },
 ];
 
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
+  const { login } = useAuth();
+  const history = useHistory();
+
+  const openLoginModal = () => setAuthModal("login");
+  const openRegisterModal = () => setAuthModal("register");
+  const openForgotPasswordModal = () => setAuthModal("forgot");
+  const closeAuthModal = () => setAuthModal(null);
 
   // Close sidebar on outside click
   useEffect(() => {
@@ -60,8 +72,15 @@ const Navbar = () => {
         }}
       >
         {/* Logo */}
-        <Link to="/" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-          <img src={logo} alt="Guardians Predict" style={{ height: "40px", objectFit: "contain" }} />
+        <Link
+          to="/"
+          style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+        >
+          <img
+            src={logo}
+            alt="Guardians Predict"
+            style={{ height: "40px", objectFit: "contain" }}
+          />
         </Link>
 
         {/* Nav links */}
@@ -85,12 +104,30 @@ const Navbar = () => {
         </div>
 
         {/* Auth */}
-        <div style={{ display: "flex", alignItems: "center", gap: "24px", flexShrink: 0 }}>
-          <Link to="/login" style={{ ...linkStyle, whiteSpace: "nowrap" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "24px",
+            flexShrink: 0,
+          }}
+        >
+          <button
+            type="button"
+            onClick={openLoginModal}
+            style={{
+              ...linkStyle,
+              whiteSpace: "nowrap",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
             Iniciar sesión
-          </Link>
-          <Link
-            to="/register"
+          </button>
+          <button
+            type="button"
+            onClick={openRegisterModal}
             style={{
               ...linkStyle,
               color: "#FFFFFF",
@@ -103,17 +140,23 @@ const Navbar = () => {
               justifyContent: "center",
               overflow: "hidden",
               whiteSpace: "nowrap",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             Crear cuenta
-          </Link>
+          </button>
         </div>
       </nav>
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
         <Link to="/">
-          <img src={logo} alt="Guardians Predict" className="h-9 object-contain" />
+          <img
+            src={logo}
+            alt="Guardians Predict"
+            className="h-9 object-contain"
+          />
         </Link>
       </div>
 
@@ -134,7 +177,11 @@ const Navbar = () => {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
-          <img src={logo} alt="Guardians Predict" className="h-8 object-contain" />
+          <img
+            src={logo}
+            alt="Guardians Predict"
+            className="h-8 object-contain"
+          />
           <button
             onClick={() => setSidebarOpen(false)}
             className="text-gray-300 hover:text-white"
@@ -152,7 +199,10 @@ const Navbar = () => {
                   to={link.to}
                   onClick={() => setSidebarOpen(false)}
                   className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                  style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px" }}
+                  style={{
+                    fontFamily: "'Roboto', sans-serif",
+                    fontSize: "16px",
+                  }}
                 >
                   {link.label}
                 </Link>
@@ -161,22 +211,33 @@ const Navbar = () => {
           </ul>
 
           <div className="mt-6 flex flex-col gap-3">
-            <Link
-              to="/login"
-              onClick={() => setSidebarOpen(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setSidebarOpen(false);
+                openLoginModal();
+              }}
               className="block py-2 px-3 text-center rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
               style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px" }}
             >
               Iniciar sesión
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setSidebarOpen(false)}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSidebarOpen(false);
+                openRegisterModal();
+              }}
               className="block py-2 px-3 text-center rounded-lg text-white transition-colors"
-              style={{ background: "#34425F", fontFamily: "'Roboto', sans-serif", fontSize: "16px", borderRadius: "20px" }}
+              style={{
+                background: "#34425F",
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: "16px",
+                borderRadius: "20px",
+              }}
             >
               Crear cuenta
-            </Link>
+            </button>
           </div>
         </nav>
       </aside>
@@ -204,6 +265,33 @@ const Navbar = () => {
           <span className="text-[10px]">Más</span>
         </button>
       </div>
+
+      {authModal === "login" && (
+        <LoginModal
+          isOpen
+          onClose={closeAuthModal}
+          onLogin={login}
+          redirectAfterLogin={history.location.pathname}
+          onSwitchToRegister={openRegisterModal}
+          onForgotPassword={openForgotPasswordModal}
+        />
+      )}
+
+      {authModal === "register" && (
+        <RegisterModal
+          isOpen
+          onClose={closeAuthModal}
+          onSwitchToLogin={openLoginModal}
+        />
+      )}
+
+      {authModal === "forgot" && (
+        <ForgotPasswordModal
+          isOpen
+          onClose={closeAuthModal}
+          onSwitchToLogin={openLoginModal}
+        />
+      )}
     </>
   );
 };

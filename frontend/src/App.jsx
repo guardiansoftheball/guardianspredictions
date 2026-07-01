@@ -7,7 +7,7 @@ import AppRoutes from './helpers/AppRoutes';
 import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
-const FULLSCREEN_ROUTES = ['/new-home', '/design-preview'];
+const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/design-preview'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
   const showDiagnosticDetails = import.meta.env.DEV && error?.message;
