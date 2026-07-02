@@ -16,65 +16,29 @@ const PredictionCard = ({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        width: "344px",
-        borderRadius: "41px",
-        backgroundImage:
-          "conic-gradient(from 0deg, #B4D1ED 0%, #B4D1ED 19%, #5A6B89 36%, #B4D1ED 45%, #B4D1ED 63%, #5A6B89 75%, #B4D1ED 88%, #B4D1ED 100%)",
-        padding: "1px",
-        boxSizing: "border-box",
-        cursor: "pointer",
-      }}
+      className="w-full max-w-[344px] min-w-0 mx-auto rounded-[41px] p-px box-border cursor-pointer bg-[conic-gradient(from_0deg,#B4D1ED_0%,#B4D1ED_19%,#5A6B89_36%,#B4D1ED_45%,#B4D1ED_63%,#5A6B89_75%,#B4D1ED_88%,#B4D1ED_100%)]"
     >
       <div
+        className="w-full h-full min-h-[210px] sm:min-h-[235px] rounded-[41px] overflow-hidden box-border p-4 sm:p-5 flex flex-col justify-between gap-4"
         style={{
-          width: "100%",
-          borderRadius: "41px",
           background:
             "linear-gradient(to bottom, rgba(126,150,208,0.30) 33%, rgba(23,26,43,0.30) 100%), #12152a",
-          overflow: "hidden",
-          padding: "24px 20px 20px 20px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          height: "235px",
-          boxSizing: "border-box",
         }}
       >
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: "16px",
-          }}
-        >
+        <div className="flex items-start gap-4">
           {teamLogo && (
             <img
               src={teamLogo}
               alt="team logo"
-              style={{
-                width: "38px",
-                height: "49px",
-                objectFit: "cover",
-                flexShrink: 0,
-              }}
+              className="w-[34px] h-11 sm:w-[38px] sm:h-[49px] shrink-0 object-cover"
             />
           )}
           <p
             title={question}
+            className="m-0 flex-1 min-w-0 text-white font-['Roboto',sans-serif] font-medium text-[clamp(15px,4.5vw,20px)] leading-[1.3] tracking-[0.4px] overflow-hidden"
             style={{
-              margin: 0,
-              color: "#ffffff",
-              fontFamily: "'Roboto', sans-serif",
-              fontWeight: 500,
-              fontSize: "20px",
-              letterSpacing: "0.4px",
-              lineHeight: "1.3",
-              flex: 1,
               textDecoration: hovered ? "underline" : "none",
-              overflow: "hidden",
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
@@ -85,7 +49,7 @@ const PredictionCard = ({
         </div>
 
         {/* Options rows */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="flex flex-col gap-3">
           {options.map((opt, i) => (
             <PredictionRow
               key={i}
@@ -98,23 +62,8 @@ const PredictionCard = ({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span
-            style={{
-              color: "#ffffff",
-              fontFamily: "'Roboto', sans-serif",
-              fontWeight: 300,
-              fontSize: "18px",
-              letterSpacing: "0.4px",
-            }}
-          >
+        <div className="flex items-center justify-between">
+          <span className="text-white font-['Roboto',sans-serif] font-light text-[clamp(15px,4vw,18px)] tracking-[0.4px]">
             {poolAmount}
           </span>
           <BookmarkIcon />
@@ -125,52 +74,15 @@ const PredictionCard = ({
 };
 
 const PredictionRow = ({ label, pct, onYes, onNo }) => (
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: "12px",
-    }}
-  >
+  <div className="flex items-center justify-between gap-3">
     <span
       title={label}
-      style={{
-        color: "#ffffff",
-        fontFamily: "'Roboto', sans-serif",
-        fontWeight: 400,
-        fontSize: "18px",
-        letterSpacing: "0.4px",
-        flex: 1,
-        minWidth: 0,
-        overflow: "hidden",
-        whiteSpace: "nowrap",
-        textOverflow: "ellipsis",
-      }}
+      className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis text-white font-['Roboto',sans-serif] font-normal text-[clamp(14px,4vw,18px)] tracking-[0.4px]"
     >
       {label}
     </span>
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: "8px",
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          color: "#ffffff",
-          fontFamily: "'Roboto', sans-serif",
-          fontWeight: 500,
-          fontSize: "18px",
-          letterSpacing: "0.4px",
-          width: "42px",
-          flexShrink: 0,
-        }}
-      >
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="w-[clamp(30px,8vw,42px)] shrink-0 text-white font-['Roboto',sans-serif] font-medium text-[clamp(14px,4vw,18px)] tracking-[0.4px]">
         {pct}%
       </span>
       <YesNoButton label="Yes" color="#bad659" pct={pct} onClick={onYes} />
@@ -185,6 +97,8 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
   const isYes = label === "Yes";
   const displayPct = isYes ? pct : 100 - pct;
   const gradientId = React.useRef(`btn-grad-${_btnCounter++}`).current;
+  const vbW = 65;
+  const vbH = 38;
   const gradientStops = isYes ? (
     <>
       <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
@@ -210,39 +124,18 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="relative w-[clamp(46px,14vw,65px)] h-[34px] sm:h-[38px] shrink-0 bg-transparent border-none p-0 cursor-pointer isolate flex items-center justify-center font-['Roboto',sans-serif] font-medium text-[clamp(12px,3.5vw,18px)] tracking-[0.4px] transition-[color,transform] duration-200 ease-out"
       style={{
-        position: "relative",
-        width: "65px",
-        height: "38px",
-        background: "none",
-        border: "none",
-        padding: 0,
-        cursor: "pointer",
-        flexShrink: 0,
         color: hovered ? "#ffffff" : color,
-        fontFamily: "'Roboto', sans-serif",
-        fontWeight: 500,
-        fontSize: "18px",
-        letterSpacing: "0.4px",
-        isolation: "isolate",
-        transition: "color 0.25s ease, transform 0.2s ease",
         transform: hovered ? "scale(1.06)" : "scale(1)",
       }}
     >
       <svg
-        width="65"
-        height="38"
-        viewBox="0 0 65 38"
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        preserveAspectRatio="none"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "65px",
-          height: "38px",
-          zIndex: 0,
-        }}
+        className="absolute inset-0 w-full h-full -z-10"
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
@@ -252,8 +145,8 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
         <rect
           x="0.25"
           y="0.25"
-          width="64.5"
-          height="37.5"
+          width={vbW - 0.5}
+          height={vbH - 0.5}
           rx="11.75"
           fill={hovered ? color : "white"}
           fillOpacity={hovered ? "0.9" : "0.16"}
@@ -261,14 +154,7 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
           strokeWidth="0.5"
         />
       </svg>
-      <span
-        style={{
-          position: "relative",
-          zIndex: 1,
-          transition: "opacity 0.2s ease",
-          opacity: 1,
-        }}
-      >
+      <span className="relative z-[1]">
         {hovered ? `${displayPct}%` : label}
       </span>
     </button>
@@ -286,7 +172,8 @@ const BookmarkIcon = () => {
       xmlns="http://www.w3.org/2000/svg"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ opacity: hovered ? 1 : 0.8, display: "block", flexShrink: 0, cursor: "pointer", transition: "opacity 0.2s ease" }}
+      className="block shrink-0 cursor-pointer transition-opacity duration-200"
+      style={{ opacity: hovered ? 1 : 0.8 }}
     >
       <path
         d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"

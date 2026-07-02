@@ -7,10 +7,10 @@ import MatchCard from "../../components/cards/MatchCard";
 import { CARDS } from "../newhome/NewHome";
 
 const NewMarkets = () => (
-  <div className="bg-primary-background min-h-screen pb-16 md:pb-0">
+  <div className="min-h-screen pb-16 md:pb-0 bg-[#050811] bg-[radial-gradient(circle_at_50%_35%,#51ADF6_0%,#050811_40%)]">
     <Navbar />
 
-    <div className="flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col">
+    <div className="flex gap-y-8 gap-x-12 pt-20 px-10 max-lg:px-4 max-lg:flex-col">
       {/* Panel de filtros */}
       <aside className="w-[280px] shrink-0 max-lg:w-full">
         <Filtros />
@@ -18,7 +18,7 @@ const NewMarkets = () => (
 
       {/* Cards */}
       <div className="flex-1 justify-items-center">
-        <div className="grid grid-cols-4 gap-6 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full justify-items-center">
           {CARDS.map((card, i) => {
             if (card.type === "match")
               return (
