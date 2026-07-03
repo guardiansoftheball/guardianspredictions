@@ -17,6 +17,7 @@ import NotFound from '../pages/notfound/NotFound';
 import DesignPreview from '../pages/designpreview/DesignPreview';
 import NewHome from '../pages/newhome/NewHome';
 import NewMarkets from '../pages/newmarkets/NewMarkets';
+import TestMarketDetails from '../pages/testmarketdetails/TestMarketDetails';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
 const AppRoutes = () => {
@@ -53,6 +54,9 @@ const AppRoutes = () => {
 
       {/* New Markets Preview */}
       <Route exact path='/new-markets' component={NewMarkets} />
+
+      {/* Test Market Details - new UI */}
+      <Route exact path='/test/markets/:marketId' component={TestMarketDetails} />
 
       {/* Public Routes */}
       <Route exact path='/about'>

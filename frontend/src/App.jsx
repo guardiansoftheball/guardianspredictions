@@ -8,6 +8,7 @@ import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
 const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/design-preview'];
+const FULLSCREEN_PREFIXES = ['/test/markets'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
   const showDiagnosticDetails = import.meta.env.DEV && error?.message;
@@ -44,7 +45,7 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 
 const AppLayout = () => {
   const { pathname } = useLocation();
-  const isFullscreen = FULLSCREEN_ROUTES.includes(pathname);
+  const isFullscreen = FULLSCREEN_ROUTES.includes(pathname) || FULLSCREEN_PREFIXES.some(p => pathname.startsWith(p));
 
   if (isFullscreen) {
     return <AppRoutes />;

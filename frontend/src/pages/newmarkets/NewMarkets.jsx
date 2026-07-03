@@ -1,18 +1,39 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Filtros from "../../components/filtros/Filtros";
 import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import { CARDS } from "../newhome/NewHome";
+import { useActiveMarketIds } from "../../hooks/useActiveMarketIds";
 
-const NewMarkets = () => (
+const NewMarkets = () => {
+  const { marketIds } = useActiveMarketIds(CARDS.length);
+  return (
   <div className="bg-primary-background min-h-screen pb-16 md:pb-0">
+    <div
+      style={{
+        position: "fixed",
+        width: "75vw",
+        height: "100vh",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        // background: "#51ADF6",// opacity: 0.3,
+        background:
+          "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 30%) 0%)",
+        filter: "blur(250px)",
+        pointerEvents: "none",
+        zIndex: 0,
+        borderRadius: "50%",
+      }}
+    />
     <Navbar />
 
     <div className="flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col">
       {/* Panel de filtros */}
-      <aside className="w-[280px] shrink-0 max-lg:w-full">
+      <aside className="w-[280px] z-10 shrink-0 max-lg:w-full">
         <Filtros />
       </aside>
 
@@ -20,8 +41,9 @@ const NewMarkets = () => (
       <div className="flex-1 justify-items-center">
         <div className="grid grid-cols-4 gap-6 justify-items-center">
           {CARDS.map((card, i) => {
-            if (card.type === "match")
-              return (
+            const marketId = marketIds.length > 0 ? marketIds[i % marketIds.length] : i + 1;
+            const cardEl =
+              card.type === "match" ? (
                 <MatchCard
                   key={i}
                   homeTeam={card.home}
@@ -29,9 +51,7 @@ const NewMarkets = () => (
                   draw={card.draw}
                   poolAmount={card.pool}
                 />
-              );
-            if (card.type === "question")
-              return (
+              ) : card.type === "question" ? (
                 <QuestionCard
                   key={i}
                   teamLogo={card.logo}
@@ -39,21 +59,30 @@ const NewMarkets = () => (
                   pct={card.pct}
                   poolAmount={card.pool}
                 />
+              ) : (
+                <PredictionCard
+                  key={i}
+                  teamLogo={card.logo}
+                  question={card.question}
+                  options={card.options}
+                  poolAmount={card.pool}
+                />
               );
             return (
-              <PredictionCard
+              <Link
                 key={i}
-                teamLogo={card.logo}
-                question={card.question}
-                options={card.options}
-                poolAmount={card.pool}
-              />
+                to={`/test/markets/${marketId}`}
+                style={{ textDecoration: "none", display: "contents" }}
+              >
+                {cardEl}
+              </Link>
             );
           })}
         </div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default NewMarkets;

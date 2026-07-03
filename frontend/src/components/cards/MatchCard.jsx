@@ -18,8 +18,9 @@ const MatchCard = ({
       style={{
         width: "344px",
         borderRadius: "41px",
-        backgroundImage:
-          "conic-gradient(from 0deg, #B4D1ED 0%, #B4D1ED 19%, #5A6B89 36%, #B4D1ED 45%, #B4D1ED 63%, #5A6B89 75%, #B4D1ED 88%, #B4D1ED 100%)",
+        // backgroundImage: "conic-gradient(from 0deg, #B4D1ED 0%, #B4D1ED 19%, #5A6B89 36%, #B4D1ED 45%, #B4D1ED 63%, #5A6B89 75%, #B4D1ED 88%, #B4D1ED 100%)",
+        border: "1px solid #B4D1ED",
+
         padding: "1px",
         boxSizing: "border-box",
         cursor: "pointer",
@@ -30,7 +31,9 @@ const MatchCard = ({
           width: "100%",
           borderRadius: "41px",
           background:
-            "linear-gradient(to bottom, rgba(126,150,208,0.30) 33%, rgba(23,26,43,0.30) 100%), #12152a",
+            "linear-gradient(to bottom, rgba(126,150,208,0.25) 33%, rgba(23,26,43,0.10) 100%), rgba(18,21,42,0.05)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           overflow: "hidden",
           padding: "24px 20px 20px 20px",
           boxSizing: "border-box",

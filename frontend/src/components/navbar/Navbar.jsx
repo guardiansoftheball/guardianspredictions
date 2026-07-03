@@ -12,12 +12,14 @@ import LoginModal from "../modals/login/LoginModal";
 import RegisterModal from "../modals/register/RegisterModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
+import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
+import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 
 const NAV_LINKS = [
-  { label: "Trending", to: "/" },
+  { label: "Trending", to: "/new-home" },
   { label: "Markets", to: "/new-markets" },
-  { label: "Polls", to: "/polls" },
-  { label: "Stats", to: "/stats" },
+  { label: "Polls", to: "/new-home" },
+  { label: "Stats", to: "/new-home" },
 ];
 
 const linkStyle = {
@@ -30,16 +32,272 @@ const linkStyle = {
 };
 
 const BOTTOM_NAV = [
-  { label: "Trending", to: "/", Icon: HomeSVG },
-  { label: "Markets", to: "/markets", Icon: MarketsSVG },
-  { label: "Stats", to: "/stats", Icon: StatsSVG },
+  { label: "Trending", to: "/new-home", Icon: HomeSVG },
+  { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
+  { label: "Stats", to: "/new-home", Icon: StatsSVG },
 ];
+
+// ── User chip with dropdown ────────────────────────────────────────────────────
+const UserChip = ({ username, credit, onLogout, onProfile }) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = React.useRef(null);
+
+  const initials = (username || "?").slice(0, 2).toUpperCase();
+  const fmt = (n) => {
+    if (n == null) return "—";
+    if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+    return String(Math.round(n));
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (!wrapperRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} style={{ position: "relative" }}>
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          background: open ? "rgba(255,255,255,0.07)" : "transparent",
+          border: `1px solid ${open ? "rgba(156,201,241,0.25)" : "transparent"}`,
+          borderRadius: "12px",
+          padding: "6px 10px 6px 6px",
+          cursor: "pointer",
+          transition: "all .15s",
+        }}
+      >
+        {/* Avatar */}
+        <div
+          style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "999px",
+            flexShrink: 0,
+            background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
+            border: "1.5px solid rgba(156,201,241,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: FONT,
+            fontWeight: 800,
+            fontSize: "12px",
+            color: COLOR.accent,
+          }}
+        >
+          {initials}
+        </div>
+
+        {/* Username + coins */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            lineHeight: 1.2,
+            textAlign: "left",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: FONT,
+              fontWeight: 700,
+              fontSize: "13px",
+              color: COLOR.text,
+            }}
+          >
+            @{username}
+          </span>
+          <span
+            style={{
+              fontFamily: FONT,
+              fontWeight: 600,
+              fontSize: "11px",
+              color: COLOR.accent,
+            }}
+          >
+            🪙 {fmt(credit)}
+          </span>
+        </div>
+
+        {/* Chevron */}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          style={{
+            marginLeft: "2px",
+            transition: "transform .2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <path
+            d="M2 4l4 4 4-4"
+            stroke={COLOR.muted}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            right: 0,
+            minWidth: "180px",
+            zIndex: 100,
+            ...CARD_ELEVATED,
+            background: "rgba(10,22,38,0.97)",
+            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+            overflow: "hidden",
+          }}
+        >
+          {/* User info header */}
+          <div
+            style={{
+              padding: "14px 16px 12px",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: FONT,
+                fontWeight: 700,
+                fontSize: "13px",
+                color: COLOR.text,
+              }}
+            >
+              @{username}
+            </div>
+            <div
+              style={{
+                fontFamily: FONT,
+                fontWeight: 600,
+                fontSize: "12px",
+                color: COLOR.accent,
+                marginTop: "3px",
+              }}
+            >
+              🪙 {fmt(credit)} credits
+            </div>
+          </div>
+
+          {/* Menu items */}
+          <div style={{ padding: "6px" }}>
+            <DropdownItem
+              icon={<PersonIcon />}
+              label="My profile"
+              onClick={() => {
+                setOpen(false);
+                onProfile?.();
+              }}
+            />
+            <DropdownItem
+              icon={<LogoutIcon />}
+              label="Sign out"
+              onClick={() => {
+                setOpen(false);
+                onLogout?.();
+              }}
+              danger
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DropdownItem = ({ icon, label, onClick, danger }) => (
+  <button
+    onClick={onClick}
+    style={{
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      padding: "9px 12px",
+      borderRadius: "9px",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontFamily: FONT,
+      fontWeight: 600,
+      fontSize: "13px",
+      color: danger ? COLOR.noText : COLOR.text,
+      transition: "background .12s",
+    }}
+    onMouseEnter={(e) =>
+      (e.currentTarget.style.background = danger
+        ? "rgba(251,91,107,0.10)"
+        : "rgba(255,255,255,0.06)")
+    }
+    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+  >
+    <span style={{ opacity: 0.7, display: "flex" }}>{icon}</span>
+    {label}
+  </button>
+);
+
+const PersonIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
 
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
-  const { login } = useAuth();
+  const { login, logout, username, token } = useAuth();
+  const isLoggedIn = !!username;
+  const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
+
+  const handleLogout = () => {
+    logout();
+    history.push("/");
+  };
+  const handleProfile = () => history.push("/profile");
 
   const openLoginModal = () => setAuthModal("login");
   const openRegisterModal = () => setAuthModal("register");
@@ -68,12 +326,13 @@ const Navbar = () => {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "40px 80px 0 80px",
+          marginBottom: "16px",
           boxSizing: "border-box",
         }}
       >
         {/* Logo */}
         <Link
-          to="/"
+          to="/new-home"
           style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
         >
           <img
@@ -103,55 +362,66 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Auth */}
+        {/* Auth / User */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "24px",
+            gap: "16px",
             flexShrink: 0,
           }}
         >
-          <button
-            type="button"
-            onClick={openLoginModal}
-            style={{
-              ...linkStyle,
-              whiteSpace: "nowrap",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            type="button"
-            onClick={openRegisterModal}
-            style={{
-              ...linkStyle,
-              color: "#FFFFFF",
-              background: "#34425F",
-              borderRadius: "20px",
-              width: "194px",
-              height: "37px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Crear cuenta
-          </button>
+          {isLoggedIn ? (
+            <UserChip
+              username={username}
+              credit={userCredit}
+              onLogout={handleLogout}
+              onProfile={handleProfile}
+            />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={openLoginModal}
+                style={{
+                  ...linkStyle,
+                  whiteSpace: "nowrap",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={openRegisterModal}
+                style={{
+                  ...linkStyle,
+                  color: "#FFFFFF",
+                  background: "#34425F",
+                  borderRadius: "20px",
+                  width: "194px",
+                  height: "37px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Create account
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
-        <Link to="/">
+        <Link to="/new-home">
           <img
             src={logo}
             alt="Guardians Predict"
@@ -211,33 +481,49 @@ const Navbar = () => {
           </ul>
 
           <div className="mt-6 flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setSidebarOpen(false);
-                openLoginModal();
-              }}
-              className="block py-2 px-3 text-center rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-              style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px" }}
-            >
-              Iniciar sesión
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSidebarOpen(false);
-                openRegisterModal();
-              }}
-              className="block py-2 px-3 text-center rounded-lg text-white transition-colors"
-              style={{
-                background: "#34425F",
-                fontFamily: "'Roboto', sans-serif",
-                fontSize: "16px",
-                borderRadius: "20px",
-              }}
-            >
-              Crear cuenta
-            </button>
+            {isLoggedIn ? (
+              <div style={{ padding: "8px 4px" }}>
+                <UserChip
+                  username={username}
+                  credit={userCredit}
+                  onLogout={handleLogout}
+                  onProfile={handleProfile}
+                />
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    openLoginModal();
+                  }}
+                  className="block py-2 px-3 text-center rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  style={{
+                    fontFamily: "'Roboto', sans-serif",
+                    fontSize: "16px",
+                  }}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    openRegisterModal();
+                  }}
+                  className="block py-2 px-3 text-center rounded-lg text-white transition-colors"
+                  style={{
+                    background: "#34425F",
+                    fontFamily: "'Roboto', sans-serif",
+                    fontSize: "16px",
+                    borderRadius: "20px",
+                  }}
+                >
+                  Create account
+                </button>
+              </>
+            )}
           </div>
         </nav>
       </aside>

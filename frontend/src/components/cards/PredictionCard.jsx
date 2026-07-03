@@ -19,8 +19,9 @@ const PredictionCard = ({
       style={{
         width: "344px",
         borderRadius: "41px",
-        backgroundImage:
-          "conic-gradient(from 0deg, #B4D1ED 0%, #B4D1ED 19%, #5A6B89 36%, #B4D1ED 45%, #B4D1ED 63%, #5A6B89 75%, #B4D1ED 88%, #B4D1ED 100%)",
+        // backgroundImage: "conic-gradient(from 0deg, #B4D1ED 0%, #B4D1ED 19%, #5A6B89 36%, #B4D1ED 45%, #B4D1ED 63%, #5A6B89 75%, #B4D1ED 88%, #B4D1ED 100%)",
+        border: "1px solid #B4D1ED",
+
         padding: "1px",
         boxSizing: "border-box",
         cursor: "pointer",
@@ -31,7 +32,9 @@ const PredictionCard = ({
           width: "100%",
           borderRadius: "41px",
           background:
-            "linear-gradient(to bottom, rgba(126,150,208,0.30) 33%, rgba(23,26,43,0.30) 100%), #12152a",
+            "linear-gradient(to bottom, rgba(126,150,208,0.25) 33%, rgba(23,26,43,0.10) 100%), rgba(18,21,42,0.05)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           overflow: "hidden",
           padding: "24px 20px 20px 20px",
           display: "flex",
@@ -286,7 +289,13 @@ const BookmarkIcon = () => {
       xmlns="http://www.w3.org/2000/svg"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ opacity: hovered ? 1 : 0.8, display: "block", flexShrink: 0, cursor: "pointer", transition: "opacity 0.2s ease" }}
+      style={{
+        opacity: hovered ? 1 : 0.8,
+        display: "block",
+        flexShrink: 0,
+        cursor: "pointer",
+        transition: "opacity 0.2s ease",
+      }}
     >
       <path
         d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"

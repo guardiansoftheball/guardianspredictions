@@ -1,10 +1,12 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Hero from "../../components/hero/Hero";
 import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import teamCrest from "../../assets/png/ATM.png";
+import { useActiveMarketIds } from "../../hooks/useActiveMarketIds";
 
 const logo = teamCrest;
 
@@ -203,10 +205,12 @@ export const CARDS = [
   },
 ];
 
-const NewHome = () => (
-  <div className="bg-primary-background min-h-screen pb-16 md:pb-0">
+const NewHome = () => {
+  const { marketIds } = useActiveMarketIds(CARDS.length);
+  return (
+  <div className="bg-primary-background relative z-50 min-h-screen pb-16 md:pb-0">
     {/* Hero + Navbar superpuesto */}
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", zIndex: 10 }}>
       <Hero />
       <div
         style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}
@@ -216,11 +220,36 @@ const NewHome = () => (
     </div>
 
     {/* Grid 5×5 */}
-    <div className="pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8">
-      <div className="flex flex-wrap gap-6 justify-center">
+    <div
+      className="pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
+      style={{ position: "relative", overflow: "hidden" }}
+    >
+      {/* Blue glow blob — centered within grid */}
+      <div
+        style={{
+          position: "fixed",
+          width: "60vw",
+          height: "100vh",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          // background: "#51ADF6",// opacity: 0.3,
+          background:
+            "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 37%) 0%)",
+          filter: "blur(250px)",
+          pointerEvents: "none",
+          zIndex: 0,
+          borderRadius: "50%",
+        }}
+      />
+      <div
+        className="flex flex-wrap gap-6 justify-center"
+        style={{ position: "relative", zIndex: 1 }}
+      >
         {CARDS.map((card, i) => {
-          if (card.type === "match")
-            return (
+          const marketId = marketIds.length > 0 ? marketIds[i % marketIds.length] : i + 1;
+          const cardEl =
+            card.type === "match" ? (
               <MatchCard
                 key={i}
                 homeTeam={card.home}
@@ -228,9 +257,7 @@ const NewHome = () => (
                 draw={card.draw}
                 poolAmount={card.pool}
               />
-            );
-          if (card.type === "question")
-            return (
+            ) : card.type === "question" ? (
               <QuestionCard
                 key={i}
                 teamLogo={card.logo}
@@ -238,20 +265,29 @@ const NewHome = () => (
                 pct={card.pct}
                 poolAmount={card.pool}
               />
+            ) : (
+              <PredictionCard
+                key={i}
+                teamLogo={card.logo}
+                question={card.question}
+                options={card.options}
+                poolAmount={card.pool}
+              />
             );
           return (
-            <PredictionCard
+            <Link
               key={i}
-              teamLogo={card.logo}
-              question={card.question}
-              options={card.options}
-              poolAmount={card.pool}
-            />
+              to={`/test/markets/${marketId}`}
+              style={{ textDecoration: "none", display: "contents" }}
+            >
+              {cardEl}
+            </Link>
           );
         })}
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default NewHome;

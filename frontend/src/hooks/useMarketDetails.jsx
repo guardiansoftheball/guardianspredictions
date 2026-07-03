@@ -234,6 +234,7 @@ const calculateCurrentProbability = (details) => {
 
 export const useMarketDetails = () => {
   const [details, setDetails] = useState(null);
+  const [error, setError] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState(null);
   const [currentProbability, setCurrentProbability] = useState(0);
@@ -247,14 +248,28 @@ export const useMarketDetails = () => {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+    setDetails(null);
+    setError(null);
+    let cancelled = false;
+
+    const fetchData = async (attempt = 0) => {
       try {
         const [detailsResponse, summaryResponse] = await Promise.all([
           fetch(`${API_URL}/v0/markets/${marketId}`),
           fetch(`${API_URL}/v0/read/markets/${marketId}/summary`).catch(() => null),
         ]);
+        if (detailsResponse.status === 429 && attempt < 3) {
+          const delay = (attempt + 1) * 1000;
+          await new Promise((r) => setTimeout(r, delay));
+          if (!cancelled) fetchData(attempt + 1);
+          return;
+        }
         if (!detailsResponse.ok) {
-          throw new Error('Failed to fetch market data');
+          throw new Error(
+            detailsResponse.status === 404
+              ? 'Market not found'
+              : `Failed to fetch market data (${detailsResponse.status})`,
+          );
         }
         const data = unwrapApiEnvelope(await detailsResponse.json());
         let normalized = normalizeMarketDetails(data);
@@ -266,26 +281,28 @@ export const useMarketDetails = () => {
               probabilityChanges: summary.probabilityChanges.length > 0
                 ? summary.probabilityChanges
                 : normalized.probabilityChanges,
-              numUsers: summary.numUsers,
-              totalVolume: summary.totalVolume,
-              marketDust: summary.marketDust,
+              numUsers: summary.numUsers || normalized.numUsers,
+              totalVolume: summary.totalVolume || normalized.totalVolume,
+              marketDust: summary.marketDust || normalized.marketDust,
               freshness: summary.freshness,
             };
           }
         }
         setDetails(normalized);
         setCurrentProbability(calculateCurrentProbability(normalized));
-      } catch (error) {
-        console.error('Error fetching market data:', error);
+      } catch (err) {
+        console.error('Error fetching market data:', err);
+        setError(err.message || 'Unknown error');
       }
     };
 
     fetchData();
+    return () => { cancelled = true; };
   }, [marketId, triggerRefresh]);
 
   const refetchData = () => {
     setTriggerRefresh((prev) => !prev);
   };
 
-  return { details, isLoggedIn, token, refetchData, currentProbability };
+  return { details, error, isLoggedIn, token, refetchData, currentProbability };
 };

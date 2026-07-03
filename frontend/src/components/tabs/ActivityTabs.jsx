@@ -4,7 +4,7 @@ import BetsActivityLayout from '../layouts/activity/bets/BetsActivity';
 import PositionsActivityLayout from '../layouts/activity/positions/PositionsActivity';
 import LeaderboardActivity from '../layouts/activity/leaderboard/LeaderboardActivity';
 
-const ActivityTabs = ({ marketId, market, refreshTrigger }) => {
+const ActivityTabs = ({ marketId, market, refreshTrigger, variant }) => {
     const tabsData = [
         { label: 'Bets', content: <BetsActivityLayout marketId={marketId} refreshTrigger={refreshTrigger} /> },
         { label: 'Positions', content: <PositionsActivityLayout marketId={marketId} market={market} refreshTrigger={refreshTrigger} /> },
@@ -12,7 +12,7 @@ const ActivityTabs = ({ marketId, market, refreshTrigger }) => {
         { label: 'Comments', content: <div>Comments Go here...</div> },
     ];
 
-    return <SiteTabs tabs={tabsData} />;
+    return <SiteTabs tabs={tabsData} variant={variant} />;
 };
 
 export default ActivityTabs;

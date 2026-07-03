@@ -7,9 +7,9 @@ const tabInactiveStyle = "text-white bg-custom-gray-light border-transparent";
 // Styles for the selected tab
 const tabActiveStyle = "text-white bg-primary-pink";
 
-const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab }) => {
+const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
     const [internalActiveTab, setInternalActiveTab] = useState(defaultTab || tabs[0].label);
-    
+
     // Use activeTab prop if provided, otherwise fall back to internal state
     const currentTab = activeTab ?? internalActiveTab;
 
@@ -35,6 +35,66 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab }) => {
         }
     };
 
+    // ── dark variant (glassmorphism / new UI) ──────────────────────────────────
+    if (variant === 'dark') {
+        return (
+            <div style={{ fontFamily: 'Manrope,system-ui,sans-serif' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto' }}>
+                    {tabs.map(tab => {
+                        const isActive = currentTab === tab.label;
+                        return (
+                            <button
+                                key={tab.label}
+                                onClick={() => handleTabClick(tab.label)}
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    padding: '13px 8px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    background: 'transparent',
+                                    fontFamily: 'Manrope,system-ui,sans-serif',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    color: isActive ? 'rgb(156,201,241)' : '#5d7189',
+                                    boxShadow: isActive ? 'inset 0 -2px 0 rgb(156,201,241)' : 'none',
+                                    transition: 'color .15s',
+                                    whiteSpace: 'nowrap',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                }}
+                            >
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
+                                {tab.badge ? (
+                                    <span style={{
+                                        flexShrink: 0,
+                                        borderRadius: '999px',
+                                        background: 'rgba(255,255,255,0.14)',
+                                        padding: '1px 7px',
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        color: '#eaf0f7',
+                                        lineHeight: '1.4',
+                                    }}>
+                                        {tab.badge}
+                                    </span>
+                                ) : null}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div style={{ padding: '16px' }}>
+                    {tabs.map(tab => (
+                        currentTab === tab.label && <div key={tab.label}>{tab.content}</div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ── default (original pink) variant ────────────────────────────────────────
     return (
         <div>
             {/* Mobile-responsive tab container with overflow handling */}
