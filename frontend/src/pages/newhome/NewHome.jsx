@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../../components/navbar/Navbar";
+import Footer from "../../components/footer/Footer";
 import Hero from "../../components/hero/Hero";
 import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
@@ -204,7 +205,7 @@ export const CARDS = [
 ];
 
 const NewHome = () => (
-  <div className="bg-primary-background min-h-screen pb-16 md:pb-0">
+  <div className="bg-primary-background min-h-screen pb-16 space-y-16 md:pb-0">
     {/* Hero + Navbar superpuesto */}
     <div style={{ position: "relative" }}>
       <Hero />
@@ -251,6 +252,8 @@ const NewHome = () => (
         })}
       </div>
     </div>
+
+    <Footer />
   </div>
 );
 

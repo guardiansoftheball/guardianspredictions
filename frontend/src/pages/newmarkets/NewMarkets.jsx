@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../../components/navbar/Navbar";
+import Footer from "../../components/footer/Footer";
 import Filtros from "../../components/filtros/Filtros";
 import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
@@ -7,7 +8,7 @@ import MatchCard from "../../components/cards/MatchCard";
 import { CARDS } from "../newhome/NewHome";
 
 const NewMarkets = () => (
-  <div className="min-h-screen pb-16 md:pb-0 bg-[#050811] bg-[radial-gradient(circle_at_50%_35%,#51ADF6_0%,#050811_40%)]">
+  <div className="min-h-screen space-y-16 pb-16 md:pb-0 bg-[#050811] bg-[radial-gradient(circle_at_50%_35%,#51ADF6_0%,#050811_40%)]">
     <Navbar />
 
     <div className="flex gap-y-8 gap-x-12 pt-20 px-10 max-lg:px-4 max-lg:flex-col">
@@ -53,6 +54,8 @@ const NewMarkets = () => (
         </div>
       </div>
     </div>
+
+    <Footer />
   </div>
 );
 
