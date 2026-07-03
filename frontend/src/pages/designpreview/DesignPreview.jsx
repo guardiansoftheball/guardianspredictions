@@ -179,20 +179,18 @@ const DesignPreview = () => {
             <div>
               <p className="text-gray-400 text-xs mb-3">Yes</p>
               <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                style={{ display: "flex", gap: "12px", alignItems: "center", maxWidth: "320px" }}
               >
                 <CardButton
                   label="Yes"
                   color="#bad659"
                   variant="yes"
-                  width={148}
                   pct={65}
                 />
                 <CardButton
                   label="Atlético Madrid"
                   color="#bad659"
                   variant="yes"
-                  width={93}
                   pct={55}
                 />
               </div>
@@ -200,20 +198,18 @@ const DesignPreview = () => {
             <div>
               <p className="text-gray-400 text-xs mb-3">No</p>
               <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                style={{ display: "flex", gap: "12px", alignItems: "center", maxWidth: "320px" }}
               >
                 <CardButton
                   label="No"
                   color="#f89182"
                   variant="no"
-                  width={148}
                   pct={35}
                 />
                 <CardButton
                   label="Barcelona"
                   color="#f89182"
                   variant="no"
-                  width={93}
                   pct={30}
                 />
               </div>
@@ -221,13 +217,12 @@ const DesignPreview = () => {
             <div>
               <p className="text-gray-400 text-xs mb-3">Draw</p>
               <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                style={{ display: "flex", gap: "12px", alignItems: "center", maxWidth: "160px" }}
               >
                 <CardButton
                   label="Draw"
                   color="#b4d1ed"
                   variant="yes"
-                  width={93}
                   pct={15}
                 />
               </div>

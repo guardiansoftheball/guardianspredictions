@@ -59,9 +59,9 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         <button
           onClick={onClose}
           className="absolute right-6 top-5 opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Cerrar"
+          aria-label="Close"
         >
-          <img src={imgIconClose} alt="cerrar" className="h-[18px] w-[18px]" />
+          <img src={imgIconClose} alt="close" className="h-[18px] w-[18px]" />
         </button>
 
         {/* Logo */}
@@ -73,7 +73,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         <div className="flex flex-col gap-3">
           <Input
             type="text"
-            placeholder="E-mail / Usuario"
+            placeholder="Email / Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
@@ -90,17 +90,17 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         {/* Error */}
         {error && <p className="text-center text-sm text-red-300">{error}</p>}
 
-        {/* Siguiente */}
+        {/* Next */}
         <div className="flex justify-end">
           <Button variant="primary" onClick={handleSubmit} loading={loading} withArrow>
-            Siguiente
+            Next
           </Button>
         </div>
 
         {/* Separator */}
         <div className="flex items-center gap-3">
           <div className="flex-1 border-t border-white/40" />
-          <span className="text-white/50 text-[20px]">o</span>
+          <span className="text-white/50 text-[20px]">or</span>
           <div className="flex-1 border-t border-white/40" />
         </div>
 
@@ -111,7 +111,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
               key={alt}
               variant="glass"
               disabled
-              title={`${alt} (próximamente)`}
+              title={`${alt} (coming soon)`}
               className="h-[52px] w-[104px] rounded-[16px]"
             >
               {icon && <img src={icon} alt={alt} className="h-[30px] w-[30px] object-contain" />}
@@ -119,13 +119,13 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           ))}
         </div>
 
-        {/* Registrarme */}
+        {/* Sign up */}
         <Button
           variant="glass"
           onClick={onSwitchToRegister}
           className="h-[58px] w-full"
         >
-          Registrarme
+          Sign up
         </Button>
 
         {/* Forgot password */}
@@ -134,7 +134,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
             onClick={onForgotPassword}
             className="text-white/95 text-[16px] underline hover:text-white transition-colors"
           >
-            Olvide mi contraseña
+            Forgot my password
           </button>
         </div>
 

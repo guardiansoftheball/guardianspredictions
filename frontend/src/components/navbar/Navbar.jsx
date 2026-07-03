@@ -455,7 +455,7 @@ const Navbar = () => {
           <button
             onClick={() => setSidebarOpen(false)}
             className="text-gray-300 hover:text-white"
-            aria-label="Cerrar menú"
+            aria-label="Close menu"
           >
             <MenuShrinkSVG className="w-6 h-6" />
           </button>
@@ -545,10 +545,10 @@ const Navbar = () => {
         <button
           onClick={() => setSidebarOpen(true)}
           className="flex flex-col items-center gap-0.5 text-gray-300 hover:text-white transition-colors"
-          aria-label="Abrir menú"
+          aria-label="Open menu"
         >
           <MenuGrowSVG className="w-5 h-5" />
-          <span className="text-[10px]">Más</span>
+          <span className="text-[10px]">More</span>
         </button>
       </div>
 

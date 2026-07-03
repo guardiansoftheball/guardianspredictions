@@ -718,7 +718,7 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
               cursor: 'pointer', background: 'transparent',
               font: `700 13px ${FONT}`,
               color: tab === key ? TEXT : MUTED2,
-              boxShadow: tab === key ? `inset 0 -2px 0 ${YES_COLOR}` : 'none',
+              boxShadow: tab === key ? `inset 0 -2px 0 #9cc9f1` : 'none',
               transition: 'color .15s',
             }}
           >
