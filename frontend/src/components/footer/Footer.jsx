@@ -12,12 +12,12 @@ import {
 
 const LINK_COLUMNS = [
   [
-    { label: "Preguntas Frecuentes", to: "#" },
+    { label: "FAQ", to: "#" },
     { label: "Info", to: "/about" },
   ],
   [
-    { label: "Terminos y condiciones", to: "#" },
-    { label: "Politicas de privacidad", to: "#" },
+    { label: "Terms and Conditions", to: "#" },
+    { label: "Privacy Policy", to: "#" },
   ],
 ];
 
@@ -66,7 +66,7 @@ const Footer = () => {
 
         {/* Social links */}
         <div className="flex flex-col gap-3">
-          <span className="text-[#F1EFEF] text-sm">Seguinos en</span>
+          <span className="text-[#F1EFEF] text-sm">Follow us on</span>
           <div className="flex items-center gap-4">
             {SOCIAL_LINKS.map(({ label, Icon, href }) => (
               <a

@@ -5,7 +5,7 @@ const MatchCard = ({
   homeTeam = { name: "Atlético Madrid", logo: null, pct: 70 },
   awayTeam = { name: "Barcelona", logo: null, pct: 30 },
   draw = { pct: 0 },
-  poolAmount = "$5.606,90",
+  poolAmount = "$5,606.90",
   onHome,
   onDraw,
   onAway,

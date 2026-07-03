@@ -4,10 +4,10 @@ const PredictionCard = ({
   teamLogo,
   question = "Lorem ipsum dolor sit mon amet sin?",
   options = [
-    { label: "Opción A", pct: 30 },
-    { label: "Opción B", pct: 70 },
+    { label: "Option A", pct: 30 },
+    { label: "Option B", pct: 70 },
   ],
-  poolAmount = "$5.606,90",
+  poolAmount = "$5,606.90",
   onYes,
   onNo,
 }) => {
@@ -31,7 +31,7 @@ const PredictionCard = ({
             <img
               src={teamLogo}
               alt="team logo"
-              className="w-[34px] h-11 sm:w-[38px] sm:h-[49px] shrink-0 object-cover"
+              className="w-[42px] h-[30px] sm:w-[46px] sm:h-[34px] shrink-0 object-contain"
             />
           )}
           <p

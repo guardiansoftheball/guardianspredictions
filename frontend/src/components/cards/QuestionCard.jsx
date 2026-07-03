@@ -5,7 +5,7 @@ const QuestionCard = ({
   teamLogo,
   question = "Lorem ipsum dolor sit mon amet sin?",
   pct = 70,
-  poolAmount = "$5.606,90",
+  poolAmount = "$5,606.90",
   onYes,
   onNo,
 }) => {
@@ -29,7 +29,7 @@ const QuestionCard = ({
             <img
               src={teamLogo}
               alt="team logo"
-              className="w-[38px] h-[49px] sm:w-[42px] sm:h-[54px] shrink-0 object-cover"
+              className="w-[46px] h-[34px] sm:w-[52px] sm:h-[38px] shrink-0 object-contain"
             />
           )}
           <p

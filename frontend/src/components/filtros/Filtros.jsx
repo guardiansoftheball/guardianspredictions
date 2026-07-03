@@ -96,7 +96,7 @@ const FILTER_SECTIONS = [
     key: "events",
     label: "Events",
     Icon: EventsIcon,
-    options: ["Matches", "Press", "Clasificación", "Eliminatorias"],
+    options: ["Matches", "Press", "Standings", "Knockouts"],
   },
 ];
 
@@ -161,7 +161,7 @@ const Filtros = () => {
     <div className="rounded-2xl border border-white/10 bg-primary-background px-5 py-6 text-white">
       {/* Header */}
       <h2 className="text-2xl font-bold">Markets</h2>
-      <p className="mt-1 text-sm text-white/50">12.000 predictions</p>
+      <p className="mt-1 text-sm text-white/50">12,000 predictions</p>
 
       {/* Search */}
       <div className="mt-4 flex items-center gap-2 rounded-full border border-white/20 px-4 py-2">

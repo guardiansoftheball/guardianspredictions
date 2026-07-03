@@ -12,7 +12,7 @@ const NewMarkets = () => (
     <Navbar />
 
     <div className="flex gap-y-8 gap-x-12 pt-20 px-10 max-lg:px-4 max-lg:flex-col">
-      {/* Panel de filtros */}
+      {/* Filters panel */}
       <aside className="w-[280px] shrink-0 max-lg:w-full">
         <Filtros />
       </aside>
