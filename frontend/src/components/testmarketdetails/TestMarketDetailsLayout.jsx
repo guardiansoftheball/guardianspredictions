@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
+import Footer from "../footer/Footer";
 import NewMarketChart from "../charts/NewMarketChart";
 import ActivityTabs from "../tabs/ActivityTabs";
 import NewTradePanel from "./NewTradePanel";
@@ -485,6 +486,7 @@ function TestMarketDetailsLayout({
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

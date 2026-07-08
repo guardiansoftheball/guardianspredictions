@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
@@ -214,8 +214,13 @@ export const CARDS = [
 
 const NewHome = () => {
   const { marketIds } = useActiveMarketIds(CARDS.length);
+
+  useEffect(() => {
+    document.title = "Guardians Predictions";
+  }, []);
+
   return (
-    <div className="bg-primary-background relative z-50 min-h-screen pb-16 md:pb-0">
+    <div className="bg-primary-background relative z-50 min-h-screen pb-16">
       {/* Hero + Navbar superpuesto */}
       <div style={{ position: "relative", zIndex: 10 }}>
         <Hero />
@@ -301,7 +306,9 @@ const NewHome = () => {
         </div>
       </div>
 
-      <Footer />
+      <div className="mt-16">
+        <Footer />
+      </div>
     </div>
   );
 };

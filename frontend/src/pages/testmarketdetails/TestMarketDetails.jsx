@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMarketDetails } from '../../hooks/useMarketDetails';
 import { useAuth } from '../../helpers/AuthContent';
 import LoadingSpinner from '../../components/loaders/LoadingSpinner';
@@ -7,6 +7,12 @@ import TestMarketDetailsLayout from '../../components/testmarketdetails/TestMark
 const TestMarketDetails = () => {
   const { username, usertype, moderatorStatus } = useAuth();
   const { details, error, isLoggedIn, token, refetchData, currentProbability } = useMarketDetails();
+
+  useEffect(() => {
+    if (details?.market?.questionTitle) {
+      document.title = `${details.market.questionTitle} | Guardians Predictions`;
+    }
+  }, [details?.market?.questionTitle]);
 
   if (error) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8ca0b6', fontFamily: 'Manrope,system-ui,sans-serif' }}>
