@@ -212,6 +212,22 @@ const normalizeMarketDetails = (raw) => {
   };
 };
 
+export const mergeMarketDetailsWithSummary = (details, summary) => {
+  if (!details || !summary || summary.freshness?.isStale === true) {
+    return details;
+  }
+  return {
+    ...details,
+    probabilityChanges: summary.probabilityChanges.length > 0
+      ? summary.probabilityChanges
+      : details.probabilityChanges,
+    numUsers: summary.numUsers,
+    totalVolume: summary.totalVolume,
+    marketDust: summary.marketDust,
+    freshness: summary.freshness,
+  };
+};
+
 const calculateCurrentProbability = (details) => {
   if (!details) return 0;
 
@@ -275,18 +291,7 @@ export const useMarketDetails = () => {
         let normalized = normalizeMarketDetails(data);
         if (summaryResponse?.ok) {
           const summary = normalizeMarketDetails(unwrapApiEnvelope(await summaryResponse.json()));
-          if (summary) {
-            normalized = {
-              ...normalized,
-              probabilityChanges: summary.probabilityChanges.length > 0
-                ? summary.probabilityChanges
-                : normalized.probabilityChanges,
-              numUsers: summary.numUsers || normalized.numUsers,
-              totalVolume: summary.totalVolume || normalized.totalVolume,
-              marketDust: summary.marketDust || normalized.marketDust,
-              freshness: summary.freshness,
-            };
-          }
+          normalized = mergeMarketDetailsWithSummary(normalized, summary);
         }
         setDetails(normalized);
         setCurrentProbability(calculateCurrentProbability(normalized));

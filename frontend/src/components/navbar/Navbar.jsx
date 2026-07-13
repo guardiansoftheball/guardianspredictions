@@ -285,6 +285,9 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const NAV_HEIGHT = 80; // px — matches padding-top + height
+const SCROLL_THRESHOLD = 60; // px before switching to fixed mode
+
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
@@ -292,6 +295,33 @@ const Navbar = () => {
   const isLoggedIn = !!username;
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
+
+  // ── scroll-aware desktop nav ────────────────────────────────────────────────
+  const [navFixed, setNavFixed] = useState(false); // switched to fixed position
+  const [navVisible, setNavVisible] = useState(true); // show or hide via transform
+  const lastScrollY = React.useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const current = window.scrollY;
+      const prev = lastScrollY.current;
+
+      if (current > SCROLL_THRESHOLD) {
+        setNavFixed(true);
+        // scrolling down → hide, scrolling up → show
+        setNavVisible(current < prev);
+      } else {
+        setNavFixed(false);
+        setNavVisible(true);
+      }
+
+      lastScrollY.current = current;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  // ────────────────────────────────────────────────────────────────────────────
 
   const handleLogout = () => {
     logout();
@@ -316,20 +346,49 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, [sidebarOpen]);
 
+  const desktopNavStyle = navFixed
+    ? {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        height: "64px",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 80px",
+        boxSizing: "border-box",
+        background: "rgba(10,20,34,0.88)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        transform: navVisible ? "translateY(0)" : "translateY(-100%)",
+        // animate only when reappearing; instant hide
+        transition: navVisible
+          ? "transform 0.28s cubic-bezier(0.4,0,0.2,1)"
+          : "none",
+      }
+    : {
+        height: "64px",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "40px 80px 0 80px",
+        marginBottom: "16px",
+        boxSizing: "border-box",
+      };
+
   return (
     <>
       {/* ── DESKTOP NAV ── */}
-      <nav
-        className="hidden lg:flex"
-        style={{
-          height: "64px",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "40px 80px 0 80px",
-          marginBottom: "16px",
-          boxSizing: "border-box",
-        }}
-      >
+      {/* Placeholder keeps layout stable when nav becomes fixed */}
+      {navFixed && (
+        <div
+          className="hidden lg:block"
+          style={{ height: NAV_HEIGHT }}
+          aria-hidden="true"
+        />
+      )}
+      <nav className="hidden lg:flex" style={desktopNavStyle}>
         {/* Logo */}
         <Link
           to="/new-home"
