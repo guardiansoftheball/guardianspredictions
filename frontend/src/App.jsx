@@ -7,7 +7,7 @@ import AppRoutes from './helpers/AppRoutes';
 import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
-const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/design-preview'];
+const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/newprofile', '/design-preview'];
 const FULLSCREEN_PREFIXES = ['/test/markets'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
