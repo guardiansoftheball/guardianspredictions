@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useHistory } from "react-router-dom";
+import { Link, useHistory, useLocation } from "react-router-dom";
 import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
@@ -38,9 +38,10 @@ const BOTTOM_NAV = [
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
-const UserChip = ({ username, credit, onLogout, onProfile }) => {
+const UserChip = ({ username, credit, onLogout, onProfile, isAdmin, onAdminReview, navVisible }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = React.useRef(null);
+  const { pathname } = useLocation();
 
   const initials = (username || "?").slice(0, 2).toUpperCase();
   const fmt = (n) => {
@@ -48,6 +49,11 @@ const UserChip = ({ username, credit, onLogout, onProfile }) => {
     if (n >= 1000) return (n / 1000).toFixed(1) + "k";
     return String(Math.round(n));
   };
+
+  // Close when navbar hides on scroll
+  useEffect(() => {
+    if (!navVisible) setOpen(false);
+  }, [navVisible]);
 
   // Close on outside click
   useEffect(() => {
@@ -197,6 +203,17 @@ const UserChip = ({ username, credit, onLogout, onProfile }) => {
 
           {/* Menu items */}
           <div style={{ padding: "6px" }}>
+            {isAdmin && (
+              <DropdownItem
+                icon={<AdminIcon />}
+                label="Review Markets"
+                active={pathname === '/test/admin/markets/review'}
+                onClick={() => {
+                  setOpen(false);
+                  onAdminReview?.();
+                }}
+              />
+            )}
             <DropdownItem
               icon={<PersonIcon />}
               label="My profile"
@@ -221,7 +238,7 @@ const UserChip = ({ username, credit, onLogout, onProfile }) => {
   );
 };
 
-const DropdownItem = ({ icon, label, onClick, danger }) => (
+const DropdownItem = ({ icon, label, onClick, danger, active }) => (
   <button
     onClick={onClick}
     style={{
@@ -231,25 +248,40 @@ const DropdownItem = ({ icon, label, onClick, danger }) => (
       gap: "10px",
       padding: "9px 12px",
       borderRadius: "9px",
-      border: "none",
-      background: "transparent",
+      border: active ? "1px solid rgba(156,201,241,0.25)" : "none",
+      background: active ? "rgba(156,201,241,0.10)" : "transparent",
       cursor: "pointer",
       fontFamily: FONT,
       fontWeight: 600,
       fontSize: "13px",
-      color: danger ? COLOR.noText : COLOR.text,
+      color: danger ? COLOR.noText : active ? "rgb(156,201,241)" : COLOR.text,
       transition: "background .12s",
     }}
-    onMouseEnter={(e) =>
-      (e.currentTarget.style.background = danger
-        ? "rgba(251,91,107,0.10)"
-        : "rgba(255,255,255,0.06)")
-    }
-    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    onMouseEnter={(e) => {
+      if (!active) e.currentTarget.style.background = danger ? "rgba(251,91,107,0.10)" : "rgba(255,255,255,0.06)";
+    }}
+    onMouseLeave={(e) => {
+      if (!active) e.currentTarget.style.background = "transparent";
+    }}
   >
-    <span style={{ opacity: 0.7, display: "flex" }}>{icon}</span>
+    <span style={{ opacity: active ? 1 : 0.7, display: "flex" }}>{icon}</span>
     {label}
   </button>
+);
+
+const AdminIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+  </svg>
 );
 
 const PersonIcon = () => (
@@ -291,7 +323,7 @@ const SCROLL_THRESHOLD = 60; // px before switching to fixed mode
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
-  const { login, logout, username, token } = useAuth();
+  const { login, logout, username, token, usertype } = useAuth();
   const isLoggedIn = !!username;
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
@@ -436,6 +468,9 @@ const Navbar = () => {
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
+              isAdmin={usertype === 'ADMIN'}
+              onAdminReview={() => history.push('/test/admin/markets/review')}
+              navVisible={navVisible}
             />
           ) : (
             <>
@@ -547,6 +582,8 @@ const Navbar = () => {
                   credit={userCredit}
                   onLogout={handleLogout}
                   onProfile={handleProfile}
+                  isAdmin={usertype === 'ADMIN'}
+                  onAdminReview={() => { setSidebarOpen(false); history.push('/test/admin/markets/review'); }}
                 />
               </div>
             ) : (

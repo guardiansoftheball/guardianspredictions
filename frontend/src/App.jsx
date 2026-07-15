@@ -8,7 +8,7 @@ import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
 const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/design-preview'];
-const FULLSCREEN_PREFIXES = ['/test/markets'];
+const FULLSCREEN_PREFIXES = ['/test/markets', '/test/admin'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
   const showDiagnosticDetails = import.meta.env.DEV && error?.message;

@@ -18,6 +18,7 @@ import DesignPreview from '../pages/designpreview/DesignPreview';
 import NewHome from '../pages/newhome/NewHome';
 import NewMarkets from '../pages/newmarkets/NewMarkets';
 import TestMarketDetails from '../pages/testmarketdetails/TestMarketDetails';
+import TestAdminMarketsReview from '../pages/testadminmarketsreview/TestAdminMarketsReview';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
 const AppRoutes = () => {
@@ -57,6 +58,15 @@ const AppRoutes = () => {
 
       {/* Test Market Details - new UI */}
       <Route exact path='/test/markets/:marketId' component={TestMarketDetails} />
+
+      {/* Test Admin Markets Review - new UI */}
+      <Route exact path='/test/admin/markets/review'>
+        {isLoggedIn && auth.usertype === 'ADMIN' ? (
+          <TestAdminMarketsReview />
+        ) : (
+          <Redirect to='/' />
+        )}
+      </Route>
 
       {/* Public Routes */}
       <Route exact path='/about'>
