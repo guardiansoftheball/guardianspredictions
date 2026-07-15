@@ -214,14 +214,17 @@ const UserChip = ({ username, credit, onLogout, onProfile, isAdmin, onAdminRevie
                 }}
               />
             )}
-            <DropdownItem
-              icon={<PersonIcon />}
-              label="My profile"
-              onClick={() => {
-                setOpen(false);
-                onProfile?.();
-              }}
-            />
+            {!isAdmin && (
+              <DropdownItem
+                icon={<PersonIcon />}
+                label="My profile"
+                active={pathname === '/newprofile'}
+                onClick={() => {
+                  setOpen(false);
+                  onProfile?.();
+                }}
+              />
+            )}
             <DropdownItem
               icon={<LogoutIcon />}
               label="Sign out"
@@ -325,6 +328,7 @@ const Navbar = () => {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
   const { login, logout, username, token, usertype } = useAuth();
   const isLoggedIn = !!username;
+  const isAdmin = usertype === 'ADMIN';
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
 
@@ -359,7 +363,7 @@ const Navbar = () => {
     logout();
     history.push("/");
   };
-  const handleProfile = () => history.push("/profile");
+  const handleProfile = () => history.push("/newprofile");
 
   const openLoginModal = () => setAuthModal("login");
   const openRegisterModal = () => setAuthModal("register");

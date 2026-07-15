@@ -19,6 +19,7 @@ import NewHome from '../pages/newhome/NewHome';
 import NewMarkets from '../pages/newmarkets/NewMarkets';
 import TestMarketDetails from '../pages/testmarketdetails/TestMarketDetails';
 import TestAdminMarketsReview from '../pages/testadminmarketsreview/TestAdminMarketsReview';
+import NewProfile from '../pages/newprofile/NewProfile';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
 const AppRoutes = () => {
@@ -66,6 +67,11 @@ const AppRoutes = () => {
         ) : (
           <Redirect to='/' />
         )}
+      </Route>
+
+      {/* New Profile Preview */}
+      <Route exact path='/newprofile'>
+        {isRegularUser ? <NewProfile /> : <Redirect to='/' />}
       </Route>
 
       {/* Public Routes */}
