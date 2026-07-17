@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip as RTooltip,
@@ -32,9 +32,9 @@ const TEXT       = COLOR.text;
 
 // Per-option theme: first=green, last=red, middles=neutral/purple/orange/teal…
 const OPTION_THEMES = [
-  { color: "#22c55e", text: "#4ade80", bg: "rgba(34,197,94,0.10)",   border: "rgba(34,197,94,0.28)",   activeBorder: "rgba(34,197,94,0.55)",   gradient: "linear-gradient(180deg,#26d365,#16a34a)", shadow: "0 8px 22px rgba(34,197,94,0.30)"   },
+  { color: "#00d4bf", text: "#33ddc9", bg: "rgba(0,212,191,0.10)",   border: "rgba(0,212,191,0.28)",   activeBorder: "rgba(0,212,191,0.55)",   gradient: "linear-gradient(180deg,#00d4bf,#00a899)", shadow: "0 8px 22px rgba(0,212,191,0.30)"   },
   { color: "#fb5b6b", text: "#fb8b96", bg: "rgba(251,91,107,0.10)",  border: "rgba(251,91,107,0.25)",  activeBorder: "rgba(251,91,107,0.55)",  gradient: "linear-gradient(180deg,#fb5b6b,#e11d48)", shadow: "0 8px 22px rgba(244,63,94,0.28)"   },
-  { color: "#94a3b8", text: "#cbd5e1", bg: "rgba(148,163,184,0.09)", border: "rgba(148,163,184,0.22)", activeBorder: "rgba(148,163,184,0.50)", gradient: "linear-gradient(180deg,#94a3b8,#64748b)", shadow: "0 8px 22px rgba(148,163,184,0.22)" },
+  { color: "#6b7f96", text: "#8ca0b6", bg: "rgba(107,127,150,0.09)", border: "rgba(107,127,150,0.22)", activeBorder: "rgba(107,127,150,0.50)", gradient: "linear-gradient(180deg,#6b7f96,#4a5e72)", shadow: "0 8px 22px rgba(107,127,150,0.22)" },
   { color: "#a78bfa", text: "#c4b5fd", bg: "rgba(167,139,250,0.10)", border: "rgba(167,139,250,0.26)", activeBorder: "rgba(167,139,250,0.52)", gradient: "linear-gradient(180deg,#a78bfa,#7c3aed)", shadow: "0 8px 22px rgba(167,139,250,0.28)" },
   { color: "#f6ad55", text: "#fbd38d", bg: "rgba(246,173,85,0.10)",  border: "rgba(246,173,85,0.24)",  activeBorder: "rgba(246,173,85,0.50)",  gradient: "linear-gradient(180deg,#f6ad55,#d97706)", shadow: "0 8px 22px rgba(246,173,85,0.26)"  },
   { color: "#4fd1c5", text: "#81e6d9", bg: "rgba(79,209,197,0.10)",  border: "rgba(79,209,197,0.24)",  activeBorder: "rgba(79,209,197,0.50)",  gradient: "linear-gradient(180deg,#4fd1c5,#0d9488)", shadow: "0 8px 22px rgba(79,209,197,0.24)"  },
@@ -71,11 +71,17 @@ function formatTooltipDate(ts) {
 }
 
 function getAnswerProb(answer) {
-  const changes = Array.isArray(answer?.probabilityChanges) ? answer.probabilityChanges
+  const raw = Array.isArray(answer?.probabilityChanges) ? answer.probabilityChanges
     : Array.isArray(answer?.summary?.probabilityChanges) ? answer.summary.probabilityChanges
     : [];
-  if (changes.length > 0) {
-    const last = changes[changes.length - 1];
+  if (raw.length > 0) {
+    // Sort by timestamp to guarantee we get the most recent value
+    const sorted = [...raw].sort((a, b) => {
+      const ta = new Date(a.timestamp || a.Timestamp).getTime();
+      const tb = new Date(b.timestamp || b.Timestamp).getTime();
+      return ta - tb;
+    });
+    const last = sorted[sorted.length - 1];
     const p = Number(last.probability ?? last.Probability);
     if (Number.isFinite(p)) return p;
   }
@@ -86,9 +92,8 @@ function getAnswerProb(answer) {
   return Number.isFinite(Number(fallback)) ? Number(fallback) : 0.5;
 }
 
-function buildChartData(answers, timeFilter) {
-  const now = Date.now();
-  const cutoffMs = { "1H": 3600000, "1D": 86400000, "1W": 604800000 };
+function buildChartData(answers, timeFilter, now = Date.now()) {
+  const cutoffMs = { "LIVE": 7_200_000, "1H": 3_600_000, "1D": 86_400_000, "1W": 604_800_000 };
   const cutoff = timeFilter === "ALL" ? 0 : now - (cutoffMs[timeFilter] || 0);
 
   const series = answers.map((a) => {
@@ -161,171 +166,387 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
-// ─── Chart tooltip (single option) ───────────────────────────────────────────
-const SingleOptionTooltip = ({ active, payload, label, selectedKey, answerLabel, theme }) => {
+// ─── Chart tooltip (all options) ─────────────────────────────────────────────
+const MultiAllTooltip = ({ active, payload, label, answers, timeFilter }) => {
   if (!active || !payload?.length) return null;
-  const entry = payload.find((p) => p.dataKey === selectedKey);
-  if (!entry) return null;
+  const d = new Date(label);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const timeStr = timeFilter === "LIVE" ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
   return (
     <div style={{
-      background: "rgba(12,26,44,0.96)",
-      border: `1px solid ${theme.border}`,
-      borderRadius: "10px", padding: "10px 14px", fontFamily: FONT_BODY,
+      background: "rgba(10,20,36,0.97)",
+      border: "1px solid rgba(255,255,255,0.12)",
+      borderRadius: "12px", padding: "12px 16px", fontFamily: FONT_BODY,
+      minWidth: "160px",
     }}>
-      <div style={{ font: `600 11px ${FONT_BODY}`, color: MUTED2, marginBottom: "4px" }}>
-        {formatTooltipDate(label)}
+      <div style={{ font: `600 11px ${FONT_BODY}`, color: MUTED2, marginBottom: "10px" }}>
+        {timeStr}
       </div>
-      <div style={{ font: `800 18px ${FONT_HEAD}`, color: theme.color }}>
-        {entry.value?.toFixed(1)}%
-      </div>
-      <div style={{ font: `500 11px ${FONT_BODY}`, color: MUTED3, marginTop: "2px" }}>
-        {answerLabel} chance
-      </div>
+      {answers.map((a, i) => {
+        const t = getOptionTheme(i, answers.length);
+        const entry = payload.find((p) => p.dataKey === `o${i}`);
+        const val = entry?.value;
+        return (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: i < answers.length - 1 ? "7px" : 0 }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: t.color, flexShrink: 0 }} />
+            <span style={{ font: `500 12px ${FONT_BODY}`, color: "#b7c6d6", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "110px" }}>
+              {a.answerLabel}
+            </span>
+            <span style={{ font: `800 13px ${FONT_HEAD}`, color: t.color, marginLeft: "auto" }}>
+              {val != null ? `${val.toFixed(1)}%` : "—"}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-// ─── Multi-option chart ────────────────────────────────────────────────────────
-const TIME_FILTERS = ["1H", "1D", "1W", "ALL"];
-const CUTOFF_MS = { "1H": 3_600_000, "1D": 86_400_000, "1W": 604_800_000 };
+// ─── Multi-option chart (pure SVG, real data) ────────────────────────────────
+const MC_RANGES     = ["Live", "1h", "1d", "1w", "1m"];
+const MC_WINDOW_MS  = { Live: 5*60_000, "1h": 3600_000, "1d": 86400_000, "1w": 7*86400_000, "1m": 30*86400_000 };
+const MC_LABEL_STEP = { Live: 60_000, "1h": 10*60_000, "1d": 3*3600_000, "1w": 86400_000, "1m": 5*86400_000 };
+
+function mcAvoidCollisions(rawTops, minGap = 14, maxTop = 82) {
+  const arr = rawTops.map((t, i) => ({ t, i })).sort((a, b) => a.t - b.t);
+  for (let iter = 0; iter < 60; iter++) {
+    let moved = false;
+    for (let j = 1; j < arr.length; j++) {
+      if (arr[j].t - arr[j - 1].t < minGap) {
+        const mid = (arr[j].t + arr[j - 1].t) / 2;
+        arr[j - 1].t = mid - minGap / 2;
+        arr[j].t     = mid + minGap / 2;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  if (arr[arr.length - 1].t > maxTop) {
+    const excess = arr[arr.length - 1].t - maxTop;
+    arr.forEach(a => { a.t -= excess; });
+  }
+  const out = new Array(rawTops.length);
+  arr.forEach(({ t, i }) => { out[i] = t; });
+  return out;
+}
 
 function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
-  const [timeFilter, setTimeFilter] = useState("ALL");
+  const [range, setRange] = useState("Live");
+  const [hoverT, setHoverT] = useState(null);
+  const chartRef = useRef(null);
 
-  const data = buildChartData(answers, timeFilter);
-  const selectedAnswer = answers[selectedIdx];
-  const theme = getOptionTheme(selectedIdx, answers.length);
-  const prob = selectedAnswer ? Math.round(getAnswerProb(selectedAnswer) * 100) : 0;
-  const gradId = `optGrad${selectedIdx}`;
-  const selectedKey = `o${selectedIdx}`;
+  const [liveNow, setLiveNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setLiveNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const W = 780, SVG_H = 380, TOP = 20, BOT = 360;
+  const windowMs = MC_WINDOW_MS[range];
+  const winStart = liveNow - windowMs;
+
+  // Parse + anchor each answer's history so it always spans the full window
+  const seriesData = useMemo(() => answers.map(a => {
+    const raw = Array.isArray(a.probabilityChanges) ? a.probabilityChanges
+      : Array.isArray(a.summary?.probabilityChanges) ? a.summary.probabilityChanges : [];
+    const changes = raw
+      .map(c => ({ t: new Date(c.timestamp || c.Timestamp).getTime(), p: Number(c.probability ?? c.Probability) }))
+      .filter(c => Number.isFinite(c.t) && Number.isFinite(c.p))
+      .sort((a, b) => a.t - b.t);
+    const curP   = Math.max(0.01, Math.min(0.99, getAnswerProb(a)));
+    const before = changes.filter(c => c.t < winStart);
+    const within = changes.filter(c => c.t >= winStart && c.t < liveNow);
+    // Always anchor at winStart so the line fills left to right
+    const anchorP = before.length ? before[before.length - 1].p
+      : within.length ? within[0].p : curP;
+    return [{ t: winStart, p: anchorP }, ...within, { t: liveNow, p: curP }];
+  }), [answers, winStart, liveNow]);
+
+  // Union timestamps for snapping hover
+  const allTs = useMemo(() => {
+    const s = new Set();
+    seriesData.forEach(sd => sd.forEach(c => s.add(c.t)));
+    return [...s].sort((a, b) => a - b);
+  }, [seriesData]);
+
+  const getValAt = (series, t) => {
+    let v = series[0]?.p ?? 0.5;
+    for (const c of series) { if (c.t <= t) v = c.p; else break; }
+    return v;
+  };
+
+  // Dynamic Y range
+  const allProbs = seriesData.flat().map(c => c.p).filter(Number.isFinite);
+  const dataMin  = allProbs.length ? Math.min(...allProbs) : 0;
+  const dataMax  = allProbs.length ? Math.max(...allProbs) : 1;
+  const pad5     = Math.max(0.05, (dataMax - dataMin) * 0.25);
+  const yMin     = Math.max(0, dataMin - pad5);
+  const yMax     = Math.min(1, dataMax + pad5);
+  const yrng     = yMax - yMin || 1;
+  const yOf      = p => BOT - ((p - yMin) / yrng) * (BOT - TOP);
+  const yTicks   = [yMax, yMin + yrng*0.667, yMin + yrng*0.333, yMin].map(v => Math.round(v*100) + "%");
+
+  const xOf = t => ((t - winStart) / windowMs) * W;
+
+  const MC_OVERLAP_THRESH = 0.05;
+
+  const mcPtsToD = pts => {
+    if (pts.length < 2) return "";
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) d += ` H${pts[i][0].toFixed(1)} V${pts[i][1].toFixed(1)}`;
+    return d;
+  };
+
+  const mcSplitPath = (pts, closeFlags) => {
+    let solidSegs = [], dashSegs = [], cur = [], curClose = closeFlags[0];
+    for (let i = 0; i < pts.length; i++) {
+      const c = closeFlags[i];
+      if (c !== curClose) {
+        cur.push(pts[i]);
+        (curClose ? dashSegs : solidSegs).push([...cur]);
+        cur = [pts[i]];
+        curClose = c;
+      }
+      cur.push(pts[i]);
+    }
+    (curClose ? dashSegs : solidSegs).push(cur);
+    return { solidD: solidSegs.map(mcPtsToD).join(" "), dashD: dashSegs.map(mcPtsToD).join(" ") };
+  };
+
+  const paths = seriesData.map((series, i) => {
+    const pts = series.map(c => [xOf(c.t), yOf(c.p)]);
+    const closeFlags = series.map((c, idx) => {
+      const minGap = Math.min(...seriesData
+        .filter((_, j) => j !== i)
+        .map(other => Math.abs(c.p - getValAt(other, c.t))));
+      if (minGap >= MC_OVERLAP_THRESH) return false;
+      const nextC = series[idx + 1];
+      if (!nextC) return false;
+      const nextMinGap = Math.min(...seriesData
+        .filter((_, j) => j !== i)
+        .map(other => Math.abs(nextC.p - getValAt(other, nextC.t))));
+      return nextMinGap <= minGap + 0.03;
+    });
+    const { solidD, dashD } = mcSplitPath(pts, closeFlags);
+    const d = mcPtsToD(pts);
+    return { d, pts, last: pts[pts.length - 1], solidD, dashD };
+  });
+
+  const lastProbs = seriesData.map(s => s[s.length - 1]?.p ?? 0.5);
+
+  // X-axis
+  const pad = v => String(v).padStart(2, "0");
+  const fmtX = d => {
+    if (range === "Live" || range === "1h" || range === "1d") return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  };
+  const fmtTip = d => {
+    if (range === "Live" || range === "1h" || range === "1d") return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const labelStepMs = MC_LABEL_STEP[range];
+  const firstT      = Math.ceil(winStart / labelStepMs) * labelStepMs;
+  const slideLabels = [];
+  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
+    const frac = (t - winStart) / windowMs;
+    if (frac >= -0.02 && frac <= 1.02) slideLabels.push({ t, leftPct: frac * 100 });
+  }
+
+  const rawTops   = lastProbs.map(p => (yOf(p) / SVG_H) * 100 - 4);
+  const labelTops = mcAvoidCollisions(rawTops);
+  const labelLeft = `${(W / 1000) * 100 + 1}%`;
+
+  const onMove = e => {
+    const el = chartRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / (rect.width * W / 1000)));
+    setHoverT(winStart + frac * windowMs);
+  };
+
+  const hover = hoverT == null ? { active: false } : (() => {
+    let bt = allTs[0] ?? liveNow;
+    for (const t of allTs) { if (Math.abs(t - hoverT) < Math.abs(bt - hoverT)) bt = t; }
+    const hx     = xOf(bt);
+    const hProbs = seriesData.map(s => getValAt(s, bt));
+    return {
+      active:  true,
+      x:       hx.toFixed(1),
+      ys:      hProbs.map(p => yOf(p).toFixed(1)),
+      tipLeft: `${(hx / 1000 * 100).toFixed(1)}%`,
+      time:    fmtTip(new Date(bt)),
+      probs:   hProbs.map(p => Math.round(p * 100)),
+    };
+  })();
 
   return (
     <div>
-      {/* Header: same layout as binary chart */}
-      <div style={{
-        display: "flex", alignItems: "flex-end",
-        justifyContent: "space-between", marginBottom: "14px", gap: "12px",
-      }}>
-        {/* Probability number */}
-        <div>
-          <div style={{ font: `700 11px ${FONT_BODY}`, letterSpacing: ".08em", color: theme.color, marginBottom: "2px" }}>
-            {(selectedAnswer?.answerLabel || "OPTION").toUpperCase()} CHANCE
-          </div>
-          <div style={{ font: `800 38px/1 ${FONT_HEAD}`, color: TEXT }}>
-            {prob}<span style={{ fontSize: "20px" }}>%</span>
-          </div>
-        </div>
-
-        {/* Controls: option tabs on top, time filters below */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-          {/* Option tabs */}
-          <div style={{
-            display: "flex", gap: "2px",
-            background: "rgba(0,0,0,0.22)", borderRadius: "10px", padding: "3px",
-            flexWrap: "wrap",
-          }}>
-            {answers.map((a, i) => {
-              const t = getOptionTheme(i, answers.length);
-              const active = selectedIdx === i;
-              return (
-                <button
-                  key={a.marketId || i}
-                  onClick={() => onSelectIdx(i)}
-                  style={{
-                    padding: "5px 13px", borderRadius: "8px", border: "none",
-                    font: `700 12px ${FONT_BODY}`, cursor: "pointer",
-                    background: active ? t.bg : "transparent",
-                    color: active ? t.color : MUTED2,
-                    transition: "all .15s",
-                  }}
-                >
-                  {a.answerLabel}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Time filters */}
-          <div style={{
-            display: "flex", gap: "2px",
-            background: "rgba(0,0,0,0.25)", borderRadius: "9px", padding: "3px",
-          }}>
-            {TIME_FILTERS.map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setTimeFilter(tf)}
-                style={{
-                  padding: "4px 10px", borderRadius: "7px", border: "none",
-                  font: `700 11px ${FONT_BODY}`, cursor: "pointer",
-                  background: timeFilter === tf ? "rgba(255,255,255,0.10)" : "transparent",
-                  color: timeFilter === tf ? TEXT : MUTED2,
-                  transition: "all .15s",
-                }}
-              >
-                {tf}
-              </button>
-            ))}
-          </div>
+      {/* Header: volume + range tabs */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <span style={{ font: `600 13px ${FONT_BODY}`, color: "#93a7bd" }}>
+          Volume: <b style={{ color: TEXT, fontWeight: 800 }}>—</b>
+        </span>
+        <div style={{ display: "flex", gap: "2px" }}>
+          {MC_RANGES.map(r => (
+            <button key={r} onClick={() => { setRange(r); setHoverT(null); }} style={{
+              padding: "5px 11px", borderRadius: "7px", border: "none", cursor: "pointer",
+              font: `700 12px ${FONT_BODY}`,
+              background: r === range ? "rgba(255,255,255,0.14)" : "transparent",
+              color: r === range ? "#ffffff" : "#8397ad",
+            }}>
+              {r}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: -20 }}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor={theme.color} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={theme.color} stopOpacity={0}    />
-            </linearGradient>
-          </defs>
-          <XAxis
-            dataKey="t" type="number" domain={["dataMin", "dataMax"]} scale="time"
-            tickFormatter={formatTick}
-            tick={{ fill: "#5d7189", fontSize: 11, fontFamily: FONT_BODY, fontWeight: 600 }}
-            axisLine={false} tickLine={false} minTickGap={55}
-          />
-          <YAxis
-            domain={[0, 100]} tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#5d7189", fontSize: 11, fontFamily: FONT_BODY, fontWeight: 600 }}
-            axisLine={false} tickLine={false} ticks={[0, 25, 50, 75, 100]}
-          />
-          {[25, 50, 75].map((v) => (
-            <ReferenceLine key={v} y={v} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
-          ))}
-          <RTooltip
-            content={(props) => (
-              <SingleOptionTooltip
-                {...props}
-                selectedKey={selectedKey}
-                answerLabel={selectedAnswer?.answerLabel}
-                theme={theme}
-              />
+      {/* Chart + Y-axis column */}
+      <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
+
+        {/* SVG plot area */}
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}
+          ref={chartRef} onMouseMove={onMove} onMouseLeave={() => setHoverT(null)}>
+
+          <svg viewBox="0 0 1000 380" preserveAspectRatio="none"
+            style={{ width: "100%", height: "260px", display: "block", cursor: "crosshair", shapeRendering: "geometricPrecision", overflow: "visible" }}>
+
+            {/* Dashed grid lines */}
+            {[20, 110, 200, 290, 360].map(y => (
+              <line key={y} x1="0" y1={y} x2="1000" y2={y} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 4" />
+            ))}
+
+            {hover.active && (
+              <defs>
+                <clipPath id="mc-left-clip">
+                  <rect x="0" y="0" width={hover.x} height="380" />
+                </clipPath>
+              </defs>
             )}
-            cursor={{ stroke: theme.color, strokeWidth: 1, strokeDasharray: "4 4" }}
-          />
-          {/* Dimmed other options */}
-          {answers.map((a, i) => {
-            if (i === selectedIdx) return null;
-            return (
-              <Line
-                key={`dim-${a.marketId || i}`}
-                type="stepAfter" dataKey={`o${i}`}
-                stroke="rgba(255,255,255,0.10)" strokeWidth={1}
-                dot={false} activeDot={false} isAnimationActive={false}
-              />
-            );
-          })}
-          {/* Selected option as filled area */}
-          <Area
-            type="stepAfter" dataKey={selectedKey}
-            stroke={theme.color} strokeWidth={2.5}
-            fill={`url(#${gradId})`}
-            dot={false}
-            activeDot={{ r: 4, fill: theme.color, strokeWidth: 0 }}
-            isAnimationActive={true} animationDuration={400}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+
+            {/* Lines — solid where apart, dashed interleaved where overlapping */}
+            {paths.map((p, i) => {
+              const t     = getOptionTheme(i, answers.length);
+              const isSel = i === selectedIdx;
+              const sw    = isSel ? 3 : 2.5;
+              const seg   = 16;
+              const off   = -(i * seg);
+              const greyColor = "rgba(255,255,255,0.15)";
+              return (
+                <g key={i} style={{ cursor: "pointer" }} onClick={() => onSelectIdx(i)}>
+                  {/* Solid segments */}
+                  <path d={p.solidD} fill="none" strokeLinejoin="round"
+                    stroke={hover.active ? greyColor : t.color} strokeWidth={sw}
+                    strokeOpacity={hover.active ? 1 : (isSel ? 1 : 0.85)} />
+                  {hover.active && <path d={p.solidD} fill="none" strokeLinejoin="round"
+                    stroke={t.color} strokeWidth={sw} clipPath="url(#mc-left-clip)" />}
+                  {/* Dashed overlap segments */}
+                  <path d={p.dashD} fill="none" strokeLinejoin="round"
+                    stroke={hover.active ? greyColor : t.color} strokeWidth={sw}
+                    strokeDasharray={`${seg} ${seg}`} strokeDashoffset={off}
+                    strokeOpacity={hover.active ? 1 : (isSel ? 1 : 0.85)} />
+                  {hover.active && <path d={p.dashD} fill="none" strokeLinejoin="round"
+                    stroke={t.color} strokeWidth={sw}
+                    strokeDasharray={`${seg} ${seg}`} strokeDashoffset={off}
+                    clipPath="url(#mc-left-clip)" />}
+                </g>
+              );
+            })}
+
+            {/* Pulsing dot — hidden during hover */}
+            {!hover.active && paths.map((p, i) => {
+              const t  = getOptionTheme(i, answers.length);
+              if (!p.last) return null;
+              const ex = p.last[0].toFixed(1);
+              const ey = p.last[1].toFixed(1);
+              return (
+                <g key={i}>
+                  <circle cx={ex} cy={ey} r="5" fill="none" stroke={t.color} strokeWidth="2" opacity="0.6">
+                    <animate attributeName="r"       values="5;15;5"        dur="1.8s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.55;0;0.55"   dur="1.8s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx={ex} cy={ey} r="5" fill={t.color} />
+                </g>
+              );
+            })}
+
+            {/* Hover crosshair + intercept dots + date */}
+            {hover.active && (
+              <g>
+                <line x1={hover.x} y1="0" x2={hover.x} y2="380"
+                  stroke="rgba(255,255,255,0.35)" strokeDasharray="3 4" />
+                <text
+                  x={parseFloat(hover.x) > 700 ? parseFloat(hover.x) - 10 : parseFloat(hover.x) + 10}
+                  y={18}
+                  textAnchor={parseFloat(hover.x) > 700 ? "end" : "start"}
+                  fill="#5d7189" fontSize={15} fontFamily={FONT_BODY} fontWeight={600}
+                  style={{ userSelect: "none" }}
+                >{hover.time}</text>
+                {paths.map((p, i) => {
+                  const t = getOptionTheme(i, answers.length);
+                  return (
+                    <circle key={i} cx={hover.x} cy={hover.ys[i]}
+                      r={i === selectedIdx ? 5 : 4}
+                      fill="#0c1a2c" stroke={t.color} strokeWidth="2.5" />
+                  );
+                })}
+              </g>
+            )}
+          </svg>
+
+          {/* Unified labels — exact position when static, collision-avoided when hovering */}
+          {(() => {
+            const SVG_H = 380;
+            const rawTops = paths.map((p, i) => {
+              const svgY = hover.active ? parseFloat(hover.ys[i]) : yOf(lastProbs[i]);
+              return (svgY / SVG_H) * 100 - 4;
+            });
+            // Only apply collision avoidance during hover
+            const tops = hover.active ? mcAvoidCollisions(rawTops) : rawTops;
+            const probs = hover.active ? hover.probs : answers.map((a, i) => Math.round(lastProbs[i] * 100));
+            const leftPos = hover.active ? `calc(${hover.tipLeft} + 12px)` : labelLeft;
+            return answers.map((a, i) => {
+              const t    = getOptionTheme(i, answers.length);
+              const name = a.answerLabel.length > 14 ? a.answerLabel.slice(0, 13) + "…" : a.answerLabel;
+              return (
+                <div key={i} style={{
+                  position: "absolute", left: leftPos, top: `${tops[i]}%`,
+                  whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
+                  transition: "top 0.35s ease, left 0.35s ease",
+                }}>
+                  <div style={{ font: `700 12px ${FONT_BODY}`, color: t.color }}>{name}</div>
+                  <div style={{ font: `800 14px ${FONT_HEAD}`, color: t.color }}>{probs[i]}%</div>
+                </div>
+              );
+            });
+          })()}
+
+          {/* X-axis — sliding timeline, labels drift left as liveNow advances */}
+          <div style={{ position: "relative", height: "18px", marginTop: "8px", overflow: "hidden" }}>
+            {slideLabels.map(({ t, leftPct }) => (
+              <span key={Math.round(t / labelStepMs)} style={{
+                position: "absolute",
+                left: `${leftPct}%`,
+                transform: "translateX(-50%)",
+                transition: "left 1s linear",
+                font: `600 11px ${FONT_BODY}`,
+                color: "#5d7189",
+                whiteSpace: "nowrap",
+                userSelect: "none",
+              }}>
+                {fmtX(new Date(t))}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Y-axis column */}
+        <div style={{ flexShrink: 0, width: "38px", height: "260px", display: "flex", flexDirection: "column", justifyContent: "space-between", font: `600 11px ${FONT_BODY}`, color: "#5d7189", textAlign: "right" }}>
+          {yTicks.map((t, i) => <span key={i}>{t}</span>)}
+        </div>
+      </div>
     </div>
   );
 }
@@ -362,14 +583,14 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
   if (!quote) return null;
 
   const panelColor = quote.allowed
-    ? { border: "rgba(34,197,94,0.3)", bg: "rgba(34,197,94,0.07)" }
+    ? { border: "rgba(0,212,191,0.3)", bg: "rgba(0,212,191,0.07)" }
     : { border: "rgba(255,193,7,0.35)", bg: "rgba(255,193,7,0.07)" };
 
   return (
     <div style={{ borderRadius: "10px", border: `1px solid ${panelColor.border}`, background: panelColor.bg, padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ font: `700 13px ${FONT_BODY}`, color: TEXT }}>Sale Preview</span>
-        <span style={{ font: `600 11px ${FONT_BODY}`, color: quote.allowed ? "#4ade80" : "#ffc107", background: "rgba(255,255,255,0.07)", borderRadius: "6px", padding: "2px 8px" }}>
+        <span style={{ font: `600 11px ${FONT_BODY}`, color: quote.allowed ? "#33ddc9" : "#ffc107", background: "rgba(255,255,255,0.07)", borderRadius: "6px", padding: "2px 8px" }}>
           {quote.allowed ? "Allowed" : "Adjust amount"}
         </span>
       </div>
@@ -377,7 +598,7 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
         <span style={{ color: MUTED2 }}>Sale order</span><span style={{ color: TEXT }}>{quote.requestedCredits}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", font: `600 12px ${FONT_BODY}` }}>
-        <span style={{ color: MUTED2 }}>Credits received</span><span style={{ color: "#4ade80" }}>{quote.netProceeds ?? quote.saleValue}</span>
+        <span style={{ color: MUTED2 }}>Credits received</span><span style={{ color: "#33ddc9" }}>{quote.netProceeds ?? quote.saleValue}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", font: `600 12px ${FONT_BODY}` }}>
         <span style={{ color: MUTED2 }}>Shares sold</span><span style={{ color: TEXT }}>{quote.sharesSold}</span>
@@ -405,6 +626,7 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
 // ─── Multi-choice trade panel ─────────────────────────────────────────────────
 function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLoggedIn, isMarketOpen, onSuccess }) {
   const [tab, setTab] = useState("buy");
+  const [buyOutcome, setBuyOutcome] = useState("YES");
   const [amount, setAmount] = useState(10);
   const [projection, setProjection] = useState(null);
   const [projLoading, setProjLoading] = useState(false);
@@ -433,14 +655,14 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
     debounceRef.current = setTimeout(async () => {
       setProjLoading(true);
       try {
-        const res = await fetch(`${API_URL}/v0/marketprojection/${selectedAnswer.marketId}/${amount}/YES/`);
+        const res = await fetch(`${API_URL}/v0/marketprojection/${selectedAnswer.marketId}/${amount}/${buyOutcome}/`);
         if (res.ok) setProjection(await res.json());
         else setProjection(null);
       } catch { setProjection(null); }
       finally { setProjLoading(false); }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [selectedIdx, amount, selectedAnswer]);
+  }, [selectedIdx, amount, buyOutcome, selectedAnswer]);
 
   // Load shares for selected answer when switching to sell tab
   useEffect(() => {
@@ -524,7 +746,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
     setError(""); setSuccess("");
     setSubmitting(true);
     submitBet(
-      { marketId: selectedAnswer.marketId, amount, outcome: "YES" },
+      { marketId: selectedAnswer.marketId, amount, outcome: buyOutcome },
       token,
       (data) => {
         setSubmitting(false);
@@ -541,9 +763,11 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
 
   const selectedTheme = getOptionTheme(selectedIdx, answers.length);
 
-  // Stats
-  const shares = amount > 0 && currentProb > 0 ? (amount / currentProb).toFixed(2) : "—";
-  const potReturn = amount > 0 && currentProb > 0 ? (amount / currentProb).toFixed(2) : "—";
+  // Stats — adjust for YES vs NO
+  const outcomeProb = buyOutcome === "YES" ? currentProb : (1 - currentProb);
+  const priceCentsOutcome = Math.round(outcomeProb * 100);
+  const shares = amount > 0 && outcomeProb > 0 ? (amount / outcomeProb).toFixed(2) : "—";
+  const potReturn = amount > 0 && outcomeProb > 0 ? (amount / outcomeProb).toFixed(2) : "—";
 
   if (!isLoggedIn) {
     return (
@@ -618,6 +842,26 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
 
       {tab === "buy" ? (
         <>
+          {/* YES / NO toggle */}
+          <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
+            {["YES", "NO"].map(o => (
+              <button key={o} onClick={() => setBuyOutcome(o)} style={{
+                flex: 1, padding: "9px 0", borderRadius: "10px", border: "none", cursor: "pointer",
+                font: `700 13px ${FONT_BODY}`,
+                background: buyOutcome === o
+                  ? (o === "YES" ? "rgba(0,212,191,0.18)" : "rgba(251,91,107,0.18)")
+                  : "rgba(255,255,255,0.05)",
+                color: buyOutcome === o
+                  ? (o === "YES" ? "#00d4bf" : "#fb5b6b")
+                  : MUTED2,
+                boxShadow: buyOutcome === o
+                  ? `inset 0 0 0 1.5px ${o === "YES" ? "#00d4bf" : "#fb5b6b"}`
+                  : "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                transition: "all .15s",
+              }}>{o}</button>
+            ))}
+          </div>
+
           <div style={{ marginTop: "10px" }}>
             <div style={{ font: `700 11px ${FONT_BODY}`, letterSpacing: ".07em", color: MUTED2, marginBottom: "8px" }}>AMOUNT</div>
             <div style={{
@@ -634,20 +878,20 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
             </div>
             <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
               {PRESETS.map((p) => (
-                <button key={p} onClick={() => setAmount(p)} style={{ flex: 1, padding: "7px 0", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", color: "#b7c6d6", font: `700 12px ${FONT_BODY}`, cursor: "pointer" }}>${p}</button>
+                <button key={p} onClick={() => setAmount(v => (parseInt(v) || 0) + p)} style={{ flex: 1, padding: "7px 0", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", color: "#b7c6d6", font: `700 12px ${FONT_BODY}`, cursor: "pointer" }}>+{p}</button>
               ))}
             </div>
           </div>
 
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", marginTop: "4px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <StatRow label="Avg price" value={`${priceCents}¢`} />
+            <StatRow label="Avg price" value={`${priceCentsOutcome}¢`} />
             <StatRow label="New probability" value={projLoading ? "..." : projection?.projectedProbability != null ? `${Math.round(projection.projectedProbability * 100)}%` : "—"} />
             <StatRow label="Shares" value={shares} />
             <StatRow label="Potential return" value={potReturn !== "—" ? `$${potReturn}` : "—"} valueColor={YES_TEXT} />
           </div>
 
           {error && <div style={{ background: "rgba(251,91,107,0.12)", border: "1px solid rgba(251,91,107,0.3)", borderRadius: "8px", padding: "10px 12px", font: `500 12px ${FONT_BODY}`, color: NO_TEXT }}>{error}</div>}
-          {success && <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "8px", padding: "10px 12px", font: `600 13px ${FONT_BODY}`, color: YES_TEXT }}>{success}</div>}
+          {success && <div style={{ background: "rgba(0,212,191,0.12)", border: "1px solid rgba(0,212,191,0.3)", borderRadius: "8px", padding: "10px 12px", font: `600 13px ${FONT_BODY}`, color: YES_TEXT }}>{success}</div>}
 
           <button
             onClick={handleBuy}
@@ -657,12 +901,12 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
               font: `800 16px ${FONT_HEAD}`,
               cursor: submitting || !amount ? "not-allowed" : "pointer",
               background: submitting || !amount ? "rgba(255,255,255,0.08)" : selectedTheme.gradient,
-              color: submitting || !amount ? MUTED2 : (selectedIdx === 0 ? "#04140a" : "#fff"),
+              color: submitting || !amount ? MUTED2 : (selectedIdx === 0 ? "#001a18" : "#fff"),
               boxShadow: submitting || !amount ? "none" : selectedTheme.shadow,
               transition: "all .15s", marginTop: "4px", opacity: submitting ? 0.7 : 1,
             }}
           >
-            {submitting ? "Processing..." : `Buy ${selectedAnswer?.answerLabel || "Option"}`}
+            {submitting ? "Processing..." : `Buy ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
           </button>
         </>
       ) : (
@@ -678,7 +922,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
             <>
               {/* Shares badge */}
               <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
-                <div style={{ padding: "8px 16px", borderRadius: "10px", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", textAlign: "center" }}>
+                <div style={{ padding: "8px 16px", borderRadius: "10px", background: "rgba(0,212,191,0.12)", border: "1px solid rgba(0,212,191,0.3)", textAlign: "center" }}>
                   <div style={{ font: `700 11px ${FONT_BODY}`, color: YES_TEXT, letterSpacing: ".06em" }}>{selectedAnswer.answerLabel}</div>
                   <div style={{ font: `800 18px ${FONT_HEAD}`, color: TEXT }}>{sellShares.yesSharesOwned} shares</div>
                   <div style={{ font: `600 12px ${FONT_BODY}`, color: MUTED2 }}>Value: {sellShares.value}</div>
@@ -717,9 +961,9 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                     width: "100%", padding: "14px", borderRadius: "12px", border: "none",
                     font: `800 16px ${FONT_HEAD}`,
                     cursor: isSellActionDisabled ? "not-allowed" : "pointer",
-                    background: isSellActionDisabled ? "rgba(255,255,255,0.08)" : "linear-gradient(180deg,#22c55e,#16a34a)",
-                    color: isSellActionDisabled ? MUTED2 : "#04140a",
-                    boxShadow: isSellActionDisabled ? "none" : "0 8px 22px rgba(34,197,94,0.28)",
+                    background: isSellActionDisabled ? "rgba(255,255,255,0.08)" : "linear-gradient(180deg,#00d4bf,#00a899)",
+                    color: isSellActionDisabled ? MUTED2 : "#001a18",
+                    boxShadow: isSellActionDisabled ? "none" : "0 8px 22px rgba(0,212,191,0.28)",
                     transition: "all .15s", opacity: isSellSubmitting ? 0.7 : 1,
                   }}
                 >
@@ -730,7 +974,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                   disabled={isSellActionDisabled}
                   style={{
                     width: "100%", padding: "10px", borderRadius: "10px",
-                    border: "1px solid rgba(34,197,94,0.40)", background: "transparent",
+                    border: "1px solid rgba(0,212,191,0.40)", background: "transparent",
                     color: isSellActionDisabled ? MUTED2 : YES_TEXT,
                     font: `700 13px ${FONT_HEAD}`,
                     cursor: isSellActionDisabled ? "not-allowed" : "pointer",
@@ -884,8 +1128,6 @@ function MultiChoiceLayout({
               @{creatorUsername}
             </span>
             <span style={{ opacity: 0.4 }}>•</span>
-            <span>${fmt(totalVolume)} Vol.</span>
-            <span style={{ opacity: 0.4 }}>•</span>
             <span>Closes {closesLabel}</span>
           </div>
         </div>
@@ -995,6 +1237,310 @@ function MultiChoiceLayout({
   );
 }
 
+// ─── Binary chart (real data, always full-width) ──────────────────────────────
+const BC_RANGES     = ["Live", "1h", "1d", "1w", "1m"];
+const BC_WINDOW_MS  = { Live: 5*60_000, "1h": 3600_000, "1d": 86400_000, "1w": 7*86400_000, "1m": 30*86400_000 };
+const BC_LABEL_STEP = { Live: 60_000, "1h": 15*60_000, "1d": 4*3600_000, "1w": 86400_000, "1m": 5*86400_000 };
+
+function BinaryChart({ probabilityChanges, currentProbability: rawProb, yesLabel = "Yes", noLabel = "No", totalVolume = 0 }) {
+  const curP     = Math.max(0.01, Math.min(0.99, Number(rawProb) || 0.5));
+  const [range, setRange] = useState("Live");
+  const [hoverT, setHoverT] = useState(null);
+  const chartRef = useRef(null);
+
+  const [liveNow, setLiveNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setLiveNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const W = 780, SVG_H = 380, TOP = 20, BOT = 360;
+  const windowMs = BC_WINDOW_MS[range];
+  const winStart = liveNow - windowMs;
+
+  const allChanges = useMemo(() => {
+    const arr = Array.isArray(probabilityChanges) ? probabilityChanges : [];
+    return arr
+      .map(c => ({ t: new Date(c.timestamp || c.Timestamp).getTime(), p: Number(c.probability ?? c.Probability) }))
+      .filter(c => Number.isFinite(c.t) && Number.isFinite(c.p))
+      .sort((a, b) => a.t - b.t);
+  }, [probabilityChanges]);
+
+  // Build YES series — always anchor at winStart so line spans full width
+  const yesData = useMemo(() => {
+    const before = allChanges.filter(c => c.t < winStart);
+    const within = allChanges.filter(c => c.t >= winStart && c.t < liveNow);
+    const anchorP = before.length ? before[before.length - 1].p
+      : within.length ? within[0].p : curP;
+    return [{ t: winStart, p: anchorP }, ...within, { t: liveNow, p: curP }];
+  }, [allChanges, winStart, liveNow, curP]);
+
+  const noData = useMemo(() => yesData.map(c => ({ t: c.t, p: 1 - c.p })), [yesData]);
+
+  const allProbs = [...yesData.map(c => c.p), ...noData.map(c => c.p)].filter(Number.isFinite);
+  const dataMin  = allProbs.length ? Math.min(...allProbs) : 0;
+  const dataMax  = allProbs.length ? Math.max(...allProbs) : 1;
+  const pad5     = Math.max(0.05, (dataMax - dataMin) * 0.25);
+  const yMin     = Math.max(0, dataMin - pad5);
+  const yMax     = Math.min(1, dataMax + pad5);
+  const yrng     = yMax - yMin || 1;
+  const yOf      = p => BOT - ((p - yMin) / yrng) * (BOT - TOP);
+  const yTicks   = [yMax, yMin + yrng*0.667, yMin + yrng*0.333, yMin].map(v => Math.round(v*100) + "%");
+
+  const xOf = t => ((t - winStart) / windowMs) * W;
+
+  const CROSS_THRESH = 0.07; // lines within 7% of each other = "crossing region"
+
+  const ptsToD = pts => {
+    if (pts.length < 2) return "";
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) d += ` H${pts[i][0].toFixed(1)} V${pts[i][1].toFixed(1)}`;
+    return d;
+  };
+
+  const splitPath = (pts, closeFlags) => {
+    let solidSegs = [], dashSegs = [], cur = [], curClose = closeFlags[0];
+    for (let i = 0; i < pts.length; i++) {
+      const c = closeFlags[i];
+      if (c !== curClose) {
+        cur.push(pts[i]); // include transition point in both
+        (curClose ? dashSegs : solidSegs).push([...cur]);
+        cur = [pts[i]];
+        curClose = c;
+      }
+      cur.push(pts[i]);
+    }
+    (curClose ? dashSegs : solidSegs).push(cur);
+    return { solidD: solidSegs.map(ptsToD).join(" "), dashD: dashSegs.map(ptsToD).join(" ") };
+  };
+
+  const buildPath = data => {
+    const pts = data.map(c => [xOf(c.t), yOf(c.p)]);
+    return { pts, last: pts[pts.length - 1] };
+  };
+  const yesPts = yesData.map(c => [xOf(c.t), yOf(c.p)]);
+  const noPts  = noData.map(c => [xOf(c.t), yOf(c.p)]);
+  const closeFlags = yesData.map((c, i) => {
+    const gap = Math.abs(c.p - 0.5);
+    if (gap >= CROSS_THRESH) return false;
+    // If next point is already diverging further, end dash zone immediately
+    const nextGap = i + 1 < yesData.length ? Math.abs(yesData[i + 1].p - 0.5) : gap;
+    return nextGap <= gap + 0.03; // allow tiny overshoot, but if clearly separating → solid
+  });
+  const yesSplit = splitPath(yesPts, closeFlags);
+  const noSplit  = splitPath(noPts,  closeFlags);
+  const paths  = [
+    { ...buildPath(yesData), solidD: yesSplit.solidD, dashD: yesSplit.dashD },
+    { ...buildPath(noData),  solidD: noSplit.solidD,  dashD: noSplit.dashD  },
+  ];
+  const themes = [OPTION_THEMES[0], OPTION_THEMES[1]];
+
+  const pad2 = v => String(v).padStart(2, "0");
+  const fmtX = d => {
+    if (range === "Live" || range === "1h" || range === "1d") return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  };
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const fmtTip = d => {
+    const mon = MONTHS[d.getMonth()];
+    const day = d.getDate();
+    const h = d.getHours(), m = pad2(d.getMinutes());
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
+  };
+
+  const labelStepMs = BC_LABEL_STEP[range];
+  const firstT      = Math.ceil(winStart / labelStepMs) * labelStepMs;
+  const slideLabels = [];
+  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
+    const frac = (t - winStart) / windowMs;
+    if (frac >= -0.02 && frac <= 1.02) slideLabels.push({ t, leftPct: frac * 100 });
+  }
+
+  const lastYesP  = curP;
+  const lastNoP   = 1 - curP;
+  const rawTops   = [lastYesP, lastNoP].map(p => (yOf(p) / SVG_H) * 100 - 4);
+  const labelTops = mcAvoidCollisions(rawTops);
+  const labelLeft = `${(W / 1000) * 100 + 1}%`;
+
+  const onMove = e => {
+    const el = chartRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / (rect.width * W / 1000)));
+    setHoverT(winStart + frac * windowMs);
+  };
+
+  const getValAt = (series, t) => {
+    let v = series[0]?.p ?? 0.5;
+    for (const c of series) { if (c.t <= t) v = c.p; else break; }
+    return v;
+  };
+
+  const hover = hoverT == null ? { active: false } : (() => {
+    const allTs = [...new Set([...yesData.map(c => c.t)])].sort((a, b) => a - b);
+    let bt = allTs[0] ?? liveNow;
+    for (const t of allTs) { if (Math.abs(t - hoverT) < Math.abs(bt - hoverT)) bt = t; }
+    const hx = xOf(bt);
+    const yp = getValAt(yesData, bt);
+    return {
+      active:  true,
+      x:       hx.toFixed(1),
+      ys:      [yOf(yp).toFixed(1), yOf(1 - yp).toFixed(1)],
+      tipLeft: `${(hx / 1000 * 100).toFixed(1)}%`,
+      time:    fmtTip(new Date(bt)),
+      probs:   [Math.round(yp * 100), Math.round((1 - yp) * 100)],
+    };
+  })();
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <span style={{ font: `600 13px ${FONT_BODY}`, color: "#5d7189" }}>
+          Volume: <b style={{ color: "#c3d1e0", fontWeight: 700 }}>${Number(totalVolume || 0).toLocaleString()}</b>
+        </span>
+        <div style={{ display: "flex", gap: "2px" }}>
+          {BC_RANGES.map(r => (
+            <button key={r} onClick={() => { setRange(r); setHoverT(null); }} style={{
+              padding: "5px 11px", borderRadius: "7px", border: "none", cursor: "pointer",
+              font: `700 12px ${FONT_BODY}`,
+              background: r === range ? "rgba(255,255,255,0.14)" : "transparent",
+              color: r === range ? "#ffffff" : "#8397ad",
+            }}>
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart + Y-axis */}
+      <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}
+          ref={chartRef} onMouseMove={onMove} onMouseLeave={() => setHoverT(null)}>
+
+          <svg viewBox="0 0 1000 380" preserveAspectRatio="none"
+            style={{ width: "100%", height: "260px", display: "block", cursor: "crosshair", shapeRendering: "geometricPrecision", overflow: "visible" }}>
+
+            {[20, 110, 200, 290, 360].map(y => (
+              <line key={y} x1="0" y1={y} x2="1000" y2={y} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 4" />
+            ))}
+
+            {hover.active && (
+              <defs>
+                <clipPath id="bc-left-clip">
+                  <rect x="0" y="0" width={hover.x} height="380" />
+                </clipPath>
+              </defs>
+            )}
+
+            {/* Grey full lines (shown when hovering) or colored full lines (no hover) */}
+            {paths.map((p, i) => {
+              const fullD = p.pts.length < 2 ? "" : "M" + p.pts.map(pt => `${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join(" L");
+              return (
+                <g key={i}>
+                  {/* Solid segment */}
+                  <path d={p.solidD} fill="none" strokeLinejoin="round"
+                    stroke={hover.active ? "rgba(255,255,255,0.15)" : themes[i].color}
+                    strokeWidth="2.5" />
+                  {/* Dashed crossing segment */}
+                  <path d={p.dashD} fill="none" strokeLinejoin="round"
+                    stroke={hover.active ? "rgba(255,255,255,0.15)" : themes[i].color}
+                    strokeWidth="2.5" strokeDasharray="16 16" strokeDashoffset={-(i * 16)} />
+                  {/* Colored overlay clipped to left of crosshair */}
+                  {hover.active && <>
+                    <path d={p.solidD} fill="none" strokeLinejoin="round"
+                      stroke={themes[i].color} strokeWidth="2.5"
+                      clipPath="url(#bc-left-clip)" />
+                    <path d={p.dashD} fill="none" strokeLinejoin="round"
+                      stroke={themes[i].color} strokeWidth="2.5"
+                      strokeDasharray="16 16" strokeDashoffset={-(i * 16)}
+                      clipPath="url(#bc-left-clip)" />
+                  </>}
+                </g>
+              );
+            })}
+
+            {!hover.active && paths.map((p, i) => {
+              if (!p.last) return null;
+              const [ex, ey] = p.last;
+              return (
+                <g key={i}>
+                  <circle cx={ex.toFixed(1)} cy={ey.toFixed(1)} r="5" fill="none" stroke={themes[i].color} strokeWidth="2" opacity="0.6">
+                    <animate attributeName="r"       values="5;15;5"      dur="1.8s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.55;0;0.55" dur="1.8s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx={ex.toFixed(1)} cy={ey.toFixed(1)} r="5" fill={themes[i].color} />
+                </g>
+              );
+            })}
+
+            {hover.active && (
+              <g>
+                <line x1={hover.x} y1="0" x2={hover.x} y2="380" stroke="rgba(255,255,255,0.35)" strokeDasharray="3 4" />
+                {/* Date label at top of crosshair */}
+                <text
+                  x={parseFloat(hover.x) > 700 ? parseFloat(hover.x) - 10 : parseFloat(hover.x) + 10}
+                  y={18}
+                  textAnchor={parseFloat(hover.x) > 700 ? "end" : "start"}
+                  fill="#5d7189" fontSize={15} fontFamily={FONT_BODY} fontWeight={600}
+                  style={{ userSelect: "none" }}
+                >{hover.time}</text>
+                {paths.map((p, i) => (
+                  <circle key={i} cx={hover.x} cy={hover.ys[i]} r="5" fill="#0c1a2c" stroke={themes[i].color} strokeWidth="2.5" />
+                ))}
+              </g>
+            )}
+          </svg>
+
+          {/* Unified labels — follow dot on both X and Y axes */}
+          {(() => {
+            const SVG_H = 380;
+            const rawTops = hover.active
+              ? paths.map((p, i) => (parseFloat(hover.ys[i]) / SVG_H) * 100 - 4)
+              : [lastYesP, lastNoP].map(p => (yOf(p) / SVG_H) * 100 - 4);
+            const tops = mcAvoidCollisions(rawTops);
+            const probs = hover.active
+              ? hover.probs
+              : [Math.round(lastYesP * 100), Math.round(lastNoP * 100)];
+            const leftPos = hover.active ? `calc(${hover.tipLeft} + 12px)` : labelLeft;
+            return [yesLabel, noLabel].map((lb, i) => (
+              <div key={i} style={{
+                position: "absolute",
+                left: leftPos,
+                top: `${tops[i]}%`,
+                whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
+                transition: "top 0.35s ease, left 0.35s ease",
+              }}>
+                <div style={{ font: `700 12px ${FONT_BODY}`, color: themes[i].color }}>{lb}</div>
+                <div style={{ font: `800 14px ${FONT_HEAD}`, color: themes[i].color }}>{probs[i]}%</div>
+              </div>
+            ));
+          })()}
+
+          {/* Sliding X-axis */}
+          <div style={{ position: "relative", height: "18px", marginTop: "8px", overflow: "hidden" }}>
+            {slideLabels.map(({ t, leftPct }) => (
+              <span key={Math.round(t / labelStepMs)} style={{
+                position: "absolute", left: `${leftPct}%`, transform: "translateX(-50%)",
+                font: `600 11px ${FONT_BODY}`, color: "#5d7189", whiteSpace: "nowrap", userSelect: "none",
+              }}>
+                {fmtX(new Date(t))}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Y-axis */}
+        <div style={{ flexShrink: 0, width: "38px", height: "260px", display: "flex", flexDirection: "column", justifyContent: "space-between", font: `600 11px ${FONT_BODY}`, color: "#5d7189", textAlign: "right" }}>
+          {yTicks.map((t, i) => <span key={i}>{t}</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Binary layout (existing layout, unchanged) ───────────────────────────────
 function BinaryLayout({
   market, creator, numUsers, totalVolume,
@@ -1082,8 +1628,6 @@ function BinaryLayout({
               @{creatorUsername}
             </span>
             <span style={{ opacity: 0.4 }}>•</span>
-            <span>${fmt(totalVolume)} Vol.</span>
-            <span style={{ opacity: 0.4 }}>•</span>
             <span>Closes {closesLabel}</span>
           </div>
         </div>
@@ -1107,11 +1651,14 @@ function BinaryLayout({
               <BinaryTradePanelContent {...tradePanelProps} />
             </div>
           )}
+
+          {/* Chart card */}
           <div style={{ ...CARD, padding: isMobile ? "14px" : "20px 22px" }}>
-            <NewMarketChart
-              data={probabilityChanges} currentProbability={currentProbability}
-              closeDateTime={safeMarket.resolutionDateTime}
+            <BinaryChart
+              probabilityChanges={probabilityChanges}
+              currentProbability={currentProbability}
               yesLabel={yesLabel} noLabel={noLabel}
+              totalVolume={totalVolume}
             />
           </div>
           {safeMarket.description ? (
@@ -1167,9 +1714,9 @@ function ResolvedPanel({ result, yesLabel, noLabel, yesPct, noPct }) {
   const isYes = result?.toUpperCase() === "YES";
   const isNA = result?.toUpperCase() === "N/A" || result?.toUpperCase() === "NA";
   const winLabel = isNA ? "N/A" : isYes ? yesLabel : noLabel;
-  const winColor = isNA ? "#8ca0b6" : isYes ? "#22c55e" : "#fb5b6b";
-  const winBg = isNA ? "rgba(140,160,182,0.10)" : isYes ? "rgba(34,197,94,0.10)" : "rgba(251,91,107,0.10)";
-  const winBorder = isNA ? "rgba(140,160,182,0.25)" : isYes ? "rgba(34,197,94,0.30)" : "rgba(251,91,107,0.30)";
+  const winColor = isNA ? "#8ca0b6" : isYes ? "#00d4bf" : "#fb5b6b";
+  const winBg = isNA ? "rgba(140,160,182,0.10)" : isYes ? "rgba(0,212,191,0.10)" : "rgba(251,91,107,0.10)";
+  const winBorder = isNA ? "rgba(140,160,182,0.25)" : isYes ? "rgba(0,212,191,0.30)" : "rgba(251,91,107,0.30)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -1180,7 +1727,7 @@ function ResolvedPanel({ result, yesLabel, noLabel, yesPct, noPct }) {
       </div>
       <div style={{ display: "flex", gap: "9px" }}>
         {[
-          { label: yesLabel, pct: yesPct, active: isYes, color: YES_TEXT, bg: isYes ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.04)", border: isYes ? "rgba(34,197,94,0.30)" : "rgba(255,255,255,0.08)" },
+          { label: yesLabel, pct: yesPct, active: isYes, color: YES_TEXT, bg: isYes ? "rgba(0,212,191,0.12)" : "rgba(255,255,255,0.04)", border: isYes ? "rgba(0,212,191,0.30)" : "rgba(255,255,255,0.08)" },
           { label: noLabel, pct: noPct, active: !isYes && !isNA, color: NO_TEXT, bg: !isYes && !isNA ? "rgba(251,91,107,0.12)" : "rgba(255,255,255,0.04)", border: !isYes && !isNA ? "rgba(251,91,107,0.30)" : "rgba(255,255,255,0.08)" },
         ].map(({ label, pct, color, bg, border }) => (
           <div key={label} style={{ flex: 1, padding: "11px 8px", borderRadius: "12px", textAlign: "center", background: bg, border: `1px solid ${border}` }}>
@@ -1221,7 +1768,7 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", gap: "9px" }}>
         {[
-          { label: yesLabel, pct: yesPct, color: YES_TEXT, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.22)" },
+          { label: yesLabel, pct: yesPct, color: YES_TEXT, bg: "rgba(0,212,191,0.08)", border: "rgba(0,212,191,0.22)" },
           { label: noLabel, pct: noPct, color: NO_TEXT, bg: "rgba(244,63,94,0.08)", border: "rgba(244,63,94,0.18)" },
         ].map(({ label, pct, color, bg, border }) => (
           <div key={label} style={{ flex: 1, padding: "11px 8px", borderRadius: "12px", textAlign: "center", background: bg, border: `1px solid ${border}` }}>
