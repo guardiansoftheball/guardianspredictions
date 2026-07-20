@@ -4,6 +4,7 @@ import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
   MarketsSVG,
+  PollsSVG,
   StatsSVG,
   MenuGrowSVG,
   MenuShrinkSVG,
@@ -16,10 +17,10 @@ import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 
 const NAV_LINKS = [
-  { label: "Trending", to: "/new-home" },
-  { label: "Markets", to: "/new-markets" },
-  { label: "Polls", to: "/new-home" },
-  { label: "Stats", to: "/new-home" },
+  { label: "Trending", to: "/new-home", Icon: HomeSVG },
+  { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
+  { label: "Polls", to: "/new-home", Icon: PollsSVG },
+  { label: "Stats", to: "/new-home", Icon: StatsSVG },
 ];
 
 const linkStyle = {
@@ -32,9 +33,9 @@ const linkStyle = {
 };
 
 const BOTTOM_NAV = [
-  { label: "Trending", to: "/new-home", Icon: HomeSVG },
-  { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
-  { label: "Stats", to: "/new-home", Icon: StatsSVG },
+  { label: "Trending", to: "/new-home", activeOn: "/new-home", Icon: HomeSVG },
+  { label: "Markets", to: "/new-markets", activeOn: "/new-markets", Icon: MarketsSVG },
+  { label: "Stats", to: "/new-home", activeOn: null, Icon: StatsSVG },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
@@ -326,6 +327,7 @@ const SCROLL_THRESHOLD = 60; // px before switching to fixed mode
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
+  const { pathname } = useLocation();
   const { login, logout, username, token, usertype } = useAuth();
   const isLoggedIn = !!username;
   const isAdmin = usertype === 'ADMIN';
@@ -566,12 +568,13 @@ const Navbar = () => {
                 <Link
                   to={link.to}
                   onClick={() => setSidebarOpen(false)}
-                  className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  className="flex items-center gap-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                   style={{
                     fontFamily: "'Roboto', sans-serif",
                     fontSize: "16px",
                   }}
                 >
+                  {link.Icon && <link.Icon className="w-5 h-5" />}
                   {link.label}
                 </Link>
               </li>
@@ -581,14 +584,50 @@ const Navbar = () => {
           <div className="mt-6 flex flex-col gap-3">
             {isLoggedIn ? (
               <div style={{ padding: "8px 4px" }}>
-                <UserChip
-                  username={username}
-                  credit={userCredit}
-                  onLogout={handleLogout}
-                  onProfile={handleProfile}
-                  isAdmin={usertype === 'ADMIN'}
-                  onAdminReview={() => { setSidebarOpen(false); history.push('/test/admin/markets/review'); }}
-                />
+                {/* User info */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 3px", marginBottom: "12px" }}>
+                  <div style={{
+                    width: "34px", height: "34px", borderRadius: "999px", flexShrink: 0,
+                    background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
+                    border: "1.5px solid rgba(156,201,241,0.35)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: FONT, fontWeight: 800, fontSize: "12px", color: COLOR.accent,
+                  }}>
+                    {(username || "?").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ lineHeight: 1.2 }}>
+                    <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: COLOR.text }}>@{username}</div>
+                    <div style={{ fontFamily: FONT, fontWeight: 600, fontSize: "11px", color: COLOR.accent }}>🪙 {userCredit != null ? (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit))) : "—"}</div>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {usertype === 'ADMIN' && (
+                    <button
+                      onClick={() => { setSidebarOpen(false); history.push('/test/admin/markets/review'); }}
+                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                    >
+                      <AdminIcon /> Review Markets
+                    </button>
+                  )}
+                  {usertype !== 'ADMIN' && (
+                    <button
+                      onClick={() => { setSidebarOpen(false); handleProfile(); }}
+                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                    >
+                      <PersonIcon /> My profile
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setSidebarOpen(false); handleLogout(); }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                  >
+                    <LogoutIcon /> Sign out
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -629,18 +668,21 @@ const Navbar = () => {
       </aside>
 
       {/* ── MOBILE BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-gray-900/90 backdrop-blur border-t border-gray-700 flex justify-around items-center lg:hidden">
-        {BOTTOM_NAV.map(({ label, to, Icon }) => (
-          <Link
-            key={label}
-            to={to}
-            className="flex flex-col items-center gap-0.5 text-gray-300 hover:text-white transition-colors"
-            aria-label={label}
-          >
-            <Icon className="w-5 h-5" />
-            <span className="text-[10px]">{label}</span>
-          </Link>
-        ))}
+      <div className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-gray-900 border-t border-gray-700 flex justify-around items-center lg:hidden">
+        {BOTTOM_NAV.map(({ label, to, activeOn, Icon }) => {
+          const active = activeOn != null && pathname === activeOn;
+          return (
+            <Link
+              key={label}
+              to={to}
+              className={`flex flex-col items-center gap-0.5 transition-colors rounded-lg px-3 py-1 ${active ? "bg-white/10 text-white" : "text-gray-300 hover:text-white"}`}
+              aria-label={label}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px]">{label}</span>
+            </Link>
+          );
+        })}
 
         <button
           onClick={() => setSidebarOpen(true)}

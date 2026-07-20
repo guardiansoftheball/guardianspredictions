@@ -29,6 +29,7 @@ const MUTED      = COLOR.muted;
 const MUTED2     = COLOR.muted2;
 const MUTED3     = COLOR.muted3;
 const TEXT       = COLOR.text;
+const MARKET_CARD = { ...CARD, background: '#0e121d' };
 
 // Per-option theme: first=green, last=red, middles=neutral/purple/orange/teal…
 const OPTION_THEMES = [
@@ -160,7 +161,7 @@ function useIsMobile(bp = 768) {
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
 const StatCard = ({ label, value }) => (
-  <div style={{ ...CARD, padding: "13px 15px" }}>
+  <div style={{ ...MARKET_CARD, padding: "13px 15px" }}>
     <div style={{ font: `600 11px ${FONT_BODY}`, color: MUTED2 }}>{label}</div>
     <div style={{ font: `800 17px ${FONT_HEAD}`, marginTop: "3px", color: TEXT }}>{value}</div>
   </div>
@@ -472,18 +473,11 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               );
             })}
 
-            {/* Hover crosshair + intercept dots + date */}
+            {/* Hover crosshair + intercept dots */}
             {hover.active && (
               <g>
                 <line x1={hover.x} y1="0" x2={hover.x} y2="380"
                   stroke="rgba(255,255,255,0.35)" strokeDasharray="3 4" />
-                <text
-                  x={parseFloat(hover.x) > 700 ? parseFloat(hover.x) - 10 : parseFloat(hover.x) + 10}
-                  y={18}
-                  textAnchor={parseFloat(hover.x) > 700 ? "end" : "start"}
-                  fill="#5d7189" fontSize={15} fontFamily={FONT_BODY} fontWeight={600}
-                  style={{ userSelect: "none" }}
-                >{hover.time}</text>
                 {paths.map((p, i) => {
                   const t = getOptionTheme(i, answers.length);
                   return (
@@ -495,6 +489,18 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               </g>
             )}
           </svg>
+
+          {/* Hover date label (HTML so it doesn't scale with SVG) */}
+          {hover.active && (
+            <div style={{
+              position: "absolute", top: 0,
+              left: parseFloat(hover.x) > 700 ? "auto" : hover.tipLeft,
+              right: parseFloat(hover.x) > 700 ? `${100 - parseFloat(hover.tipLeft)}%` : "auto",
+              font: `600 11px ${FONT_BODY}`, color: "#5d7189",
+              whiteSpace: "nowrap", pointerEvents: "none", userSelect: "none",
+              padding: "2px 4px",
+            }}>{hover.time}</div>
+          )}
 
           {/* Unified labels — exact position when static, collision-avoided when hovering */}
           {(() => {
@@ -852,7 +858,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                   ? (o === "YES" ? "rgba(0,212,191,0.18)" : "rgba(251,91,107,0.18)")
                   : "rgba(255,255,255,0.05)",
                 color: buyOutcome === o
-                  ? (o === "YES" ? "#00d4bf" : "#fb5b6b")
+                  ? "#000"
                   : MUTED2,
                 boxShadow: buyOutcome === o
                   ? `inset 0 0 0 1.5px ${o === "YES" ? "#00d4bf" : "#fb5b6b"}`
@@ -1153,7 +1159,7 @@ function MultiChoiceLayout({
 
           {/* Trade panel on mobile */}
           {isMobile && (
-            <div style={{ ...CARD, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", padding: "16px" }}>
+            <div style={{ ...MARKET_CARD, padding: "16px" }}>
               {groupLoading ? (
                 <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>Loading options...</div>
               ) : answers.length > 0 ? (
@@ -1167,7 +1173,7 @@ function MultiChoiceLayout({
           )}
 
           {/* Chart card */}
-          <div style={{ ...CARD, padding: isMobile ? "14px" : "20px 22px" }}>
+          <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             {groupLoading ? (
               <div style={{ height: "240px", display: "flex", alignItems: "center", justifyContent: "center", color: MUTED2 }}>
                 Loading chart...
@@ -1191,7 +1197,7 @@ function MultiChoiceLayout({
 
           {/* Description */}
           {market?.description ? (
-            <div style={{ ...CARD, padding: isMobile ? "14px" : "20px 22px" }}>
+            <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
               <div style={{ font: `700 12px ${FONT_BODY}`, letterSpacing: ".08em", color: MUTED2, marginBottom: "10px" }}>RULES</div>
               <p style={{ margin: 0, font: `400 14px/1.6 ${FONT_BODY}`, color: "#b7c6d6" }}>
                 {market.description}
@@ -1207,7 +1213,7 @@ function MultiChoiceLayout({
           </div>
 
           {/* Activity tabs */}
-          <div style={{ ...CARD, overflow: "hidden", background: "rgba(255,255,255,0.03)" }}>
+          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
             <ActivityTabs marketId={marketId} market={market} refreshTrigger={refreshTrigger} variant="dark" />
           </div>
         </div>
@@ -1215,8 +1221,7 @@ function MultiChoiceLayout({
         {/* RIGHT (desktop) */}
         {!isMobile && (
           <div style={{
-            ...CARD, background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.11)",
+            ...MARKET_CARD,
             padding: "18px", position: "sticky", top: "16px",
           }}>
             {groupLoading ? (
@@ -1479,20 +1484,24 @@ function BinaryChart({ probabilityChanges, currentProbability: rawProb, yesLabel
             {hover.active && (
               <g>
                 <line x1={hover.x} y1="0" x2={hover.x} y2="380" stroke="rgba(255,255,255,0.35)" strokeDasharray="3 4" />
-                {/* Date label at top of crosshair */}
-                <text
-                  x={parseFloat(hover.x) > 700 ? parseFloat(hover.x) - 10 : parseFloat(hover.x) + 10}
-                  y={18}
-                  textAnchor={parseFloat(hover.x) > 700 ? "end" : "start"}
-                  fill="#5d7189" fontSize={15} fontFamily={FONT_BODY} fontWeight={600}
-                  style={{ userSelect: "none" }}
-                >{hover.time}</text>
                 {paths.map((p, i) => (
                   <circle key={i} cx={hover.x} cy={hover.ys[i]} r="5" fill="#0c1a2c" stroke={themes[i].color} strokeWidth="2.5" />
                 ))}
               </g>
             )}
           </svg>
+
+          {/* Hover date label (HTML so it doesn't scale with SVG) */}
+          {hover.active && (
+            <div style={{
+              position: "absolute", top: 0,
+              left: parseFloat(hover.x) > 700 ? "auto" : hover.tipLeft,
+              right: parseFloat(hover.x) > 700 ? `${100 - parseFloat(hover.tipLeft)}%` : "auto",
+              font: `600 11px ${FONT_BODY}`, color: "#5d7189",
+              whiteSpace: "nowrap", pointerEvents: "none", userSelect: "none",
+              padding: "2px 4px",
+            }}>{hover.time}</div>
+          )}
 
           {/* Unified labels — follow dot on both X and Y axes */}
           {(() => {
@@ -1647,13 +1656,13 @@ function BinaryLayout({
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "14px" : "18px" }}>
           {isMobile && (
-            <div style={{ ...CARD, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", padding: "16px" }}>
+            <div style={{ ...MARKET_CARD, padding: "16px" }}>
               <BinaryTradePanelContent {...tradePanelProps} />
             </div>
           )}
 
           {/* Chart card */}
-          <div style={{ ...CARD, padding: isMobile ? "14px" : "20px 22px" }}>
+          <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             <BinaryChart
               probabilityChanges={probabilityChanges}
               currentProbability={currentProbability}
@@ -1662,7 +1671,7 @@ function BinaryLayout({
             />
           </div>
           {safeMarket.description ? (
-            <div style={{ ...CARD, padding: isMobile ? "14px" : "20px 22px" }}>
+            <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
               <div style={{ font: `700 12px ${FONT_BODY}`, letterSpacing: ".08em", color: MUTED2, marginBottom: "10px" }}>RULES</div>
               <p style={{ margin: "0 0 14px", font: `400 14px/1.6 ${FONT_BODY}`, color: "#b7c6d6" }}>{safeMarket.description}</p>
             </div>
@@ -1672,15 +1681,14 @@ function BinaryLayout({
             <StatCard label="Traders" value={fmt(numUsers)} />
             <StatCard label="Closes" value={closesLabel} />
           </div>
-          <div style={{ ...CARD, overflow: "hidden", background: "rgba(255,255,255,0.03)" }}>
+          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
             <ActivityTabs marketId={marketId} market={safeMarket} refreshTrigger={refreshTrigger} variant="dark" />
           </div>
         </div>
 
         {!isMobile && (
           <div style={{
-            ...CARD, background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.11)",
+            ...MARKET_CARD,
             padding: "18px", position: "sticky", top: "16px",
           }}>
             <BinaryTradePanelContent {...tradePanelProps} />
@@ -1810,12 +1818,12 @@ function TestMarketDetailsLayout({
   };
 
   return (
-    <div style={{ minHeight: "100vh", color: TEXT, fontFamily: FONT_BODY }}>
+    <div className="pb-16" style={{ minHeight: "100vh", color: TEXT, fontFamily: FONT_BODY }}>
       <div style={{
         position: "absolute", width: "100%", height: "100%",
         left: "50%", top: "0%", transform: "translate(-50%, -50%)",
         background: "linear-gradient(135deg,rgb(81 173 246/5%) 0%,rgb(30 144 255/10%) 0%)",
-        filter: "blur(150px)", pointerEvents: "none", zIndex: 0, borderRadius: "50%",
+        filter: "blur(150px)", pointerEvents: "none", zIndex: 1, borderRadius: "50%",
       }} />
       <div style={{ position: "relative", zIndex: 20 }}>
         <Navbar />

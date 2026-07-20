@@ -45,22 +45,17 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
               ? 'linear-gradient(180deg,#00d4bf,#00a899)'
               : 'linear-gradient(180deg,#fb5b6b,#e11d48)')
           : (isYes ? 'rgba(0,212,191,0.08)' : 'rgba(244,63,94,0.08)'),
-        boxShadow: active
-          ? (isYes
-              ? '0 6px 18px rgba(0,212,191,0.28)'
-              : '0 6px 18px rgba(244,63,94,0.24)')
-          : 'none',
       }}
     >
       <span style={{
         font: `700 14px ${FONT}`,
-        color: active ? (isYes ? '#04140a' : '#fff') : accentText,
+        color: active ? '#000' : accentText,
       }}>
         {label}
       </span>
       <span style={{
         font: `800 17px ${FONT_HEAD}`,
-        color: active ? (isYes ? '#04140a' : '#fff') : accentText,
+        color: active ? '#000' : accentText,
       }}>
         {pct}%
       </span>
@@ -150,8 +145,7 @@ const ActionBtn = ({ onClick, disabled, loading, label, color, shadow }) => (
       cursor: disabled || loading ? 'not-allowed' : 'pointer',
       font: `800 16px ${FONT_HEAD}`,
       background: disabled || loading ? 'rgba(255,255,255,0.08)' : color,
-      color: disabled || loading ? MUTED2 : (color.includes('26d365') ? '#04140a' : '#fff'),
-      boxShadow: disabled || loading ? 'none' : shadow,
+      color: disabled || loading ? MUTED2 : '#000',
       transition: 'all .15s',
       opacity: disabled ? 0.6 : 1,
     }}

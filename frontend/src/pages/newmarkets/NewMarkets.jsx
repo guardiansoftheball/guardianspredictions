@@ -39,7 +39,7 @@ const NewMarkets = () => {
 
       <div className="flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">
         {/* Panel de filtros */}
-        <aside className="w-[280px] z-10 shrink-0 max-lg:w-full">
+        <aside className="w-[280px] z-10 shrink-0 max-lg:w-auto">
           <Filtros />
         </aside>
 

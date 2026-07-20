@@ -145,6 +145,77 @@ const FilterSection = ({ label, Icon, options, open, onToggle }) => (
   </div>
 );
 
+const FilterIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227z" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 6l-12 12" />
+    <path d="M6 6l12 12" />
+  </svg>
+);
+
+const FilterPanelContent = ({ openSections, toggleSection }) => (
+  <>
+    {/* Header */}
+    <h2 className="text-2xl font-bold">Markets</h2>
+    <p className="mt-1 text-sm text-white/50">12,000 predictions</p>
+
+    {/* Search */}
+    <div className="mt-4 mb-2 flex items-center gap-2 rounded-full border border-white/20 px-4 py-2">
+      <SearchIcon />
+      <input
+        type="text"
+        placeholder="Search"
+        className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
+      />
+    </div>
+
+    {/* Dropdown filters */}
+    {FILTER_SECTIONS.map((section) => (
+      <FilterSection
+        key={section.key}
+        label={section.label}
+        Icon={section.Icon}
+        options={section.options}
+        open={!!openSections[section.key]}
+        onToggle={() => toggleSection(section.key)}
+      />
+    ))}
+
+    {/* Markets (chips) */}
+    <div className="py-4 border-t border-white/10">
+      <button
+        type="button"
+        onClick={() => toggleSection("markets")}
+        className="flex w-full items-center justify-between text-white"
+      >
+        <span className="flex items-center gap-2">
+          <MarketsIcon />
+          <span className="text-[15px] font-semibold">Markets</span>
+        </span>
+        <ChevronIcon open={!!openSections.markets} />
+      </button>
+      {openSections.markets && (
+        <div className="mt-3 flex flex-wrap gap-2 pl-[26px]">
+          {MARKET_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              className="rounded-full border border-white/30 px-3 py-1 text-[13px] text-white/70 hover:text-white hover:border-white/60 transition-colors"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </>
+);
+
 const Filtros = () => {
   const [openSections, setOpenSections] = useState(() => {
     const initial = { markets: true };
@@ -153,66 +224,67 @@ const Filtros = () => {
     });
     return initial;
   });
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const toggleSection = (key) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-primary-background px-5 py-6 text-white">
-      {/* Header */}
-      <h2 className="text-2xl font-bold">Markets</h2>
-      <p className="mt-1 text-sm text-white/50">12,000 predictions</p>
-
-      {/* Search */}
-      <div className="mt-4 flex items-center gap-2 rounded-full border border-white/20 px-4 py-2">
-        <SearchIcon />
-        <input
-          type="text"
-          placeholder="Search"
-          className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
-        />
+    <>
+      {/* ── DESKTOP: full filter panel ── */}
+      <div className="hidden lg:block rounded-2xl border border-white/10 bg-primary-background px-5 py-6 text-white">
+        <FilterPanelContent openSections={openSections} toggleSection={toggleSection} />
       </div>
 
-      {/* Dropdown filters */}
-      {FILTER_SECTIONS.map((section) => (
-        <FilterSection
-          key={section.key}
-          label={section.label}
-          Icon={section.Icon}
-          options={section.options}
-          open={!!openSections[section.key]}
-          onToggle={() => toggleSection(section.key)}
-        />
-      ))}
-
-      {/* Markets (chips) */}
-      <div className="py-4 border-t border-white/10">
+      {/* ── MOBILE: search bar + filter button ── */}
+      <div className="lg:hidden flex items-center gap-3 text-white">
+        <div className="flex-1 flex items-center gap-2 rounded-full border border-white/20 px-4 py-2">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
+          />
+        </div>
         <button
           type="button"
-          onClick={() => toggleSection("markets")}
-          className="flex w-full items-center justify-between text-white"
+          onClick={() => setDrawerOpen(true)}
+          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
         >
-          <span className="flex items-center gap-2">
-            <MarketsIcon />
-            <span className="text-[15px] font-semibold">Markets</span>
-          </span>
-          <ChevronIcon open={!!openSections.markets} />
+          <FilterIcon />
         </button>
-        {openSections.markets && (
-          <div className="mt-3 flex flex-wrap gap-2 pl-[26px]">
-            {MARKET_CHIPS.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                className="rounded-full border border-white/30 px-3 py-1 text-[13px] text-white/70 hover:text-white hover:border-white/60 transition-colors"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
-    </div>
+
+      {/* ── MOBILE: filter drawer backdrop ── */}
+      {drawerOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ── MOBILE: filter drawer (right side) ── */}
+      <aside
+        className={`fixed top-0 right-0 z-50 w-72 h-full bg-gray-900 text-white flex flex-col
+          transition-transform duration-300 ease-in-out lg:hidden
+          ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <span className="text-lg font-bold">Filters</span>
+          <button
+            onClick={() => setDrawerOpen(false)}
+            className="text-white/60 hover:text-white transition-colors"
+            aria-label="Close filters"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <FilterPanelContent openSections={openSections} toggleSection={toggleSection} />
+        </div>
+      </aside>
+    </>
   );
 };
 
