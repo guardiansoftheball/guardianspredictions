@@ -187,7 +187,7 @@ const LeaderboardActivity = ({ marketId, market, refreshTrigger }) => {
                         </div>
                         <div className="sm:hidden sp-cell-username">
                             <div className="sp-ellipsis text-xs font-medium">
-                                <Link to={`/user/${entry.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
+                                <Link to={`/newprofile/${entry.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
                                     {entry.username}
                                 </Link>
                             </div>
@@ -197,7 +197,7 @@ const LeaderboardActivity = ({ marketId, market, refreshTrigger }) => {
                     {/* Username (sm+) */}
                     <div className="hidden sm:block sp-cell-username">
                         <div className="sp-ellipsis font-medium">
-                            <Link to={`/user/${entry.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
+                            <Link to={`/newprofile/${entry.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
                                 {entry.username}
                             </Link>
                         </div>

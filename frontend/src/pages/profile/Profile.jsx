@@ -590,7 +590,7 @@ const ProfileMarketChangeCard = ({
                     </span>
                     <span>
                       Proposed by{' '}
-                      <Link to={`/user/${addition.proposedBy}`} className='text-emerald-200 hover:text-emerald-100'>
+                      <Link to={`/newprofile/${addition.proposedBy}`} className='text-emerald-200 hover:text-emerald-100'>
                         @{addition.proposedBy}
                       </Link>
                     </span>

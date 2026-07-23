@@ -94,7 +94,7 @@ const BetsActivityLayout = ({ marketId, refreshTrigger }) => {
                     {/* Username */}
                     <div className="sp-cell-username">
                         <div className="sp-ellipsis text-xs sm:text-sm font-medium">
-                            <Link to={`/user/${bet.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
+                            <Link to={`/newprofile/${bet.username}`} className="text-blue-500 hover:text-blue-400 transition-colors">
                                 {bet.username}
                             </Link>
                         </div>

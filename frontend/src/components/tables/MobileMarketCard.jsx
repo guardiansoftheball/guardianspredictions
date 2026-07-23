@@ -37,7 +37,7 @@ const MobileMarketCard = ({ marketData }) => {
       <div className='grid grid-cols-[1fr,auto] gap-2 items-center mb-2'>
         <div className='min-w-0'>
           <Link
-            to={`/user/${marketData.creator.username}`}
+            to={`/newprofile/${marketData.creator.username}`}
             className='block truncate text-gray-400 hover:text-blue-400 transition-colors duration-200'
           >
             <span>

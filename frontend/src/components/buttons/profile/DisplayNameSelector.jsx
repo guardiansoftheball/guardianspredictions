@@ -1,15 +1,19 @@
 import { API_URL } from '../../../config';
 import React, { useState } from 'react';
-import SiteButton from '../SiteButtons';
+import { ErrorBanner, GhostButton, inputStyle } from '../../layouts/profile/ProfileUiKit';
 
 const DisplayNameSelector = ({ onSave }) => {
     const [displayName, setDisplayName] = useState('');
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         if (!displayName.trim()) {
-            alert('Please enter a display name before saving.');
+            setError('Please enter a display name before saving.');
             return;
         }
+        setSaving(true);
+        setError('');
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/v0/profilechange/displayname`, {
@@ -20,27 +24,33 @@ const DisplayNameSelector = ({ onSave }) => {
                 },
                 body: JSON.stringify({ displayName }),
             });
-            const responseData = await response.json();
-            if (response.ok) {
-                onSave(displayName);
-            } else {
+            if (!response.ok) {
                 throw new Error('Failed to update display name');
             }
-        } catch (error) {
-            console.error('Error updating display name:', error);
+            await response.json();
+            onSave(displayName);
+        } catch (err) {
+            setError(err.message || 'Failed to update display name.');
+        } finally {
+            setSaving(false);
         }
     };
 
     return (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '320px', maxWidth: '80vw' }}>
             <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Enter new display name..."
-                className="mb-4 px-2 py-1 border rounded text-black"
+                style={inputStyle}
+                className="rounded-[10px] focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+                autoFocus
             />
-            <SiteButton onClick={handleSave}>Save Display Name</SiteButton>
+            {error && <ErrorBanner message={error} />}
+            <GhostButton onClick={handleSave} disabled={saving} tone="sky" style={{ alignSelf: 'flex-start' }}>
+                {saving ? 'Saving…' : 'Save display name'}
+            </GhostButton>
         </div>
     );
 };

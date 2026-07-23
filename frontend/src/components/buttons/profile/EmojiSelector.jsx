@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
 import { API_URL } from '../../../config';
-import SiteButton from '../SiteButtons';
 import EmojiPickerInput from '../../inputs/EmojiPicker';
+import { ErrorBanner, GhostButton, inputStyle } from '../../layouts/profile/ProfileUiKit';
+import { FONT, COLOR } from '../../../styles/darkTokens';
 
 const EmojiSelector = ({ currentEmoji = '', onSave }) => {
     const [selectedEmoji, setSelectedEmoji] = useState(currentEmoji || '');
-
-    // JWT token retrieval
-    const token = localStorage.getItem('token');
-    if (!token) {
-        alert('Authentication token not found. Please log in again.');
-        throw new Error('Token not found');
-    }
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         const emoji = selectedEmoji.trim();
-
         if (!emoji) {
-            alert('Please select an emoji before saving.');
+            setError('Please select an emoji before saving.');
             return;
         }
 
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Authentication token not found. Please log in again.');
+            return;
+        }
+
+        setSaving(true);
+        setError('');
         try {
             const response = await fetch(`${API_URL}/v0/profilechange/emoji`, {
                 method: 'POST',
@@ -37,14 +40,18 @@ const EmojiSelector = ({ currentEmoji = '', onSave }) => {
 
             await response.json();
             if (onSave) onSave(emoji);
-        } catch (error) {
-            console.error('Error changing emoji:', error);
+        } catch (err) {
+            setError(err.message || 'Failed to change emoji.');
+        } finally {
+            setSaving(false);
         }
     };
 
-
     return (
-        <div className="w-80 max-w-[80vw]">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '320px', maxWidth: '80vw' }}>
+            <div style={{ font: `500 12.5px/1.5 ${FONT}`, color: COLOR.muted }}>
+                Pick an emoji to represent you across the platform.
+            </div>
             <EmojiPickerInput
                 type="text"
                 value={selectedEmoji}
@@ -52,13 +59,13 @@ const EmojiSelector = ({ currentEmoji = '', onSave }) => {
                 placeholder="Choose an emoji"
                 maxLength={20}
                 replaceValueOnEmojiSelect
-                className="w-full bg-gray-700 border border-gray-600 text-white px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-[10px] focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+                style={{ ...inputStyle, paddingRight: '40px' }}
             />
-            <div className="mt-4 px-4 py-2">
-                <SiteButton onClick={handleSave}>
-                    SAVE
-                </SiteButton>
-            </div>
+            {error && <ErrorBanner message={error} />}
+            <GhostButton onClick={handleSave} disabled={saving} tone="sky" style={{ alignSelf: 'flex-start' }}>
+                {saving ? 'Saving…' : 'Save emoji'}
+            </GhostButton>
         </div>
     );
 };

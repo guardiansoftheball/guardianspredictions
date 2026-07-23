@@ -90,7 +90,7 @@ const PrivateUserInfoLayout = ({ userData }) => {
                     {
                         label: 'Username (Permanent) - View Public Profile --> ',
                         value: (
-                            <a href={`/user/${userData.username}`} className="text-blue-500 hover:text-blue-700">
+                            <a href={`/newprofile/${userData.username}`} className="text-blue-500 hover:text-blue-700">
                                 {userData.username}
                             </a>
                         )

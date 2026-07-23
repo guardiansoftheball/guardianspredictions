@@ -140,7 +140,7 @@ const PositionsActivityLayout = ({ marketId, market, refreshTrigger }) => {
             {positions.filter(pos => pos.noSharesOwned > 0).map((pos, index) => (
               <div key={index} className="bg-gray-800 p-3 rounded-lg shadow flex flex-col">
                 <Link
-                  to={`/user/${pos.username}`}
+                  to={`/newprofile/${pos.username}`}
                   className="text-blue-400 font-bold underline hover:text-blue-600"
                 >
                   {pos.username}
@@ -159,7 +159,7 @@ const PositionsActivityLayout = ({ marketId, market, refreshTrigger }) => {
             {positions.filter(pos => pos.yesSharesOwned > 0).map((pos, index) => (
               <div key={index} className="bg-gray-800 p-3 rounded-lg shadow flex flex-col">
                 <Link
-                  to={`/user/${pos.username}`}
+                  to={`/newprofile/${pos.username}`}
                   className="text-blue-400 font-bold underline hover:text-blue-600"
                 >
                   {pos.username}

@@ -1269,7 +1269,7 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
               <span className="rounded-full border border-gray-600 bg-gray-800 px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-gray-200">
                 {addition.status}
               </span>
-              <span>Proposed by <a href={`/user/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
+              <span>Proposed by <a href={`/newprofile/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
               <span>{addition.createdAt ? new Date(addition.createdAt).toLocaleString() : ''}</span>
             </div>
             <div className="grid gap-2">

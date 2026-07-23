@@ -340,7 +340,7 @@ const GroupedBetsActivity = ({ groupId, refreshTrigger }) => {
           )}
           {bets.map((bet, index) => (
             <div key={`${bet.answerMarketId}-${bet.placedAt}-${index}`} className={`${groupedBetsGridColumns} border-t border-gray-800 bg-gray-900 px-3 py-3 text-sm`}>
-              <Link to={`/user/${bet.username}`} className='min-w-0 truncate text-blue-400 hover:text-blue-300'>
+              <Link to={`/newprofile/${bet.username}`} className='min-w-0 truncate text-blue-400 hover:text-blue-300'>
                 {bet.username}
               </Link>
               <Link to={`/markets/${bet.answerMarketId}`} className='min-w-0 truncate text-gray-200 hover:text-primary-pink'>
@@ -365,7 +365,7 @@ const GroupedBetsActivity = ({ groupId, refreshTrigger }) => {
 const GroupedPositionEntry = ({ entry }) => (
   <div className='flex flex-col rounded-lg bg-gray-800 p-3 shadow'>
     <Link
-      to={`/user/${entry.username}`}
+      to={`/newprofile/${entry.username}`}
       className='font-bold text-blue-400 underline hover:text-blue-300'
     >
       {entry.username}
@@ -624,7 +624,7 @@ const GroupedLeaderboardActivity = ({ groupId, refreshTrigger }) => {
             </div>
             <div className='sp-cell-username sm:hidden'>
               <div className='sp-ellipsis text-xs font-medium'>
-                <Link to={`/user/${entry.username}`} className='text-blue-500 transition-colors hover:text-blue-400'>
+                <Link to={`/newprofile/${entry.username}`} className='text-blue-500 transition-colors hover:text-blue-400'>
                   {entry.username}
                 </Link>
               </div>
@@ -633,7 +633,7 @@ const GroupedLeaderboardActivity = ({ groupId, refreshTrigger }) => {
 
           <div className='sp-cell-username hidden sm:block'>
             <div className='sp-ellipsis font-medium'>
-              <Link to={`/user/${entry.username}`} className='text-blue-500 transition-colors hover:text-blue-400'>
+              <Link to={`/newprofile/${entry.username}`} className='text-blue-500 transition-colors hover:text-blue-400'>
                 {entry.username}
               </Link>
             </div>
@@ -1087,7 +1087,7 @@ export default function GroupedMarketDetailsLayout({
         </h1>
         <div className='flex flex-wrap items-center gap-2 text-sm text-gray-400'>
           <Link
-            to={`/user/${creatorUsername}`}
+            to={`/newprofile/${creatorUsername}`}
             className='hover:text-blue-400 transition-colors duration-200'
           >
             <span role='img' aria-label='Creator'>

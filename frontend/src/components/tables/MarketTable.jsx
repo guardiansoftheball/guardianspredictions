@@ -101,7 +101,7 @@ const MarketRow = ({ marketData }) => (
     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-400'>
       <div className='flex flex-col items-start gap-2'>
         <Link
-          to={`/user/${marketData.creator.username}`}
+          to={`/newprofile/${marketData.creator.username}`}
           className='flex items-center hover:text-blue-400 transition-colors duration-200'
         >
           <span role='img' aria-label='Creator' className='mr-2'>

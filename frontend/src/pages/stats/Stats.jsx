@@ -634,7 +634,7 @@ const Stats = () => {
                       </td>
                       <td className="py-3 px-4">
                         <Link
-                          to={`/user/${user.username}`}
+                          to={`/newprofile/${user.username}`}
                           className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
                         >
                           {user.username}

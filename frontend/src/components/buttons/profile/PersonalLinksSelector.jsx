@@ -1,6 +1,7 @@
 import { API_URL } from '../../../config';
 import React, { useState, useEffect } from 'react';
-import SiteButton from '../SiteButtons';
+import { ErrorBanner, SuccessBanner, GhostButton, inputStyle } from '../../layouts/profile/ProfileUiKit';
+import { FONT, COLOR } from '../../../styles/darkTokens';
 
 const PersonalLinksSelector = ({ onSave, initialLinks }) => {
     const [links, setLinks] = useState({
@@ -48,8 +49,7 @@ const PersonalLinksSelector = ({ onSave, initialLinks }) => {
             } else {
                 throw new Error('Failed to update links');
             }
-        } catch (error) {
-            console.error('Error updating links:', error);
+        } catch (err) {
             setError('Failed to save links. Please try again.');
         } finally {
             setLoading(false);
@@ -57,22 +57,27 @@ const PersonalLinksSelector = ({ onSave, initialLinks }) => {
     };
 
     return (
-        <div className="flex flex-col items-center">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '360px', maxWidth: '80vw' }}>
             {Object.keys(links).map((key, index) => (
-                <input
-                    key={key}
-                    type="text"
-                    value={links[key]}
-                    onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
-                    placeholder={`Enter link ${index + 1}...`}
-                    className="mb-2 px-2 py-1 border rounded text-black w-3/4"
-                />
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ font: `600 11px ${FONT}`, letterSpacing: '.06em', color: COLOR.muted2, textTransform: 'uppercase' }}>
+                        Link {index + 1}
+                    </label>
+                    <input
+                        type="text"
+                        value={links[key]}
+                        onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
+                        placeholder={`https://…`}
+                        style={inputStyle}
+                        className="rounded-[10px] focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+                    />
+                </div>
             ))}
-            <SiteButton onClick={handleSave} disabled={loading} className="mt-4">
-                {loading ? 'Saving...' : 'Save Links'}
-            </SiteButton>
-            {error && <p className="text-red-500">{error}</p>}
-            {successMessage && <p className="text-green-500">{successMessage}</p>}
+            {error && <ErrorBanner message={error} />}
+            {successMessage && <SuccessBanner message={successMessage} />}
+            <GhostButton onClick={handleSave} disabled={loading} tone="sky" style={{ alignSelf: 'flex-start', marginTop: '4px' }}>
+                {loading ? 'Saving…' : 'Save links'}
+            </GhostButton>
         </div>
     );
 };

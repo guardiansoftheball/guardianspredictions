@@ -143,7 +143,7 @@ function MarketDetailsTable({
         </h1>
         <div className='flex flex-wrap items-center gap-2 text-sm text-gray-400'>
           <a
-            href={`/user/${creatorUsername}`}
+            href={`/newprofile/${creatorUsername}`}
             className='hover:text-blue-400 transition-colors duration-200'
           >
             <span role='img' aria-label='Creator'>

@@ -20,7 +20,7 @@ const StewardTag = ({ username, creatorUsername = '', className = '' }) => {
 
   return (
     <Link
-      to={`/user/${normalizedUsername}`}
+      to={`/newprofile/${normalizedUsername}`}
       className={`inline-flex items-center gap-1 rounded-full border border-info-blue/30 bg-info-blue/10 px-2 py-0.5 text-xs font-medium text-custom-gray-verylight transition hover:border-info-blue/60 hover:bg-info-blue/15 ${className}`}
       title={`Market steward: ${normalizedUsername}`}
     >

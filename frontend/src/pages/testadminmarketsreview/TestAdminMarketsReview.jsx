@@ -642,7 +642,7 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
               <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-200">Group #{addition.groupId}</span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-200">{addition.status}</span>
-              <span>Proposed by <a href={`/user/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
+              <span>Proposed by <a href={`/newprofile/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
               {addition.createdAt && <span>{new Date(addition.createdAt).toLocaleString()}</span>}
             </div>
             <div className="flex flex-col gap-2">
