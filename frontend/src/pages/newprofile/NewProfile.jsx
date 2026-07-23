@@ -35,7 +35,7 @@ const PAGE_SIZE = 20;
 const CHIP_TONES = {
   neutral: { border: "rgba(255,255,255,0.14)", bg: "rgba(255,255,255,0.06)", color: "#cbd5e1" },
   sky:     { border: "rgba(156,201,241,0.35)", bg: "rgba(156,201,241,0.10)", color: "#9cc9f1" },
-  green:   { border: "rgba(34,197,94,0.35)",   bg: "rgba(34,197,94,0.10)",   color: "#4ade80" },
+  green:   { border: "rgba(186,214,89,0.35)",   bg: "rgba(186,214,89,0.10)",   color: "#C6E06C" },
   red:     { border: "rgba(251,91,107,0.35)",  bg: "rgba(251,91,107,0.10)",  color: "#fb8b96" },
   amber:   { border: "rgba(255,193,7,0.35)",   bg: "rgba(255,193,7,0.08)",   color: "#ffc107" },
   purple:  { border: "rgba(167,139,250,0.35)", bg: "rgba(167,139,250,0.10)", color: "#c4b5fd" },
@@ -691,7 +691,7 @@ const FinancialsSection = ({ username }) => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
         <FinancialGroup title="Balance Sheet — Financial Position" accent="#9cc9f1" items={balanceSheetItems} />
-        <FinancialGroup title="Income Statement — Profitability" accent="#4ade80" items={incomeStatementItems} />
+        <FinancialGroup title="Income Statement — Profitability" accent="#C6E06C" items={incomeStatementItems} />
         <FinancialGroup title="Cash Flow — Investment Activity" accent="#ffc107" items={cashFlowItems} />
         <FinancialGroup title="Market Position — Trading Performance" accent="#c4b5fd" items={marketPositionItems} />
       </div>

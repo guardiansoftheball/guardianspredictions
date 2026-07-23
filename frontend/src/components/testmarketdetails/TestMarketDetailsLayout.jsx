@@ -33,7 +33,7 @@ const MARKET_CARD = { ...CARD, background: '#0e121d' };
 
 // Per-option theme: first=green, last=red, middles=neutral/purple/orange/teal…
 const OPTION_THEMES = [
-  { color: "#00d4bf", text: "#33ddc9", bg: "rgba(0,212,191,0.10)",   border: "rgba(0,212,191,0.28)",   activeBorder: "rgba(0,212,191,0.55)",   gradient: "linear-gradient(180deg,#00d4bf,#00a899)", shadow: "0 8px 22px rgba(0,212,191,0.30)"   },
+  { color: "#BAD659", text: "#C6E06C", bg: "rgba(186,214,89,0.10)",   border: "rgba(186,214,89,0.28)",   activeBorder: "rgba(186,214,89,0.55)",   gradient: "linear-gradient(180deg,#BAD659,#AABA49)", shadow: "0 8px 22px rgba(186,214,89,0.30)"   },
   { color: "#fb5b6b", text: "#fb8b96", bg: "rgba(251,91,107,0.10)",  border: "rgba(251,91,107,0.25)",  activeBorder: "rgba(251,91,107,0.55)",  gradient: "linear-gradient(180deg,#fb5b6b,#e11d48)", shadow: "0 8px 22px rgba(244,63,94,0.28)"   },
   { color: "#6b7f96", text: "#8ca0b6", bg: "rgba(107,127,150,0.09)", border: "rgba(107,127,150,0.22)", activeBorder: "rgba(107,127,150,0.50)", gradient: "linear-gradient(180deg,#6b7f96,#4a5e72)", shadow: "0 8px 22px rgba(107,127,150,0.22)" },
   { color: "#a78bfa", text: "#c4b5fd", bg: "rgba(167,139,250,0.10)", border: "rgba(167,139,250,0.26)", activeBorder: "rgba(167,139,250,0.52)", gradient: "linear-gradient(180deg,#a78bfa,#7c3aed)", shadow: "0 8px 22px rgba(167,139,250,0.28)" },
@@ -589,14 +589,14 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
   if (!quote) return null;
 
   const panelColor = quote.allowed
-    ? { border: "rgba(0,212,191,0.3)", bg: "rgba(0,212,191,0.07)" }
+    ? { border: "rgba(186,214,89,0.3)", bg: "rgba(186,214,89,0.07)" }
     : { border: "rgba(255,193,7,0.35)", bg: "rgba(255,193,7,0.07)" };
 
   return (
     <div style={{ borderRadius: "10px", border: `1px solid ${panelColor.border}`, background: panelColor.bg, padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ font: `700 13px ${FONT_BODY}`, color: TEXT }}>Sale Preview</span>
-        <span style={{ font: `600 11px ${FONT_BODY}`, color: quote.allowed ? "#33ddc9" : "#ffc107", background: "rgba(255,255,255,0.07)", borderRadius: "6px", padding: "2px 8px" }}>
+        <span style={{ font: `600 11px ${FONT_BODY}`, color: quote.allowed ? "#C6E06C" : "#ffc107", background: "rgba(255,255,255,0.07)", borderRadius: "6px", padding: "2px 8px" }}>
           {quote.allowed ? "Allowed" : "Adjust amount"}
         </span>
       </div>
@@ -604,7 +604,7 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
         <span style={{ color: MUTED2 }}>Sale order</span><span style={{ color: TEXT }}>{quote.requestedCredits}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", font: `600 12px ${FONT_BODY}` }}>
-        <span style={{ color: MUTED2 }}>Credits received</span><span style={{ color: "#33ddc9" }}>{quote.netProceeds ?? quote.saleValue}</span>
+        <span style={{ color: MUTED2 }}>Credits received</span><span style={{ color: "#C6E06C" }}>{quote.netProceeds ?? quote.saleValue}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", font: `600 12px ${FONT_BODY}` }}>
         <span style={{ color: MUTED2 }}>Shares sold</span><span style={{ color: TEXT }}>{quote.sharesSold}</span>
@@ -855,13 +855,13 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                 flex: 1, padding: "9px 0", borderRadius: "10px", border: "none", cursor: "pointer",
                 font: `700 13px ${FONT_BODY}`,
                 background: buyOutcome === o
-                  ? (o === "YES" ? "rgba(0,212,191,0.18)" : "rgba(251,91,107,0.18)")
+                  ? (o === "YES" ? "rgba(186,214,89,0.18)" : "rgba(251,91,107,0.18)")
                   : "rgba(255,255,255,0.05)",
                 color: buyOutcome === o
                   ? "#000"
                   : MUTED2,
                 boxShadow: buyOutcome === o
-                  ? `inset 0 0 0 1.5px ${o === "YES" ? "#00d4bf" : "#fb5b6b"}`
+                  ? `inset 0 0 0 1.5px ${o === "YES" ? "#BAD659" : "#fb5b6b"}`
                   : "inset 0 0 0 1px rgba(255,255,255,0.08)",
                 transition: "all .15s",
               }}>{o}</button>
@@ -897,7 +897,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
           </div>
 
           {error && <div style={{ background: "rgba(251,91,107,0.12)", border: "1px solid rgba(251,91,107,0.3)", borderRadius: "8px", padding: "10px 12px", font: `500 12px ${FONT_BODY}`, color: NO_TEXT }}>{error}</div>}
-          {success && <div style={{ background: "rgba(0,212,191,0.12)", border: "1px solid rgba(0,212,191,0.3)", borderRadius: "8px", padding: "10px 12px", font: `600 13px ${FONT_BODY}`, color: YES_TEXT }}>{success}</div>}
+          {success && <div style={{ background: "rgba(186,214,89,0.12)", border: "1px solid rgba(186,214,89,0.3)", borderRadius: "8px", padding: "10px 12px", font: `600 13px ${FONT_BODY}`, color: YES_TEXT }}>{success}</div>}
 
           <button
             onClick={handleBuy}
@@ -928,7 +928,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
             <>
               {/* Shares badge */}
               <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
-                <div style={{ padding: "8px 16px", borderRadius: "10px", background: "rgba(0,212,191,0.12)", border: "1px solid rgba(0,212,191,0.3)", textAlign: "center" }}>
+                <div style={{ padding: "8px 16px", borderRadius: "10px", background: "rgba(186,214,89,0.12)", border: "1px solid rgba(186,214,89,0.3)", textAlign: "center" }}>
                   <div style={{ font: `700 11px ${FONT_BODY}`, color: YES_TEXT, letterSpacing: ".06em" }}>{selectedAnswer.answerLabel}</div>
                   <div style={{ font: `800 18px ${FONT_HEAD}`, color: TEXT }}>{sellShares.yesSharesOwned} shares</div>
                   <div style={{ font: `600 12px ${FONT_BODY}`, color: MUTED2 }}>Value: {sellShares.value}</div>
@@ -967,9 +967,9 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                     width: "100%", padding: "14px", borderRadius: "12px", border: "none",
                     font: `800 16px ${FONT_HEAD}`,
                     cursor: isSellActionDisabled ? "not-allowed" : "pointer",
-                    background: isSellActionDisabled ? "rgba(255,255,255,0.08)" : "linear-gradient(180deg,#00d4bf,#00a899)",
-                    color: isSellActionDisabled ? MUTED2 : "#001a18",
-                    boxShadow: isSellActionDisabled ? "none" : "0 8px 22px rgba(0,212,191,0.28)",
+                    background: isSellActionDisabled ? "rgba(255,255,255,0.08)" : "linear-gradient(180deg,#BAD659,#AABA49)",
+                    color: isSellActionDisabled ? MUTED2 : "#1a1a00",
+                    boxShadow: isSellActionDisabled ? "none" : "0 8px 22px rgba(186,214,89,0.28)",
                     transition: "all .15s", opacity: isSellSubmitting ? 0.7 : 1,
                   }}
                 >
@@ -980,7 +980,7 @@ function MultiChoiceTradePanel({ answers, selectedIdx, onSelectIdx, token, isLog
                   disabled={isSellActionDisabled}
                   style={{
                     width: "100%", padding: "10px", borderRadius: "10px",
-                    border: "1px solid rgba(0,212,191,0.40)", background: "transparent",
+                    border: "1px solid rgba(186,214,89,0.40)", background: "transparent",
                     color: isSellActionDisabled ? MUTED2 : YES_TEXT,
                     font: `700 13px ${FONT_HEAD}`,
                     cursor: isSellActionDisabled ? "not-allowed" : "pointer",
@@ -1722,9 +1722,9 @@ function ResolvedPanel({ result, yesLabel, noLabel, yesPct, noPct }) {
   const isYes = result?.toUpperCase() === "YES";
   const isNA = result?.toUpperCase() === "N/A" || result?.toUpperCase() === "NA";
   const winLabel = isNA ? "N/A" : isYes ? yesLabel : noLabel;
-  const winColor = isNA ? "#8ca0b6" : isYes ? "#00d4bf" : "#fb5b6b";
-  const winBg = isNA ? "rgba(140,160,182,0.10)" : isYes ? "rgba(0,212,191,0.10)" : "rgba(251,91,107,0.10)";
-  const winBorder = isNA ? "rgba(140,160,182,0.25)" : isYes ? "rgba(0,212,191,0.30)" : "rgba(251,91,107,0.30)";
+  const winColor = isNA ? "#8ca0b6" : isYes ? "#BAD659" : "#fb5b6b";
+  const winBg = isNA ? "rgba(140,160,182,0.10)" : isYes ? "rgba(186,214,89,0.10)" : "rgba(251,91,107,0.10)";
+  const winBorder = isNA ? "rgba(140,160,182,0.25)" : isYes ? "rgba(186,214,89,0.30)" : "rgba(251,91,107,0.30)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -1735,7 +1735,7 @@ function ResolvedPanel({ result, yesLabel, noLabel, yesPct, noPct }) {
       </div>
       <div style={{ display: "flex", gap: "9px" }}>
         {[
-          { label: yesLabel, pct: yesPct, active: isYes, color: YES_TEXT, bg: isYes ? "rgba(0,212,191,0.12)" : "rgba(255,255,255,0.04)", border: isYes ? "rgba(0,212,191,0.30)" : "rgba(255,255,255,0.08)" },
+          { label: yesLabel, pct: yesPct, active: isYes, color: YES_TEXT, bg: isYes ? "rgba(186,214,89,0.12)" : "rgba(255,255,255,0.04)", border: isYes ? "rgba(186,214,89,0.30)" : "rgba(255,255,255,0.08)" },
           { label: noLabel, pct: noPct, active: !isYes && !isNA, color: NO_TEXT, bg: !isYes && !isNA ? "rgba(251,91,107,0.12)" : "rgba(255,255,255,0.04)", border: !isYes && !isNA ? "rgba(251,91,107,0.30)" : "rgba(255,255,255,0.08)" },
         ].map(({ label, pct, color, bg, border }) => (
           <div key={label} style={{ flex: 1, padding: "11px 8px", borderRadius: "12px", textAlign: "center", background: bg, border: `1px solid ${border}` }}>
@@ -1776,7 +1776,7 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", gap: "9px" }}>
         {[
-          { label: yesLabel, pct: yesPct, color: YES_TEXT, bg: "rgba(0,212,191,0.08)", border: "rgba(0,212,191,0.22)" },
+          { label: yesLabel, pct: yesPct, color: YES_TEXT, bg: "rgba(186,214,89,0.08)", border: "rgba(186,214,89,0.22)" },
           { label: noLabel, pct: noPct, color: NO_TEXT, bg: "rgba(244,63,94,0.08)", border: "rgba(244,63,94,0.18)" },
         ].map(({ label, pct, color, bg, border }) => (
           <div key={label} style={{ flex: 1, padding: "11px 8px", borderRadius: "12px", textAlign: "center", background: bg, border: `1px solid ${border}` }}>

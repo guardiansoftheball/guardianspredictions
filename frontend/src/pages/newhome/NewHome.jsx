@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
@@ -6,8 +6,11 @@ import Hero from "../../components/hero/Hero";
 import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
+import GhostCard from "../../components/cards/GhostCard";
+import { skeletonForType } from "../../components/cards/SkeletonCard";
 import teamCrest from "../../assets/png/ATM.png";
 import { useActiveMarketIds } from "../../hooks/useActiveMarketIds";
+import { usePaginatedCards } from "../../hooks/usePaginatedCards";
 
 // Flags of national teams competing in the 2026 FIFA World Cup
 const flag = (isoCode) => `https://flagcdn.com/w160/${isoCode}.png`;
@@ -214,96 +217,156 @@ export const CARDS = [
 
 const NewHome = () => {
   const { marketIds } = useActiveMarketIds(CARDS.length);
+  const { visibleCards, skeletonCount, sentinelRef } = usePaginatedCards(CARDS);
+  const [scrollY, setScrollY] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    setScrollY(window.scrollY);
+  }, []);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     document.title = "Guardians Predictions";
-  }, []);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  // Next cards that will load — used to pick matching skeleton types
+  const nextCards = CARDS.slice(
+    visibleCards.length,
+    visibleCards.length + skeletonCount,
+  );
 
   return (
     <div className="bg-primary-background relative z-50 min-h-screen pb-16">
-      {/* Hero + Navbar superpuesto */}
-      <div style={{ position: "relative", zIndex: 10 }}>
-        <Hero />
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 20,
-          }}
-        >
-          <Navbar />
-        </div>
+      {/* Navbar — fixed, always on top */}
+      <div
+        // style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50 }}
+        className=" sm:fixed top-0 left-0 right-0 z-50"
+      >
+        <Navbar />
       </div>
 
-      {/* Grid 5×5 */}
+      {/* Hero — parallax: content scrolls over it */}
       <div
-        className="pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
-        style={{ position: "relative", overflow: "hidden" }}
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
+          transform: `translateY(-${scrollY * 0.35}px)`,
+          willChange: "transform",
+        }}
       >
-        {/* Blue glow blob — centered within grid */}
+        <Hero />
+      </div>
+
+      {/* Grid — scrolls over the hero */}
+      <div
+        className="bg-primary-background pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
+        style={{ position: "relative", zIndex: 2 }}
+      >
+        {/* Blue glow blob — sticky so it follows scroll but stays inside this section */}
         <div
           style={{
-            position: "fixed",
-            width: "60vw",
-            height: "100vh",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            // background: "#51ADF6",// opacity: 0.3,
-            background:
-              "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 37%) 0%)",
-            filter: "blur(250px)",
+            position: "sticky",
+            top: "25%",
+            height: 0,
+            overflow: "visible",
             pointerEvents: "none",
             zIndex: 0,
-            borderRadius: "50%",
           }}
-        />
-        <div
-          className="flex flex-wrap gap-6 justify-center"
-          style={{ position: "relative", zIndex: 1 }}
         >
-          {CARDS.map((card, i) => {
-            const marketId =
-              marketIds.length > 0 ? marketIds[i % marketIds.length] : i + 1;
-            const cardEl =
-              card.type === "match" ? (
-                <MatchCard
-                  key={i}
-                  homeTeam={card.home}
-                  awayTeam={card.away}
-                  draw={card.draw}
-                  poolAmount={card.pool}
-                />
-              ) : card.type === "question" ? (
-                <QuestionCard
-                  key={i}
-                  teamLogo={card.logo}
-                  question={card.question}
-                  pct={card.pct}
-                  poolAmount={card.pool}
-                />
-              ) : (
-                <PredictionCard
-                  key={i}
-                  teamLogo={card.logo}
-                  question={card.question}
-                  options={card.options}
-                  poolAmount={card.pool}
-                />
-              );
-            return (
-              <Link
-                key={i}
-                to={`/test/markets/${marketId}`}
-                style={{ textDecoration: "none", display: "contents" }}
-              >
-                {cardEl}
-              </Link>
-            );
-          })}
+          <div
+            style={{
+              width: "60vw",
+              height: "100vh",
+              margin: "0 auto",
+              transform: "translateY(-15%)",
+              background:
+                "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 37%) 0%)",
+              filter: "blur(250px)",
+              borderRadius: "50%",
+            }}
+          />
         </div>
+        <div className="relative w-full" style={{ zIndex: 1 }}>
+          {/* Layer 1 — Ghost cards (solo fondo + borde, sin contenido) */}
+          <div
+            className="grid gap-6 justify-center pointer-events-none"
+            style={{
+              opacity: 0.35,
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 344px))",
+            }}
+          >
+            {visibleCards.map((_, i) => (
+              <GhostCard key={`ghost-${i}`} />
+            ))}
+            {nextCards.map((_, i) => (
+              <GhostCard key={`ghost-skel-${i}`} />
+            ))}
+          </div>
+
+          {/* Layer 2 — Cards reales (solo contenido, sin fondo ni borde) */}
+          <div
+            className="grid gap-6 justify-center absolute inset-0"
+            style={{
+              zIndex: 2,
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 344px))",
+            }}
+          >
+            {visibleCards.map((card, i) => {
+              const marketId =
+                marketIds.length > 0 ? marketIds[i % marketIds.length] : i + 1;
+              const cardEl =
+                card.type === "match" ? (
+                  <MatchCard
+                    key={i}
+                    homeTeam={card.home}
+                    awayTeam={card.away}
+                    draw={card.draw}
+                    poolAmount={card.pool}
+                    transparent
+                  />
+                ) : card.type === "question" ? (
+                  <QuestionCard
+                    key={i}
+                    teamLogo={card.logo}
+                    question={card.question}
+                    pct={card.pct}
+                    poolAmount={card.pool}
+                    transparent
+                  />
+                ) : (
+                  <PredictionCard
+                    key={i}
+                    teamLogo={card.logo}
+                    question={card.question}
+                    options={card.options}
+                    poolAmount={card.pool}
+                    transparent
+                  />
+                );
+              return (
+                <Link
+                  key={i}
+                  to={`/test/markets/${marketId}`}
+                  style={{ textDecoration: "none", display: "contents" }}
+                >
+                  {cardEl}
+                </Link>
+              );
+            })}
+
+            {/* Skeletons for the next page */}
+            {nextCards.map((card, i) => {
+              const Skeleton = skeletonForType(card.type);
+              return <Skeleton key={`skel-${i}`} />;
+            })}
+          </div>
+        </div>
+
+        {/* Sentinel for infinite scroll */}
+        <div ref={sentinelRef} className="h-1 w-full" />
       </div>
 
       <div className="mt-16">

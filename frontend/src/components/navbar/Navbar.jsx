@@ -15,7 +15,6 @@ import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
-
 const NAV_LINKS = [
   { label: "Trending", to: "/new-home", Icon: HomeSVG },
   { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
@@ -34,12 +33,25 @@ const linkStyle = {
 
 const BOTTOM_NAV = [
   { label: "Trending", to: "/new-home", activeOn: "/new-home", Icon: HomeSVG },
-  { label: "Markets", to: "/new-markets", activeOn: "/new-markets", Icon: MarketsSVG },
+  {
+    label: "Markets",
+    to: "/new-markets",
+    activeOn: "/new-markets",
+    Icon: MarketsSVG,
+  },
   { label: "Stats", to: "/new-home", activeOn: null, Icon: StatsSVG },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
-const UserChip = ({ username, credit, onLogout, onProfile, isAdmin, onAdminReview, navVisible }) => {
+const UserChip = ({
+  username,
+  credit,
+  onLogout,
+  onProfile,
+  isAdmin,
+  onAdminReview,
+  navVisible,
+}) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = React.useRef(null);
   const { pathname } = useLocation();
@@ -208,7 +220,7 @@ const UserChip = ({ username, credit, onLogout, onProfile, isAdmin, onAdminRevie
               <DropdownItem
                 icon={<AdminIcon />}
                 label="Review Markets"
-                active={pathname === '/test/admin/markets/review'}
+                active={pathname === "/test/admin/markets/review"}
                 onClick={() => {
                   setOpen(false);
                   onAdminReview?.();
@@ -219,7 +231,7 @@ const UserChip = ({ username, credit, onLogout, onProfile, isAdmin, onAdminRevie
               <DropdownItem
                 icon={<PersonIcon />}
                 label="My profile"
-                active={pathname === '/newprofile'}
+                active={pathname === "/newprofile"}
                 onClick={() => {
                   setOpen(false);
                   onProfile?.();
@@ -262,7 +274,10 @@ const DropdownItem = ({ icon, label, onClick, danger, active }) => (
       transition: "background .12s",
     }}
     onMouseEnter={(e) => {
-      if (!active) e.currentTarget.style.background = danger ? "rgba(251,91,107,0.10)" : "rgba(255,255,255,0.06)";
+      if (!active)
+        e.currentTarget.style.background = danger
+          ? "rgba(251,91,107,0.10)"
+          : "rgba(255,255,255,0.06)";
     }}
     onMouseLeave={(e) => {
       if (!active) e.currentTarget.style.background = "transparent";
@@ -322,7 +337,7 @@ const LogoutIcon = () => (
 );
 
 const NAV_HEIGHT = 80; // px — matches padding-top + height
-const SCROLL_THRESHOLD = 60; // px before switching to fixed mode
+const SCROLL_THRESHOLD = 80; // px before switching to fixed mode
 
 const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -330,7 +345,7 @@ const Navbar = () => {
   const { pathname } = useLocation();
   const { login, logout, username, token, usertype } = useAuth();
   const isLoggedIn = !!username;
-  const isAdmin = usertype === 'ADMIN';
+  const isAdmin = usertype === "ADMIN";
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
 
@@ -363,7 +378,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    history.push("/");
+    history.push("/new-home");
   };
   const handleProfile = () => history.push("/newprofile");
 
@@ -391,16 +406,16 @@ const Navbar = () => {
         left: 0,
         right: 0,
         zIndex: 200,
-        height: "64px",
+        height: "104px",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 80px",
+        padding: "40px 80px 40px 80px",
         boxSizing: "border-box",
         background: "rgba(10,20,34,0.88)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
         borderBottom: "1px solid rgba(255,255,255,0.07)",
-        transform: navVisible ? "translateY(0)" : "translateY(-100%)",
+        transform: navVisible ? "translateY(0)" : "translateY(-110%)",
         // animate only when reappearing; instant hide
         transition: navVisible
           ? "transform 0.28s cubic-bezier(0.4,0,0.2,1)"
@@ -474,8 +489,8 @@ const Navbar = () => {
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
-              isAdmin={usertype === 'ADMIN'}
-              onAdminReview={() => history.push('/test/admin/markets/review')}
+              isAdmin={usertype === "ADMIN"}
+              onAdminReview={() => history.push("/test/admin/markets/review")}
               navVisible={navVisible}
             />
           ) : (
@@ -585,45 +600,131 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div style={{ padding: "8px 4px" }}>
                 {/* User info */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 3px", marginBottom: "12px" }}>
-                  <div style={{
-                    width: "34px", height: "34px", borderRadius: "999px", flexShrink: 0,
-                    background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
-                    border: "1.5px solid rgba(156,201,241,0.35)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: FONT, fontWeight: 800, fontSize: "12px", color: COLOR.accent,
-                  }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "6px 3px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "34px",
+                      height: "34px",
+                      borderRadius: "999px",
+                      flexShrink: 0,
+                      background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
+                      border: "1.5px solid rgba(156,201,241,0.35)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: FONT,
+                      fontWeight: 800,
+                      fontSize: "12px",
+                      color: COLOR.accent,
+                    }}
+                  >
                     {(username || "?").slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ lineHeight: 1.2 }}>
-                    <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: COLOR.text }}>@{username}</div>
-                    <div style={{ fontFamily: FONT, fontWeight: 600, fontSize: "11px", color: COLOR.accent }}>🪙 {userCredit != null ? (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit))) : "—"}</div>
+                    <div
+                      style={{
+                        fontFamily: FONT,
+                        fontWeight: 700,
+                        fontSize: "13px",
+                        color: COLOR.text,
+                      }}
+                    >
+                      @{username}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: FONT,
+                        fontWeight: 600,
+                        fontSize: "11px",
+                        color: COLOR.accent,
+                      }}
+                    >
+                      🪙{" "}
+                      {userCredit != null
+                        ? userCredit >= 1000
+                          ? (userCredit / 1000).toFixed(1) + "k"
+                          : String(Math.round(userCredit))
+                        : "—"}
+                    </div>
                   </div>
                 </div>
                 {/* Actions */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {usertype === 'ADMIN' && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                  }}
+                >
+                  {usertype === "ADMIN" && (
                     <button
-                      onClick={() => { setSidebarOpen(false); history.push('/test/admin/markets/review'); }}
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        history.push("/test/admin/markets/review");
+                      }}
                       className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                      style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                      style={{
+                        fontFamily: "'Roboto', sans-serif",
+                        fontSize: "16px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
                     >
                       <AdminIcon /> Review Markets
                     </button>
                   )}
-                  {usertype !== 'ADMIN' && (
+                  {usertype !== "ADMIN" && (
                     <button
-                      onClick={() => { setSidebarOpen(false); handleProfile(); }}
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        handleProfile();
+                      }}
                       className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                      style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                      style={{
+                        fontFamily: "'Roboto', sans-serif",
+                        fontSize: "16px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
                     >
                       <PersonIcon /> My profile
                     </button>
                   )}
                   <button
-                    onClick={() => { setSidebarOpen(false); handleLogout(); }}
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      handleLogout();
+                    }}
                     className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{ fontFamily: "'Roboto', sans-serif", fontSize: "16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
                   >
                     <LogoutIcon /> Sign out
                   </button>

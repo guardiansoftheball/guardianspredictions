@@ -69,33 +69,35 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           <img src={imgLogo} alt="Guardians Predictions" className="h-16 w-auto" />
         </div>
 
-        {/* Fields */}
-        <div className="flex flex-col gap-3">
-          <Input
-            type="text"
-            placeholder="Email / Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </div>
+        {/* Form – wrapping fields + button so Enter submits */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3">
+            <Input
+              type="text"
+              placeholder="Email / Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
 
-        {/* Error */}
-        {error && <p className="text-center text-sm text-red-300">{error}</p>}
+          {/* Error */}
+          {error && <p className="text-center text-sm text-red-300">{error}</p>}
 
-        {/* Next */}
-        <div className="flex justify-end">
-          <Button variant="primary" onClick={handleSubmit} loading={loading} withArrow>
-            Next
-          </Button>
-        </div>
+          {/* Next */}
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary" loading={loading} withArrow>
+              Next
+            </Button>
+          </div>
+        </form>
 
         {/* Separator */}
         <div className="flex items-center gap-3">

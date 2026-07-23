@@ -6,8 +6,8 @@ import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCr
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT      = 'Manrope,system-ui,sans-serif';
 const FONT_HEAD = 'Sora,system-ui,sans-serif';
-const YES_COLOR = '#00d4bf';
-const YES_TEXT  = '#33ddc9';
+const YES_COLOR = '#BAD659';
+const YES_TEXT  = '#C6E06C';
 const NO_COLOR  = '#fb5b6b';
 const NO_TEXT   = '#fb8b96';
 const MUTED     = '#8ca0b6';
@@ -39,12 +39,12 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
         transition: 'all .15s',
         border: active
           ? `1px solid ${accentColor}`
-          : `1px solid ${isYes ? 'rgba(0,212,191,0.22)' : 'rgba(244,63,94,0.18)'}`,
+          : `1px solid ${isYes ? 'rgba(186,214,89,0.22)' : 'rgba(244,63,94,0.18)'}`,
         background: active
           ? (isYes
-              ? 'linear-gradient(180deg,#00d4bf,#00a899)'
+              ? 'linear-gradient(180deg,#BAD659,#AABA49)'
               : 'linear-gradient(180deg,#fb5b6b,#e11d48)')
-          : (isYes ? 'rgba(0,212,191,0.08)' : 'rgba(244,63,94,0.08)'),
+          : (isYes ? 'rgba(186,214,89,0.08)' : 'rgba(244,63,94,0.08)'),
       }}
     >
       <span style={{
@@ -169,8 +169,8 @@ const ErrorMsg = ({ msg }) => msg ? (
 
 const SuccessMsg = ({ msg }) => msg ? (
   <div style={{
-    background: 'rgba(0,212,191,0.12)',
-    border: '1px solid rgba(0,212,191,0.3)',
+    background: 'rgba(186,214,89,0.12)',
+    border: '1px solid rgba(186,214,89,0.3)',
     borderRadius: '8px',
     padding: '10px 12px',
     font: `600 13px ${FONT}`,
@@ -296,12 +296,12 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const projDelta = projDisplay != null ? projDisplay - currentPct : null;
 
   const btnColor = side === 'YES'
-    ? 'linear-gradient(180deg,#00d4bf,#00a899)'
+    ? 'linear-gradient(180deg,#BAD659,#AABA49)'
     : side === 'NO'
       ? 'linear-gradient(180deg,#fb5b6b,#e11d48)'
       : 'rgba(255,255,255,0.08)';
   const btnShadow = side === 'YES'
-    ? '0 8px 22px rgba(0,212,191,0.28)'
+    ? '0 8px 22px rgba(186,214,89,0.28)'
     : '0 8px 22px rgba(244,63,94,0.26)';
 
   return (
@@ -538,7 +538,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
           </div>
         )}
         {shares.yesSharesOwned > 0 && (
-          <div style={{ padding: '8px 16px', borderRadius: '10px', background: 'rgba(0,212,191,0.12)', border: '1px solid rgba(0,212,191,0.3)', textAlign: 'center' }}>
+          <div style={{ padding: '8px 16px', borderRadius: '10px', background: 'rgba(186,214,89,0.12)', border: '1px solid rgba(186,214,89,0.3)', textAlign: 'center' }}>
             <div style={{ font: `700 11px ${FONT}`, color: YES_TEXT, letterSpacing: '.06em' }}>{yesLabel}</div>
             <div style={{ font: `800 18px ${FONT_HEAD}`, color: TEXT }}>{shares.yesSharesOwned}</div>
           </div>
@@ -623,7 +623,7 @@ const SellQuotePanel = ({ quote, quoteError, isLoading, selectedOutcome, onSelec
   if (!quote) return null;
 
   const panelColor = quote.allowed
-    ? { border: 'rgba(0,212,191,0.3)', bg: 'rgba(0,212,191,0.07)' }
+    ? { border: 'rgba(186,214,89,0.3)', bg: 'rgba(186,214,89,0.07)' }
     : { border: 'rgba(255,193,7,0.35)', bg: 'rgba(255,193,7,0.07)' };
 
   return (
@@ -666,8 +666,8 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
         disabled={disabled}
         loading={false}
         label={`Confirm Sale — ${label}`}
-        color={`linear-gradient(180deg,${color},${isYes ? '#00a899' : '#e11d48'})`}
-        shadow={`0 6px 18px ${isYes ? 'rgba(0,212,191,0.25)' : 'rgba(244,63,94,0.22)'}`}
+        color={`linear-gradient(180deg,${color},${isYes ? '#AABA49' : '#e11d48'})`}
+        shadow={`0 6px 18px ${isYes ? 'rgba(186,214,89,0.25)' : 'rgba(244,63,94,0.22)'}`}
       />
       <button
         type="button"

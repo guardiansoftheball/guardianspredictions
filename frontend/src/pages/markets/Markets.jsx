@@ -23,7 +23,7 @@ const MARKET_LIST_PAGE_SIZE = 20;
 const PINNED_GROUP_COLORS = [
     '#38bdf8',
     '#f97316',
-    '#22c55e',
+    '#BAD659',
     '#e879f9',
     '#facc15',
     '#a78bfa',

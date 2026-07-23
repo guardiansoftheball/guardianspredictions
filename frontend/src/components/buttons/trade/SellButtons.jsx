@@ -6,7 +6,7 @@ import { NumberInput } from '../../inputs/InputBar';
 const SharesBadgeSimple = ({ type, count, label }) => {
 
     const backgrounds = {
-        YES: 'linear-gradient(to right, #054A29, #FFC107)', // green to yellow gradient
+        YES: 'linear-gradient(to right, #BAD659, #FFC107)', // green to yellow gradient
         NO: 'linear-gradient(to right, #D00000, #FFC107)',  // red to yellow gradient
         // YES: `linear-gradient(to right, theme('colors.green-btn'), theme('colors.gold-btn')`,
         // NO: `linear-gradient(to right, theme('colors.red-btn'), theme('colors.gold-btn')`,
@@ -27,7 +27,7 @@ const SharesBadgeSimple = ({ type, count, label }) => {
 
 const SharesBadge = ({ type, count, label }) => {
     const colors = {
-        YES: '#054A29',
+        YES: '#BAD659',
         NO: '#D00000',
         GOLD: '#FFC107',
         BEIGE: '#F9D3A5'

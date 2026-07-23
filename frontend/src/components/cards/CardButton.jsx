@@ -30,7 +30,7 @@ const NO_STOPS = (
  * escala vía viewBox en lugar de depender de un ancho fijo en px.
  * Props:
  *   label     string   — texto del botón
- *   color     string   — color del texto (#bad659 o #f89182)
+ *   color     string   — color del texto (#BAD659 o #f89182)
  *   variant   "yes"|"no"  — determina el gradient del borde
  *   onClick   fn
  */
@@ -49,7 +49,7 @@ const CardButton = ({ label, color, variant = "yes", pct, onClick }) => {
       onMouseLeave={() => setHovered(false)}
       className="relative flex-1 min-w-0 h-[34px] sm:h-[38px] bg-transparent border-none p-0 cursor-pointer isolate flex items-center justify-center font-['Roboto',sans-serif] font-medium text-[clamp(12px,3.2vw,18px)] tracking-[0.4px] transition-[color,transform] duration-150 ease-out"
       style={{
-        color: hovered ? "#ffffff" : color,
+        color: hovered ? "#000000" : color,
         transform: hovered ? "scale(1.04)" : "scale(1)",
       }}
     >

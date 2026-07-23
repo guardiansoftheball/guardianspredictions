@@ -10,17 +10,18 @@ const PredictionCard = ({
   poolAmount = "$5,606.90",
   onYes,
   onNo,
+  transparent = false,
 }) => {
   const [hovered, setHovered] = React.useState(false);
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="w-full max-w-[344px] min-w-0 mx-auto rounded-[41px] p-px box-border cursor-pointer bg-[conic-gradient(from_0deg,#B4D1ED_0%,#B4D1ED_19%,#5A6B89_36%,#B4D1ED_45%,#B4D1ED_63%,#5A6B89_75%,#B4D1ED_88%,#B4D1ED_100%)]"
+      className={`w-full max-w-[344px] min-w-0 mx-auto rounded-[41px] p-px box-border cursor-pointer ${transparent ? "" : "bg-[conic-gradient(from_0deg,#B4D1ED_0%,#B4D1ED_19%,#5A6B89_36%,#B4D1ED_45%,#B4D1ED_63%,#5A6B89_75%,#B4D1ED_88%,#B4D1ED_100%)]"}`}
     >
       <div
-        className="w-full h-full min-h-[210px] sm:min-h-[235px] rounded-[41px] overflow-hidden box-border p-4 sm:p-5 flex flex-col justify-between gap-4"
-        style={{
+        className={`w-full h-full min-h-[210px] sm:min-h-[235px] rounded-[41px] overflow-hidden box-border p-4 ${transparent ? "" : "sm:p-5"} flex flex-col justify-between gap-4`}
+        style={transparent ? {} : {
           background:
             "linear-gradient(to bottom, rgba(126,150,208,0.30) 33%, rgba(23,26,43,0.30) 100%), #12152a",
         }}
@@ -85,7 +86,7 @@ const PredictionRow = ({ label, pct, onYes, onNo }) => (
       <span className="w-[clamp(30px,8vw,42px)] shrink-0 text-white font-['Roboto',sans-serif] font-medium text-[clamp(14px,4vw,18px)] tracking-[0.4px]">
         {pct}%
       </span>
-      <YesNoButton label="Yes" color="#bad659" pct={pct} onClick={onYes} />
+      <YesNoButton label="Yes" color="#BAD659" pct={pct} onClick={onYes} />
       <YesNoButton label="No" color="#f89182" pct={pct} onClick={onNo} />
     </div>
   </div>
@@ -126,7 +127,7 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
       onMouseLeave={() => setHovered(false)}
       className="relative w-[clamp(46px,14vw,65px)] h-[34px] sm:h-[38px] shrink-0 bg-transparent border-none p-0 cursor-pointer isolate flex items-center justify-center font-['Roboto',sans-serif] font-medium text-[clamp(12px,3.5vw,18px)] tracking-[0.4px] transition-[color,transform] duration-200 ease-out"
       style={{
-        color: hovered ? "#ffffff" : color,
+        color: hovered ? "#000000" : color,
         transform: hovered ? "scale(1.06)" : "scale(1)",
       }}
     >

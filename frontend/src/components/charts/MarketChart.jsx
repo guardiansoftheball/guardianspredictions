@@ -64,7 +64,7 @@ const MarketChart = ({
         type: 'stepArea',
         name: yesLabel,
         showInLegend: false, // Never show legend to prevent chart jumping
-        color: showInverseProbability ? '#054A29' : '#17a2b8', // Green when showing both, blue when single
+        color: showInverseProbability ? '#BAD659' : '#17a2b8', // Green when showing both, blue when single
         dataPoints: generateDataPoints(data, false),
       },
     ];

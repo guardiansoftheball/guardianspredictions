@@ -22,10 +22,10 @@ export default {
           active: '#F9D3A5'
         },
         'green-btn': {
-          DEFAULT: '#054A29',
-          hover: '#00cca4',
-          'border-default': '#054A29',
-          'border-hover': '#00cca4',
+          DEFAULT: '#BAD659',
+          hover: '#C6E06C',
+          'border-default': '#BAD659',
+          'border-hover': '#C6E06C',
         },
         'red-btn': {
           DEFAULT: '#D00000',
@@ -61,6 +61,19 @@ export default {
       },
       zIndex: {
         'sidebar': 40, // higher number means more on top
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'skeleton-pulse': {
+          '0%, 100%': { opacity: '0.45' },
+          '50%': { opacity: '0.8' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.5s ease-in-out infinite',
+        'skeleton-pulse': 'skeleton-pulse 2s ease-in-out infinite',
       },
     },
   },
