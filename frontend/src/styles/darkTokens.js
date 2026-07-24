@@ -22,7 +22,7 @@ export const COLOR = {
   muted  : '#8ca0b6',
   muted2 : '#6b7f95',
   muted3 : '#5d7189',
-  accent : 'rgb(156,201,241)',
+  accent : 'rgba(255,255,255,0.85)',
   yes    : '#BAD659',
   yesText: '#C6E06C',
   no     : '#fb5b6b',

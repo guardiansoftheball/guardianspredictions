@@ -265,12 +265,12 @@ const DropdownItem = ({ icon, label, onClick, danger, active }) => (
       padding: "9px 12px",
       borderRadius: "9px",
       border: active ? "1px solid rgba(156,201,241,0.25)" : "none",
-      background: active ? "rgba(156,201,241,0.10)" : "transparent",
+      background: active ? "rgba(255,255,255,0.08)" : "transparent",
       cursor: "pointer",
       fontFamily: FONT,
       fontWeight: 600,
       fontSize: "13px",
-      color: danger ? COLOR.noText : active ? "rgb(156,201,241)" : COLOR.text,
+      color: danger ? COLOR.noText : active ? "rgba(255,255,255,0.85)" : COLOR.text,
       transition: "background .12s",
     }}
     onMouseEnter={(e) => {
