@@ -37,9 +37,7 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
         gap: '2px',
         cursor: 'pointer',
         transition: 'all .15s',
-        border: active
-          ? `1px solid ${accentColor}`
-          : `1px solid ${isYes ? 'rgba(186,214,89,0.22)' : 'rgba(244,63,94,0.18)'}`,
+        border: 'none',
         background: active
           ? (isYes
               ? 'linear-gradient(180deg,#BAD659,#AABA49)'
@@ -67,18 +65,16 @@ const AmountInput = ({ value, onChange, onPlus, onMinus }) => (
   <div style={{
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
     background: 'rgba(0,0,0,0.28)',
-    border: '1px solid rgba(255,255,255,0.09)',
     borderRadius: '11px',
-    padding: '4px 6px',
+    padding: '4px 10px',
   }}>
     <button
       onClick={onMinus}
       style={{
-        width: '34px', height: '34px', borderRadius: '8px',
-        border: 'none', background: 'rgba(255,255,255,0.06)',
-        color: TEXT, font: `700 20px ${FONT}`, cursor: 'pointer',
+        width: '34px', height: '34px',
+        border: 'none', background: 'transparent',
+        color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
       }}
     >−</button>
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
@@ -103,9 +99,9 @@ const AmountInput = ({ value, onChange, onPlus, onMinus }) => (
     <button
       onClick={onPlus}
       style={{
-        width: '34px', height: '34px', borderRadius: '8px',
-        border: 'none', background: 'rgba(255,255,255,0.06)',
-        color: TEXT, font: `700 20px ${FONT}`, cursor: 'pointer',
+        width: '34px', height: '34px',
+        border: 'none', background: 'transparent',
+        color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
       }}
     >+</button>
   </div>
@@ -117,8 +113,8 @@ const PresetBtn = ({ label, onClick }) => (
     style={{
       flex: 1, padding: '7px 0',
       borderRadius: '8px',
-      border: '1px solid rgba(255,255,255,0.09)',
-      background: 'rgba(255,255,255,0.04)',
+      border: 'none',
+      background: 'rgba(255,255,255,0.06)',
       color: '#b7c6d6',
       font: `700 12px ${FONT}`,
       cursor: 'pointer',
@@ -128,31 +124,43 @@ const PresetBtn = ({ label, onClick }) => (
   </button>
 );
 
-const Row = ({ label, value, valueColor }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', font: `600 13px ${FONT}` }}>
+const Row = ({ label, value, valueColor, valueFont }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', font: `600 13px ${FONT}` }}>
     <span style={{ color: MUTED }}>{label}</span>
-    <span style={{ color: valueColor || TEXT }}>{value}</span>
+    <span style={{ color: valueColor || TEXT, ...(valueFont ? { font: valueFont } : {}) }}>{value}</span>
   </div>
 );
 
-const ActionBtn = ({ onClick, disabled, loading, label, color, shadow }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled || loading}
-    style={{
-      width: '100%', padding: '14px',
-      borderRadius: '12px', border: 'none',
-      cursor: disabled || loading ? 'not-allowed' : 'pointer',
-      font: `800 16px ${FONT_HEAD}`,
-      background: disabled || loading ? 'rgba(255,255,255,0.08)' : color,
-      color: disabled || loading ? MUTED2 : '#000',
-      transition: 'all .15s',
-      opacity: disabled ? 0.6 : 1,
-    }}
-  >
-    {loading ? 'Processing...' : label}
-  </button>
-);
+const BRAND = '#9cc9f1';
+
+const ActionBtn = ({ onClick, disabled, loading, label }) => {
+  const off = disabled || loading;
+  return (
+    <button
+      onClick={onClick}
+      disabled={off}
+      style={{
+        position: 'relative',
+        width: '100%', padding: '15px 20px',
+        borderRadius: '12px', border: 'none',
+        cursor: off ? 'not-allowed' : 'pointer',
+        font: `800 15px ${FONT_HEAD}`,
+        letterSpacing: '.01em',
+        background: off ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)',
+        color: off ? MUTED2 : '#0a1628',
+        marginTop: '4px',
+        opacity: loading ? 0.7 : 1,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={e => { if (!off) e.currentTarget.style.filter = 'brightness(0.9)'; }}
+      onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
+    >
+      {loading ? 'Processing...' : label}
+    </button>
+  );
+};
 
 const ErrorMsg = ({ msg }) => msg ? (
   <div style={{
@@ -295,14 +303,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
     : null;
   const projDelta = projDisplay != null ? projDisplay - currentPct : null;
 
-  const btnColor = side === 'YES'
-    ? 'linear-gradient(180deg,#BAD659,#AABA49)'
-    : side === 'NO'
-      ? 'linear-gradient(180deg,#fb5b6b,#e11d48)'
-      : 'rgba(255,255,255,0.08)';
-  const btnShadow = side === 'YES'
-    ? '0 8px 22px rgba(186,214,89,0.28)'
-    : '0 8px 22px rgba(244,63,94,0.26)';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -314,8 +314,8 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 
       {/* Amount */}
       <div>
-        <div style={{ font: `700 11px ${FONT}`, letterSpacing: '.06em', color: MUTED2, marginBottom: '7px' }}>
-          AMOUNT
+        <div style={{ font: `600 12px ${FONT}`, color: MUTED2, marginBottom: '7px' }}>
+          Amount
         </div>
         <AmountInput
           value={amount}
@@ -340,18 +340,16 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
           flexDirection: 'column',
           gap: '9px',
         }}>
+          <Row label="Average price" value={side === 'YES' ? `${yesPct}¢` : `${noPct}¢`} />
+          <Row label="Odds" value={side === 'YES' ? `${yesPct}%` : `${noPct}%`} valueFont={`500 20px ${FONT_HEAD}`} />
           <Row
-            label="New probability"
-            value={
-              projLoading
-                ? '...'
-                : projDisplay != null
-                  ? `${projDisplay}% ${projDelta > 0 ? `▲ ${projDelta}%` : projDelta < 0 ? `▼ ${Math.abs(projDelta)}%` : ''}`
-                  : '—'
-            }
-            valueColor={
-              projDelta > 0 ? YES_TEXT : projDelta < 0 ? NO_TEXT : TEXT
-            }
+            label="To win"
+            value={(() => {
+              const price = side === 'YES' ? yesPct : noPct;
+              return price > 0 ? `$${(amount / (price / 100)).toFixed(2)}` : '$0.00';
+            })()}
+            valueColor={YES_TEXT}
+            valueFont={`600 26px ${FONT_HEAD}`}
           />
           {fees?.initialBetFee > 0 && !hasBetBefore && (
             <Row label="First bet fee" value={`$${fees.initialBetFee}`} valueColor={NO_TEXT} />
@@ -359,7 +357,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
           {fees?.buySharesFee > 0 && (
             <Row label="Trade fee" value={`$${fees.buySharesFee}`} valueColor={NO_TEXT} />
           )}
-          <Row label="You spend" value={`$${amount}`} />
         </div>
       )}
 
@@ -371,8 +368,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
         disabled={!side || !amount || amount < 1}
         loading={submitting}
         label={side === 'YES' ? `Buy ${yesLabel}` : side === 'NO' ? `Buy ${noLabel}` : 'Select a side'}
-        color={btnColor}
-        shadow={btnShadow}
       />
 
       <div style={{ textAlign: 'center', font: `500 11px ${FONT}`, color: MUTED2 }}>
@@ -697,6 +692,12 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
 
   return (
     <div>
+      <style>{`
+        @keyframes gp-brandPulse {
+          0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)}
+          50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)}
+        }
+      `}</style>
       {/* Tab bar */}
       <div style={{
         display: 'flex',

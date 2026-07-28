@@ -31,8 +31,10 @@ go.work
 # MCP config
 .mcp.json
 
-# Claude Code local settings
-.claude/settings.local.json
+# Claude Code
+.claude/
+.github/hooks/
+.github/skills/
 
 # Data files
 **/data/certbot

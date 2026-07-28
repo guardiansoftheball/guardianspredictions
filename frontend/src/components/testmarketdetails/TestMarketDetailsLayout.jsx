@@ -243,16 +243,27 @@ function useIsMobile(bp = 768) {
   return isMobile;
 }
 
-// ─── StatCard ─────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value }) => (
-  <div style={{ ...MARKET_CARD, padding: "13px 15px" }}>
-    <div style={{ font: `600 11px ${FONT_BODY}`, color: MUTED2 }}>{label}</div>
-    <div
-      style={{ font: `800 17px ${FONT_HEAD}`, marginTop: "3px", color: TEXT }}
-    >
-      {value}
-    </div>
-  </div>
+// ─── Live pulse dot ──────────────────────────────────────────────────────────
+const LivePulse = () => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+    <span style={{ position: "relative", width: "8px", height: "8px" }}>
+      <span style={{
+        position: "absolute", inset: 0, borderRadius: "50%",
+        background: "#4ade80", animation: "gp-pulse 2s ease-in-out infinite",
+      }} />
+      <span style={{
+        position: "absolute", inset: "-3px", borderRadius: "50%",
+        border: "1.5px solid #4ade80", opacity: 0,
+        animation: "gp-pulse-ring 2s ease-out infinite",
+      }} />
+    </span>
+    <span style={{ font: `600 11px ${FONT_BODY}`, color: "#4ade80", letterSpacing: ".04em" }}>LIVE</span>
+    <style>{`
+      @keyframes gp-pulse { 0%,100%{opacity:.7;transform:scale(.9)} 50%{opacity:1;transform:scale(1)} }
+      @keyframes gp-pulse-ring { 0%{opacity:.6;transform:scale(.8)} 100%{opacity:0;transform:scale(2)} }
+      @keyframes gp-mcBrandPulse { 0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)} }
+    `}</style>
+  </span>
 );
 
 // ─── Chart tooltip (all options) ─────────────────────────────────────────────
@@ -1563,9 +1574,7 @@ function MultiChoiceTradePanel({
                     cursor: "pointer",
                     font: `700 14px ${FONT_BODY}`,
                     transition: "all .15s",
-                    border: active
-                      ? `1px solid ${isYes ? "#BAD659" : "#fb5b6b"}`
-                      : `1px solid ${isYes ? "rgba(186,214,89,0.22)" : "rgba(244,63,94,0.18)"}`,
+                    border: "none",
                     background: active
                       ? isYes
                         ? "linear-gradient(180deg,#BAD659,#AABA49)"
@@ -1585,23 +1594,20 @@ function MultiChoiceTradePanel({
           <div style={{ marginTop: "10px" }}>
             <div
               style={{
-                font: `700 11px ${FONT_BODY}`,
-                letterSpacing: ".07em",
+                font: `600 12px ${FONT_BODY}`,
                 color: MUTED2,
-                marginBottom: "8px",
+                marginBottom: "7px",
               }}
             >
-              AMOUNT
+              Amount
             </div>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                background: "rgba(0,0,0,0.30)",
-                border: "1px solid rgba(255,255,255,0.09)",
+                background: "rgba(0,0,0,0.28)",
                 borderRadius: "11px",
-                padding: "4px 6px",
+                padding: "4px 10px",
               }}
             >
               <button
@@ -1611,10 +1617,9 @@ function MultiChoiceTradePanel({
                 style={{
                   width: "34px",
                   height: "34px",
-                  borderRadius: "8px",
                   border: "none",
-                  background: "rgba(255,255,255,0.06)",
-                  color: TEXT,
+                  background: "transparent",
+                  color: MUTED,
                   font: `700 20px ${FONT_BODY}`,
                   cursor: "pointer",
                 }}
@@ -1658,10 +1663,9 @@ function MultiChoiceTradePanel({
                 style={{
                   width: "34px",
                   height: "34px",
-                  borderRadius: "8px",
                   border: "none",
-                  background: "rgba(255,255,255,0.06)",
-                  color: TEXT,
+                  background: "transparent",
+                  color: MUTED,
                   font: `700 20px ${FONT_BODY}`,
                   cursor: "pointer",
                 }}
@@ -1678,8 +1682,8 @@ function MultiChoiceTradePanel({
                     flex: 1,
                     padding: "7px 0",
                     borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.09)",
-                    background: "rgba(255,255,255,0.04)",
+                    border: "none",
+                    background: "rgba(255,255,255,0.06)",
                     color: "#b7c6d6",
                     font: `700 12px ${FONT_BODY}`,
                     cursor: "pointer",
@@ -1753,27 +1757,32 @@ function MultiChoiceTradePanel({
             onClick={handleBuy}
             disabled={submitting || !amount || amount < 1}
             style={{
+              position: "relative",
               width: "100%",
-              padding: "14px",
+              padding: "15px 20px",
               borderRadius: "12px",
               border: "none",
-              font: `800 16px ${FONT_HEAD}`,
+              font: `800 15px ${FONT_HEAD}`,
+              letterSpacing: ".01em",
               cursor: submitting || !amount ? "not-allowed" : "pointer",
               background:
                 submitting || !amount
-                  ? "rgba(255,255,255,0.08)"
-                  : selectedTheme.gradient,
+                  ? "rgba(255,255,255,0.06)"
+                  : "linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)",
               color:
                 submitting || !amount
                   ? MUTED2
-                  : selectedIdx === 0
-                    ? "#001a18"
-                    : "#fff",
-              boxShadow: submitting || !amount ? "none" : selectedTheme.shadow,
-              transition: "all .15s",
+                  : "#0a1628",
               marginTop: "4px",
               opacity: submitting ? 0.7 : 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              animation: submitting || !amount ? "none" : "gp-mcBrandPulse 3s ease-in-out infinite",
             }}
+            title={submitting ? undefined : `Buy ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+            onMouseEnter={(e) => { if (!(submitting || !amount)) e.currentTarget.style.filter = "brightness(0.9)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.filter = ""; }}
           >
             {submitting
               ? "Processing..."
@@ -1864,23 +1873,20 @@ function MultiChoiceTradePanel({
               <div>
                 <div
                   style={{
-                    font: `700 11px ${FONT_BODY}`,
-                    letterSpacing: ".07em",
+                    font: `600 12px ${FONT_BODY}`,
                     color: MUTED2,
-                    marginBottom: "8px",
+                    marginBottom: "7px",
                   }}
                 >
-                  SALE ORDER
+                  Sale Order
                 </div>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
-                    background: "rgba(0,0,0,0.30)",
-                    border: "1px solid rgba(255,255,255,0.09)",
+                    background: "rgba(0,0,0,0.28)",
                     borderRadius: "11px",
-                    padding: "4px 6px",
+                    padding: "4px 10px",
                   }}
                 >
                   <button
@@ -1890,10 +1896,9 @@ function MultiChoiceTradePanel({
                     style={{
                       width: "34px",
                       height: "34px",
-                      borderRadius: "8px",
                       border: "none",
-                      background: "rgba(255,255,255,0.06)",
-                      color: TEXT,
+                      background: "transparent",
+                      color: MUTED,
                       font: `700 20px ${FONT_BODY}`,
                       cursor: "pointer",
                     }}
@@ -1949,10 +1954,9 @@ function MultiChoiceTradePanel({
                     style={{
                       width: "34px",
                       height: "34px",
-                      borderRadius: "8px",
                       border: "none",
-                      background: "rgba(255,255,255,0.06)",
-                      color: TEXT,
+                      background: "transparent",
+                      color: MUTED,
                       font: `700 20px ${FONT_BODY}`,
                       cursor: "pointer",
                     }}
@@ -2055,12 +2059,13 @@ function OptionRow({ answer, index, total, selected, onClick }) {
           ? `1px solid ${theme.activeBorder}`
           : `1px solid ${theme.border}`,
         background: selected ? theme.bg : "rgba(255,255,255,0.02)",
+        boxShadow: selected ? `0 0 16px ${theme.color}30, 0 2px 8px rgba(0,0,0,0.2)` : "none",
         cursor: "pointer",
-        transition: "all .15s",
+        transition: "all .2s cubic-bezier(.4,0,.2,1)",
         textAlign: "left",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", overflow: "hidden", minWidth: 0, flex: 1 }}>
         <span
           style={{
             width: "8px",
@@ -2068,12 +2073,19 @@ function OptionRow({ answer, index, total, selected, onClick }) {
             borderRadius: "50%",
             background: theme.color,
             flexShrink: 0,
+            boxShadow: selected ? `0 0 8px ${theme.color}` : "none",
+            transition: "box-shadow .2s",
           }}
         />
         <span
+          title={answer.answerLabel}
           style={{
             font: `600 14px ${FONT_BODY}`,
             color: selected ? theme.text : TEXT,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
           }}
         >
           {answer.answerLabel}
@@ -2107,6 +2119,243 @@ function StatRow({ label, value, valueColor }) {
 }
 
 // ─── Multi-choice full layout ─────────────────────────────────────────────────
+// ─── Shared layout for both binary and multi-choice markets ─────────────────
+function MarketLayout({
+  title,
+  market,
+  creatorUsername,
+  closesLabel,
+  isMarketOpen,
+  canResolve,
+  marketId,
+  token,
+  numUsers,
+  totalVolume,
+  isMobile,
+  refreshTrigger,
+  onResolved,
+  chartContent,
+  tradePanelContent,
+  loading,
+}) {
+  return (
+    <div>
+      {/* Breadcrumb */}
+      <div
+        style={{
+          font: `600 12px ${FONT_BODY}`,
+          color: MUTED2,
+          marginBottom: "20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+        }}
+      >
+        <Link
+          to="/new-markets"
+          style={{
+            color: COLOR.accent,
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.textDecoration = "underline")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d="M7.5 2L3.5 6l4 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Markets
+        </Link>
+      </div>
+
+      {/* Resolution alert */}
+      <ResolutionAlert
+        isResolved={market?.isResolved}
+        resolutionResult={market?.resolutionResult}
+        market={market}
+      />
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: isMobile ? "16px" : "24px" }}>
+        <div style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "16px",
+          marginBottom: "12px",
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1
+              style={{
+                margin: 0,
+                font: `800 ${isMobile ? "20px" : "26px"}/1.25 ${FONT_HEAD}`,
+                letterSpacing: "-.01em",
+                color: TEXT,
+                wordBreak: "break-word",
+              }}
+            >
+              {title}
+            </h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            {canResolve && (
+              <ResolveModalButton
+                marketId={marketId}
+                token={token}
+                market={market}
+                onResolved={onResolved}
+                disabled={!token}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Metadata row */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: isMobile ? "12px" : "20px",
+          flexWrap: "wrap",
+          font: `500 12.5px ${FONT_BODY}`,
+          color: MUTED,
+        }}>
+          <Link to={`/user/${creatorUsername}`} style={{
+            color: MUTED, textDecoration: "none",
+            display: "inline-flex", alignItems: "center", gap: "4px",
+          }}
+            onMouseEnter={(e) => e.currentTarget.style.color = TEXT}
+            onMouseLeave={(e) => e.currentTarget.style.color = MUTED}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            @{creatorUsername}
+          </Link>
+          <span style={{ opacity: 0.3 }}>·</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+            Closes {closesLabel}
+          </span>
+          <span style={{ opacity: 0.3 }}>·</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            {fmt(totalVolume)} vol
+          </span>
+          <span style={{ opacity: 0.3 }}>·</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            {fmt(numUsers)} traders
+          </span>
+        </div>
+      </div>
+
+      {/* ── 2-col layout ── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
+          gap: isMobile ? "16px" : "28px",
+          alignItems: "start",
+        }}
+      >
+        {/* LEFT */}
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px" }}>
+          {/* Trade panel on mobile */}
+          {isMobile && (
+            <div style={{ ...MARKET_CARD, padding: "16px" }}>
+              {loading ? (
+                <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
+                  Loading...
+                </div>
+              ) : tradePanelContent}
+            </div>
+          )}
+
+          {/* Chart card */}
+          <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
+            {loading ? (
+              <div style={{ height: "240px", display: "flex", alignItems: "center", justifyContent: "center", color: MUTED2 }}>
+                Loading chart...
+              </div>
+            ) : chartContent}
+          </div>
+
+          {/* Description — editorial style */}
+          {market?.description ? (
+            <div style={{ padding: isMobile ? "0" : "0 4px" }}>
+              <div style={{
+                font: `700 11px ${FONT_BODY}`,
+                letterSpacing: ".08em",
+                color: MUTED2,
+                marginBottom: "10px",
+              }}>
+                RESOLUTION CRITERIA
+              </div>
+              <p style={{
+                margin: 0,
+                font: `400 14px/1.7 ${FONT_BODY}`,
+                color: "#b7c6d6",
+                maxWidth: "65ch",
+              }}>
+                {market.description}
+              </p>
+              <div style={{
+                marginTop: "16px",
+                height: "1px",
+                background: "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, transparent 100%)",
+              }} />
+            </div>
+          ) : null}
+
+          {/* Activity */}
+          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
+            <ActivityTabs
+              marketId={marketId}
+              market={market}
+              refreshTrigger={refreshTrigger}
+              variant="dark"
+            />
+          </div>
+        </div>
+
+        {/* RIGHT (desktop) */}
+        {!isMobile && (
+          <div
+            style={{
+              ...MARKET_CARD,
+              padding: "20px",
+              position: "sticky",
+              top: "100px",
+            }}
+          >
+            {loading ? (
+              <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
+                Loading...
+              </div>
+            ) : tradePanelContent}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MultiChoiceLayout({
   market,
   creator,
@@ -2174,291 +2423,53 @@ function MultiChoiceLayout({
   const creatorUsername =
     market?.creatorUsername || creator?.username || "unknown";
 
+  const tradePanelContent = answers.length > 0 ? (
+    <MultiChoiceTradePanel
+      answers={answers}
+      selectedIdx={selectedIdx}
+      onSelectIdx={setSelectedIdx}
+      token={token}
+      isLoggedIn={isLoggedIn}
+      isMarketOpen={isMarketOpen}
+      onSuccess={handleSuccess}
+    />
+  ) : null;
+
+  const chartContent = answers.length > 0 ? (
+    <MultiOptionChart
+      answers={answers}
+      selectedIdx={selectedIdx}
+      onSelectIdx={setSelectedIdx}
+    />
+  ) : (
+    <NewMarketChart
+      data={probabilityChanges}
+      currentProbability={0.5}
+      closeDateTime={market?.resolutionDateTime}
+      yesLabel={market?.yesLabel || "Yes"}
+      noLabel={market?.noLabel || "No"}
+    />
+  );
+
   return (
-    <div>
-      {/* Breadcrumb */}
-      <div
-        style={{
-          font: `600 12px ${FONT_BODY}`,
-          color: MUTED2,
-          marginBottom: "14px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-        }}
-      >
-        <Link
-          to="/new-markets"
-          style={{
-            color: COLOR.accent,
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.textDecoration = "underline")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M7.5 2L3.5 6l4 4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Markets
-        </Link>
-        {!isMobile && groupTitle && (
-          <>
-            <span style={{ opacity: 0.4 }}>/</span>
-            <span style={{ color: "#93a7bd" }}>{groupTitle.slice(0, 60)}</span>
-          </>
-        )}
-      </div>
-
-      {/* Resolution alert */}
-      <ResolutionAlert
-        isResolved={market?.isResolved}
-        resolutionResult={market?.resolutionResult}
-        market={market}
-      />
-
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "12px",
-          marginBottom: isMobile ? "16px" : "22px",
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              margin: "0 0 8px",
-              font: `800 ${isMobile ? "19px" : "26px"}/1.25 ${FONT_HEAD}`,
-              letterSpacing: "-.01em",
-              color: TEXT,
-              wordBreak: "break-word",
-            }}
-          >
-            {groupTitle}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              font: `600 12.5px ${FONT_BODY}`,
-              color: "#8ca0b6",
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8ca0b6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-              @{creatorUsername}
-            </span>
-            <span style={{ opacity: 0.4 }}>•</span>
-            <span>Closes {closesLabel}</span>
-          </div>
-        </div>
-        {canResolve && (
-          <div style={{ flexShrink: 0 }}>
-            <ResolveModalButton
-              marketId={marketId}
-              token={token}
-              market={market}
-              onResolved={handleSuccess}
-              disabled={!token}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 2-col layout */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
-          gap: isMobile ? "16px" : "22px",
-          alignItems: "start",
-        }}
-      >
-        {/* LEFT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-          {/* Trade panel on mobile */}
-          {isMobile && (
-            <div style={{ ...MARKET_CARD, padding: "16px" }}>
-              {groupLoading ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    color: MUTED2,
-                    font: `500 13px ${FONT_BODY}`,
-                    padding: "24px 0",
-                  }}
-                >
-                  Loading options...
-                </div>
-              ) : answers.length > 0 ? (
-                <MultiChoiceTradePanel
-                  answers={answers}
-                  selectedIdx={selectedIdx}
-                  onSelectIdx={setSelectedIdx}
-                  token={token}
-                  isLoggedIn={isLoggedIn}
-                  isMarketOpen={isMarketOpen}
-                  onSuccess={handleSuccess}
-                />
-              ) : null}
-            </div>
-          )}
-
-          {/* Chart card */}
-          <div
-            style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}
-          >
-            {groupLoading ? (
-              <div
-                style={{
-                  height: "240px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: MUTED2,
-                }}
-              >
-                Loading chart...
-              </div>
-            ) : answers.length > 0 ? (
-              <MultiOptionChart
-                answers={answers}
-                selectedIdx={selectedIdx}
-                onSelectIdx={setSelectedIdx}
-              />
-            ) : (
-              <NewMarketChart
-                data={probabilityChanges}
-                currentProbability={0.5}
-                closeDateTime={market?.resolutionDateTime}
-                yesLabel={market?.yesLabel || "Yes"}
-                noLabel={market?.noLabel || "No"}
-              />
-            )}
-          </div>
-
-          {/* Description */}
-          {market?.description ? (
-            <div
-              style={{
-                ...MARKET_CARD,
-                padding: isMobile ? "14px" : "20px 22px",
-              }}
-            >
-              <div
-                style={{
-                  font: `700 12px ${FONT_BODY}`,
-                  letterSpacing: ".08em",
-                  color: MUTED2,
-                  marginBottom: "10px",
-                }}
-              >
-                RULES
-              </div>
-              <p
-                style={{
-                  margin: 0,
-                  font: `400 14px/1.6 ${FONT_BODY}`,
-                  color: "#b7c6d6",
-                }}
-              >
-                {market.description}
-              </p>
-            </div>
-          ) : null}
-
-          {/* Stats row */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: isMobile ? "8px" : "12px",
-            }}
-          >
-            <StatCard label="Volume" value={`$${fmt(totalVolume)}`} />
-            <StatCard label="Traders" value={fmt(numUsers)} />
-            <StatCard label="Closes" value={closesLabel} />
-          </div>
-
-          {/* Activity tabs */}
-          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
-            <ActivityTabs
-              marketId={marketId}
-              market={market}
-              refreshTrigger={refreshTrigger}
-              variant="dark"
-            />
-          </div>
-        </div>
-
-        {/* RIGHT (desktop) */}
-        {!isMobile && (
-          <div
-            style={{
-              ...MARKET_CARD,
-              padding: "18px",
-              position: "sticky",
-              top: "120px",
-            }}
-          >
-            {groupLoading ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: MUTED2,
-                  font: `500 13px ${FONT_BODY}`,
-                  padding: "24px 0",
-                }}
-              >
-                Loading options...
-              </div>
-            ) : answers.length > 0 ? (
-              <MultiChoiceTradePanel
-                answers={answers}
-                selectedIdx={selectedIdx}
-                onSelectIdx={setSelectedIdx}
-                token={token}
-                isLoggedIn={isLoggedIn}
-                isMarketOpen={isMarketOpen}
-                onSuccess={handleSuccess}
-              />
-            ) : null}
-          </div>
-        )}
-      </div>
-    </div>
+    <MarketLayout
+      title={groupTitle}
+      market={market}
+      creatorUsername={creatorUsername}
+      closesLabel={closesLabel}
+      isMarketOpen={isMarketOpen}
+      canResolve={canResolve}
+      marketId={marketId}
+      token={token}
+      numUsers={numUsers}
+      totalVolume={totalVolume}
+      isMobile={isMobile}
+      refreshTrigger={refreshTrigger}
+      onResolved={handleSuccess}
+      loading={groupLoading}
+      chartContent={chartContent}
+      tradePanelContent={tradePanelContent}
+    />
   );
 }
 
@@ -3160,279 +3171,57 @@ function BinaryLayout({
     ? "Closed"
     : formatResolutionDate(safeMarket.resolutionDateTime);
 
-  const handleTransactionSuccess = () => {
-    if (refetchData) refetchData();
-    setRefreshTrigger((p) => p + 1);
-  };
-  const handleMarketResolved = () => {
+  const handleSuccess = () => {
     if (refetchData) refetchData();
     setRefreshTrigger((p) => p + 1);
   };
 
-  const tradePanelProps = {
-    safeMarket,
-    yesLabel,
-    noLabel,
-    yesPct,
-    noPct,
-    isMarketOpen,
-    isLoggedIn,
-    marketId,
-    token,
-    currentProbability,
-    username,
-    onSuccess: handleTransactionSuccess,
-  };
+  const tradePanelContent = (
+    <BinaryTradePanelContent
+      safeMarket={safeMarket}
+      yesLabel={yesLabel}
+      noLabel={noLabel}
+      yesPct={yesPct}
+      noPct={noPct}
+      isMarketOpen={isMarketOpen}
+      isLoggedIn={isLoggedIn}
+      marketId={marketId}
+      token={token}
+      currentProbability={currentProbability}
+      username={username}
+      onSuccess={handleSuccess}
+    />
+  );
+
+  const chartContent = (
+    <BinaryChart
+      probabilityChanges={probabilityChanges}
+      currentProbability={currentProbability}
+      yesLabel={yesLabel}
+      noLabel={noLabel}
+      totalVolume={totalVolume}
+    />
+  );
 
   return (
-    <div>
-      {/* Breadcrumb */}
-      <div
-        style={{
-          font: `600 12px ${FONT_BODY}`,
-          color: MUTED2,
-          marginBottom: "14px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-        }}
-      >
-        <Link
-          to="/new-markets"
-          style={{
-            color: COLOR.accent,
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.textDecoration = "underline")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M7.5 2L3.5 6l4 4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Markets
-        </Link>
-        {!isMobile && (
-          <>
-            <span style={{ opacity: 0.4 }}>/</span>
-            <span style={{ color: "#93a7bd" }}>
-              {safeMarket.questionTitle?.slice(0, 50)}
-            </span>
-          </>
-        )}
-      </div>
-
-      <ResolutionAlert
-        isResolved={safeMarket.isResolved}
-        resolutionResult={safeMarket.resolutionResult}
-        market={safeMarket}
-      />
-
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "12px",
-          marginBottom: isMobile ? "16px" : "22px",
-        }}
-      >
-        {!isMobile && (
-          <div
-            style={{
-              width: "52px",
-              height: "56px",
-              flexShrink: 0,
-              borderRadius: "10px",
-              background: "linear-gradient(160deg,#1d3a5f,#0f2138)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 512 512"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill="#eaf0f7"
-                d="M255.03 33.813c-1.834-.007-3.664-.007-5.5.03-6.73.14-13.462.605-20.155 1.344.333.166.544.32.47.438L204.78 75.063l73.907 49.437-.125.188 70.625.28L371 79.282 342.844 52c-15.866-6.796-32.493-11.776-49.47-14.78-12.65-2.24-25.497-3.36-38.343-3.407zM190.907 88.25l-73.656 36.78-13.813 98.407 51.344 33.657 94.345-43.438 14.875-76.5-73.094-48.906zm196.344.344l-21.25 44.5 36.75 72.72 62.063 38.905 11.312-21.282c.225.143.45.403.656.75-.77-4.954-1.71-9.893-2.81-14.782-6.446-28.59-18.59-55.962-35.5-79.97-9.07-12.872-19.526-24.778-31.095-35.5l-20.125-5.342zm-302.656 23c-6.906 8.045-13.257 16.56-18.938 25.5-15.676 24.664-26.44 52.494-31.437 81.312C31.783 232.446 30.714 246.73 31 261l20.25 5.094 33.03-40.5L98.75 122.53l-14.156-10.936zm312.719 112.844l-55.813 44.75-3.47 101.093 39.626 21.126 77.188-49.594 4.406-78.75-.094.157-61.844-38.783zm-140.844 6.406l-94.033 43.312-1.218 76.625 89.155 57.376 68.938-36.437 3.437-101.75-66.28-39.126zm-224.22 49.75c.91 8.436 2.29 16.816 4.156 25.094 6.445 28.59 18.62 55.96 35.532 79.968 3.873 5.5 8.02 10.805 12.374 15.938l-9.374-48.156.124-.032-27.03-68.844-15.782-3.968zm117.188 84.844l-51.532 8.156 10.125 52.094c8.577 7.49 17.707 14.332 27.314 20.437 14.612 9.287 30.332 16.88 46.687 22.594l62.626-13.69-4.344-31.124-90.875-58.47zm302.437.5l-64.22 41.25-42 47.375 4.408 6.156c12.027-5.545 23.57-12.144 34.406-19.72 23.97-16.76 44.604-38.304 60.28-62.97 2.51-3.947 4.87-7.99 7.125-12.092zm-122.78 97.656l-79.94 9.625-25.968 5.655c26.993 4 54.717 3.044 81.313-2.813 9.412-2.072 18.684-4.79 27.75-8.062l-3.156-4.406z"
-              />
-            </svg>
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              margin: "0 0 8px",
-              font: `800 ${isMobile ? "19px" : "26px"}/1.25 ${FONT_HEAD}`,
-              letterSpacing: "-.01em",
-              color: TEXT,
-              wordBreak: "break-word",
-            }}
-          >
-            {safeMarket.questionTitle}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: isMobile ? "8px" : "14px",
-              font: `600 ${isMobile ? "11.5px" : "12.5px"} ${FONT_BODY}`,
-              color: "#8ca0b6",
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8ca0b6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-              @{creatorUsername}
-            </span>
-            <span style={{ opacity: 0.4 }}>•</span>
-            <span>Closes {closesLabel}</span>
-          </div>
-        </div>
-        {canResolve && (
-          <div style={{ flexShrink: 0 }}>
-            <ResolveModalButton
-              marketId={marketId}
-              token={token}
-              market={market}
-              onResolved={handleMarketResolved}
-              disabled={!token}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 2-col */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 336px",
-          gap: isMobile ? "16px" : "22px",
-          alignItems: "start",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "14px" : "18px",
-          }}
-        >
-          {isMobile && (
-            <div style={{ ...MARKET_CARD, padding: "16px" }}>
-              <BinaryTradePanelContent {...tradePanelProps} />
-            </div>
-          )}
-
-          {/* Chart card */}
-          <div
-            style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}
-          >
-            <BinaryChart
-              probabilityChanges={probabilityChanges}
-              currentProbability={currentProbability}
-              yesLabel={yesLabel}
-              noLabel={noLabel}
-              totalVolume={totalVolume}
-            />
-          </div>
-          {safeMarket.description ? (
-            <div
-              style={{
-                ...MARKET_CARD,
-                padding: isMobile ? "14px" : "20px 22px",
-              }}
-            >
-              <div
-                style={{
-                  font: `700 12px ${FONT_BODY}`,
-                  letterSpacing: ".08em",
-                  color: MUTED2,
-                  marginBottom: "10px",
-                }}
-              >
-                RULES
-              </div>
-              <p
-                style={{
-                  margin: "0 0 14px",
-                  font: `400 14px/1.6 ${FONT_BODY}`,
-                  color: "#b7c6d6",
-                }}
-              >
-                {safeMarket.description}
-              </p>
-            </div>
-          ) : null}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: isMobile ? "8px" : "12px",
-            }}
-          >
-            <StatCard label="Volume" value={`$${fmt(totalVolume)}`} />
-            <StatCard label="Traders" value={fmt(numUsers)} />
-            <StatCard label="Closes" value={closesLabel} />
-          </div>
-          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
-            <ActivityTabs
-              marketId={marketId}
-              market={safeMarket}
-              refreshTrigger={refreshTrigger}
-              variant="dark"
-            />
-          </div>
-        </div>
-
-        {!isMobile && (
-          <div
-            style={{
-              ...MARKET_CARD,
-              padding: "18px",
-              position: "sticky",
-              top: "120px",
-            }}
-          >
-            <BinaryTradePanelContent {...tradePanelProps} />
-          </div>
-        )}
-      </div>
-    </div>
+    <MarketLayout
+      title={safeMarket.questionTitle}
+      market={safeMarket}
+      creatorUsername={creatorUsername}
+      closesLabel={closesLabel}
+      isMarketOpen={isMarketOpen}
+      canResolve={canResolve}
+      marketId={marketId}
+      token={token}
+      numUsers={numUsers}
+      totalVolume={totalVolume}
+      isMobile={isMobile}
+      refreshTrigger={refreshTrigger}
+      onResolved={handleSuccess}
+      loading={false}
+      chartContent={chartContent}
+      tradePanelContent={tradePanelContent}
+    />
   );
 }
 
@@ -3766,16 +3555,15 @@ function TestMarketDetailsLayout({
         style={{
           position: "absolute",
           width: "100%",
-          height: "100%",
+          height: "70%",
           left: "50%",
-          top: "0%",
-          transform: "translate(-50%, -50%)",
+          top: "-10%",
+          transform: "translateX(-50%)",
           background:
-            "linear-gradient(135deg,rgb(81 173 246/5%) 0%,rgb(30 144 255/10%) 0%)",
-          filter: "blur(150px)",
+            "radial-gradient(ellipse at 30% 0%, rgba(30,144,255,0.12) 0%, transparent 70%), radial-gradient(ellipse at 70% 20%, rgba(186,214,89,0.07) 0%, transparent 60%)",
+          filter: "blur(80px)",
           pointerEvents: "none",
           zIndex: 1,
-          borderRadius: "50%",
         }}
       />
       <div style={{ position: "relative", zIndex: 20 }}>
