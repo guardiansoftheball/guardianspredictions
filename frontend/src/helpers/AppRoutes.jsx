@@ -19,6 +19,7 @@ import NewHome from '../pages/newhome/NewHome';
 import NewMarkets from '../pages/newmarkets/NewMarkets';
 import TestMarketDetails from '../pages/testmarketdetails/TestMarketDetails';
 import TestAdminMarketsReview from '../pages/testadminmarketsreview/TestAdminMarketsReview';
+import TestAdminCreate from '../pages/testadmincreate/TestAdminCreate';
 import NewProfile from '../pages/newprofile/NewProfile';
 import useFrontendConfig from '../hooks/useFrontendConfig';
 
@@ -64,6 +65,19 @@ const AppRoutes = () => {
       <Route exact path='/test/admin/markets/review'>
         {isLoggedIn && auth.usertype === 'ADMIN' ? (
           <TestAdminMarketsReview />
+        ) : (
+          <Redirect to='/' />
+        )}
+      </Route>
+
+      {/* Test Admin Create Market - new UI */}
+      <Route exact path='/test/admin/create'>
+        {!isLoggedIn ? (
+          <Redirect to='/' />
+        ) : mustChangePassword ? (
+          <Redirect to='/changepassword' />
+        ) : canCreateMarket ? (
+          <TestAdminCreate />
         ) : (
           <Redirect to='/' />
         )}

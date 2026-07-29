@@ -981,7 +981,7 @@ const TestAdminMarketsReview = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1] mb-1">Moderator mode</p>
+          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">Moderator mode</p>
           <h1 className="text-4xl font-bold text-white">Review Markets</h1>
           <p className="mt-2 text-sm text-gray-400 max-w-2xl">Review markets, amendments, answer options, stewardship, and tags from one operational queue.</p>
         </div>

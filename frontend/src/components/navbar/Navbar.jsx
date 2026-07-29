@@ -48,6 +48,7 @@ const UserChip = ({
   credit,
   onLogout,
   onProfile,
+  onCreate,
   isAdmin,
   onAdminReview,
   navVisible,
@@ -227,6 +228,15 @@ const UserChip = ({
                 }}
               />
             )}
+            <DropdownItem
+              icon={<CreateIcon />}
+              label="Create"
+              active={pathname === "/test/admin/create"}
+              onClick={() => {
+                setOpen(false);
+                onCreate?.();
+              }}
+            />
             {!isAdmin && (
               <DropdownItem
                 icon={<PersonIcon />}
@@ -316,6 +326,22 @@ const PersonIcon = () => (
   >
     <circle cx="12" cy="8" r="4" />
     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+  </svg>
+);
+
+const CreateIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
 
@@ -489,6 +515,7 @@ const Navbar = () => {
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
+              onCreate={() => history.push("/test/admin/create")}
               isAdmin={usertype === "ADMIN"}
               onAdminReview={() => history.push("/test/admin/markets/review")}
               navVisible={navVisible}
@@ -686,6 +713,26 @@ const Navbar = () => {
                       <AdminIcon /> Review Markets
                     </button>
                   )}
+                  <button
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      history.push("/test/admin/create");
+                    }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <CreateIcon /> Create
+                  </button>
                   {usertype !== "ADMIN" && (
                     <button
                       onClick={() => {

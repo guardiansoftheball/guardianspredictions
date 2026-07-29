@@ -2583,7 +2583,7 @@ function BinaryChart({
 
   const xOf = (t) => ((t - winStart) / windowMs) * W;
 
-  const CROSS_THRESH = 0.07; // lines within 7% of each other = "crossing region"
+  const CROSS_THRESH = 0.005; // only dash when lines are essentially equal (50/50)
 
   const ptsToD = (pts) => {
     if (pts.length < 2) return "";
