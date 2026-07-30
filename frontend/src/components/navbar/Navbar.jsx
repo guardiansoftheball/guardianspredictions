@@ -14,12 +14,13 @@ import RegisterModal from "../modals/register/RegisterModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
+import useFrontendConfig from "../../hooks/useFrontendConfig";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 const NAV_LINKS = [
-  { label: "Trending", to: "/new-home", Icon: HomeSVG },
+  { label: "Trending", to: "/", Icon: HomeSVG },
   { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
-  { label: "Polls", to: "/new-home", Icon: PollsSVG },
-  { label: "Stats", to: "/new-home", Icon: StatsSVG },
+  { label: "Polls", to: "/", Icon: PollsSVG },
+  { label: "Stats", to: "/", Icon: StatsSVG },
 ];
 
 const linkStyle = {
@@ -32,14 +33,14 @@ const linkStyle = {
 };
 
 const BOTTOM_NAV = [
-  { label: "Trending", to: "/new-home", activeOn: "/new-home", Icon: HomeSVG },
+  { label: "Trending", to: "/", activeOn: "/", Icon: HomeSVG },
   {
     label: "Markets",
     to: "/new-markets",
     activeOn: "/new-markets",
     Icon: MarketsSVG,
   },
-  { label: "Stats", to: "/new-home", activeOn: null, Icon: StatsSVG },
+  { label: "Stats", to: "/", activeOn: null, Icon: StatsSVG },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ const UserChip = ({
   onProfile,
   onCreate,
   isAdmin,
+  canCreateMarket,
   onAdminReview,
   navVisible,
 }) => {
@@ -221,22 +223,24 @@ const UserChip = ({
               <DropdownItem
                 icon={<AdminIcon />}
                 label="Review Markets"
-                active={pathname === "/test/admin/markets/review"}
+                active={pathname === "/admin/markets/review"}
                 onClick={() => {
                   setOpen(false);
                   onAdminReview?.();
                 }}
               />
             )}
-            <DropdownItem
-              icon={<CreateIcon />}
-              label="Create"
-              active={pathname === "/test/admin/create"}
-              onClick={() => {
-                setOpen(false);
-                onCreate?.();
-              }}
-            />
+            {canCreateMarket && (
+              <DropdownItem
+                icon={<CreateIcon />}
+                label="Create"
+                active={pathname === "/create"}
+                onClick={() => {
+                  setOpen(false);
+                  onCreate?.();
+                }}
+              />
+            )}
             {!isAdmin && (
               <DropdownItem
                 icon={<PersonIcon />}
@@ -369,9 +373,14 @@ const Navbar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
   const { pathname } = useLocation();
-  const { login, logout, username, token, usertype } = useAuth();
+  const { login, logout, username, token, usertype, moderatorStatus, changePasswordNeeded } = useAuth();
   const isLoggedIn = !!username;
   const isAdmin = usertype === "ADMIN";
+  const { frontendConfig } = useFrontendConfig();
+  const isModeratorMode = frontendConfig?.game?.mode === 'moderator';
+  const isActiveModerator = usertype === 'MODERATOR' && moderatorStatus === 'active';
+  const isSuspendedModerator = usertype === 'MODERATOR' && moderatorStatus === 'suspended';
+  const canCreateMarket = isLoggedIn && !isAdmin && !changePasswordNeeded && !isSuspendedModerator && (!isModeratorMode || isActiveModerator);
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
 
@@ -404,7 +413,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    history.push("/new-home");
+    history.push("/");
   };
   const handleProfile = () => history.push("/newprofile");
 
@@ -470,7 +479,7 @@ const Navbar = () => {
       <nav className="hidden lg:flex" style={desktopNavStyle}>
         {/* Logo */}
         <Link
-          to="/new-home"
+          to="/"
           style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
         >
           <img
@@ -482,22 +491,28 @@ const Navbar = () => {
 
         {/* Nav links */}
         <div style={{ display: "flex", alignItems: "center" }}>
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              to={link.to}
-              style={{
-                ...linkStyle,
-                width: "138px",
-                height: "25px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = link.to !== "/" && link.to === pathname;
+            return (
+              <Link
+                key={link.label}
+                to={link.to}
+                style={{
+                  ...linkStyle,
+                  width: "138px",
+                  height: "25px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...(isActive
+                    ? { color: "#FFFFFF", textDecoration: "underline", textUnderlineOffset: "6px" }
+                    : {}),
+                }}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Auth / User */}
@@ -515,9 +530,10 @@ const Navbar = () => {
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
-              onCreate={() => history.push("/test/admin/create")}
+              onCreate={() => history.push("/create")}
               isAdmin={usertype === "ADMIN"}
-              onAdminReview={() => history.push("/test/admin/markets/review")}
+              canCreateMarket={canCreateMarket}
+              onAdminReview={() => history.push("/admin/markets/review")}
               navVisible={navVisible}
             />
           ) : (
@@ -563,7 +579,7 @@ const Navbar = () => {
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
-        <Link to="/new-home">
+        <Link to="/">
           <img
             src={logo}
             alt="Guardians Predict"
@@ -695,7 +711,7 @@ const Navbar = () => {
                     <button
                       onClick={() => {
                         setSidebarOpen(false);
-                        history.push("/test/admin/markets/review");
+                        history.push("/admin/markets/review");
                       }}
                       className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                       style={{
@@ -713,26 +729,28 @@ const Navbar = () => {
                       <AdminIcon /> Review Markets
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      setSidebarOpen(false);
-                      history.push("/test/admin/create");
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <CreateIcon /> Create
-                  </button>
+                  {canCreateMarket && (
+                    <button
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        history.push("/create");
+                      }}
+                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      style={{
+                        fontFamily: "'Roboto', sans-serif",
+                        fontSize: "16px",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <CreateIcon /> Create
+                    </button>
+                  )}
                   {usertype !== "ADMIN" && (
                     <button
                       onClick={() => {

@@ -309,44 +309,6 @@ async function assertSequenceBasedUnlockedSaleAllowed({ token, username, marketI
   }
 }
 
-async function replayProjectionInexecutableSequence(tokens, marketId) {
-  for (const step of projectionInexecutableSequence) {
-    const token = tokens[step.user];
-    if (step.type === 'buy') {
-      await place(token, marketId, step.outcome, step.amount);
-      continue;
-    }
-    const quote = (await quoteRaw(token, marketId, step.outcome, step.amount)).result;
-    check(`projection setup seq ${step.seq} quote allowed`, quote.allowed === true);
-    const sell = (await sellRaw(token, marketId, step.outcome, step.amount)).result;
-    check(`projection setup seq ${step.seq} sell succeeded`, sell.sharesSold > 0 && sell.netProceeds >= 0, `shares=${sell.sharesSold}, net=${sell.netProceeds}`);
-  }
-}
-
-async function assertProjectionInexecutableRejected({ token, username, marketId }) {
-  const beforeFinancial = await financial(username);
-  const beforePosition = await position(token, marketId);
-  const beforeDetails = await details(marketId);
-
-  check('projection setup has aggregate value', positionValue(beforePosition) > 0, `value=${positionValue(beforePosition)}`);
-  check('projection setup has NO shares', shares(beforePosition, 'NO') > 0, `shares=${shares(beforePosition, 'NO')}`);
-
-  const quote = await quoteRaw(token, marketId, projectionInexecutableAttempt.outcome, projectionInexecutableAttempt.amount, [422]);
-  check('projection-inexecutable quote rejected', quote.status === 422, `status=${quote.status}`);
-  check('projection-inexecutable quote uses insufficient-shares contract', reason(quote) === 'INSUFFICIENT_SHARES', `reason=${reason(quote)}`);
-  assertProjectionDetails('projection-inexecutable quote', quote);
-
-  const sell = await sellRaw(token, marketId, projectionInexecutableAttempt.outcome, projectionInexecutableAttempt.amount, [422]);
-  check('projection-inexecutable sell rejected', sell.status === 422, `status=${sell.status}`);
-  check('projection-inexecutable sell uses insufficient-shares contract', reason(sell) === 'INSUFFICIENT_SHARES', `reason=${reason(sell)}`);
-  assertProjectionDetails('projection-inexecutable sell', sell);
-
-  const afterFinancial = await financial(username);
-  const afterPosition = await position(token, marketId);
-  const afterDetails = await details(marketId);
-  assertUnchangedAfterRejection('projection-inexecutable', beforeFinancial, afterFinancial, beforePosition, afterPosition, beforeDetails, afterDetails);
-}
-
 async function main() {
   const modToken = await login(moderator);
   const bettorToken = await login(bettor);

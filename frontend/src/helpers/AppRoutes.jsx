@@ -52,32 +52,40 @@ const AppRoutes = () => {
       {/* Design Preview */}
       <Route exact path='/design-preview' component={DesignPreview} />
 
-      {/* New Home Preview */}
-      <Route exact path='/new-home' component={NewHome} />
+      {/* Old Home - legacy UI */}
+      <Route exact path='/old'>
+        {isLoggedIn && mustChangePassword ? (
+          <Redirect to='/changepassword' />
+        ) : (
+          <Home />
+        )}
+      </Route>
 
       {/* New Markets Preview */}
       <Route exact path='/new-markets' component={NewMarkets} />
 
-      {/* Test Market Details - new UI */}
-      <Route exact path='/test/markets/:marketId' component={TestMarketDetails} />
-
-      {/* Test Admin Markets Review - new UI */}
-      <Route exact path='/test/admin/markets/review'>
-        {isLoggedIn && auth.usertype === 'ADMIN' ? (
-          <TestAdminMarketsReview />
+      {/* Old Market Details - legacy UI */}
+      <Route exact path='/old/markets/:marketId'>
+        {isLoggedIn && mustChangePassword ? (
+          <Redirect to='/changepassword' />
         ) : (
-          <Redirect to='/' />
+          <MarketDetails />
         )}
       </Route>
 
-      {/* Test Admin Create Market - new UI */}
-      <Route exact path='/test/admin/create'>
+      {/* Old Admin Markets Review - legacy UI */}
+      <Route exact path='/old/admin/markets/review'>
+        {renderAdminDashboard({ defaultTab: 'Review Markets', defaultReviewTab: 'Pending Review' })}
+      </Route>
+
+      {/* Old Create Market - legacy UI */}
+      <Route exact path='/old/create'>
         {!isLoggedIn ? (
           <Redirect to='/' />
         ) : mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : canCreateMarket ? (
-          <TestAdminCreate />
+          <Create />
         ) : (
           <Redirect to='/' />
         )}
@@ -117,13 +125,7 @@ const AppRoutes = () => {
           <MarketGroupDetails />
         )}
       </Route>
-      <Route exact path='/markets/:marketId'>
-        {isLoggedIn && mustChangePassword ? (
-          <Redirect to='/changepassword' />
-        ) : (
-          <MarketDetails />
-        )}
-      </Route>
+      <Route exact path='/markets/:marketId' component={TestMarketDetails} />
       <Route exact path='/markets'>
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />
@@ -153,7 +155,7 @@ const AppRoutes = () => {
         ) : mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : canCreateMarket ? (
-          <Create />
+          <TestAdminCreate />
         ) : (
           <Redirect to='/' />
         )}
@@ -167,7 +169,11 @@ const AppRoutes = () => {
 
       {/* Admin Routes */}
       <Route exact path='/admin/markets/review'>
-        {renderAdminDashboard({ defaultTab: 'Review Markets', defaultReviewTab: 'Pending Review' })}
+        {isLoggedIn && auth.usertype === 'ADMIN' ? (
+          <TestAdminMarketsReview />
+        ) : (
+          <Redirect to='/' />
+        )}
       </Route>
       <Route exact path='/admin/markets/stewardship'>
         {renderAdminDashboard({ defaultTab: 'Review Markets', defaultReviewTab: 'Stewardship' })}
@@ -199,7 +205,7 @@ const AppRoutes = () => {
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : (
-          <Home />
+          <NewHome />
         )}
       </Route>
 

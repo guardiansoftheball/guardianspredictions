@@ -7,8 +7,8 @@ import AppRoutes from './helpers/AppRoutes';
 import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
-const FULLSCREEN_ROUTES = ['/new-home', '/new-markets', '/design-preview'];
-const FULLSCREEN_PREFIXES = ['/test/markets', '/test/admin', '/newprofile'];
+const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', '/create'];
+const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/newprofile'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
   const showDiagnosticDetails = import.meta.env.DEV && error?.message;

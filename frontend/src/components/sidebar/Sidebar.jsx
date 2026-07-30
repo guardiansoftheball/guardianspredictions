@@ -158,7 +158,7 @@ const Sidebar = () => {
           <SidebarLink to='/admin/markets/review' icon={AdminGearSVG} badge={pendingReviewCount}>
             Review Markets
           </SidebarLink>
-          <SidebarLink to='/test/admin/markets/review' icon={AdminGearSVG}>
+          <SidebarLink to='/admin/markets/review' icon={AdminGearSVG}>
             Review Markets (New)
           </SidebarLink>
           <SidebarLink to='/admin/users' icon={ProfileSVG}>

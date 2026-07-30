@@ -118,7 +118,7 @@ const NewMarkets = () => {
                 return (
                   <Link
                     key={i}
-                    to={`/test/markets/${marketId}`}
+                    to={`/markets/${marketId}`}
                     style={{ textDecoration: "none", display: "contents" }}
                   >
                     {cardEl}
