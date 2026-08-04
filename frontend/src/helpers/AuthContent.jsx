@@ -18,6 +18,12 @@ const decodeJwtPayload = (token) => {
     }
 };
 
+const isTokenExpired = (token) => {
+    const payload = decodeJwtPayload(token);
+    if (!payload?.exp) return true;
+    return Date.now() >= payload.exp * 1000;
+};
+
 const getStoredAuthState = () => {
     const token = authStorage.getToken();
     const tokenPayload = decodeJwtPayload(token);
@@ -26,8 +32,20 @@ const getStoredAuthState = () => {
         ? storedUsername
         : tokenPayload?.username || null;
 
+    if (isTokenExpired(token)) {
+        authStorage.clear();
+        return {
+            isLoggedIn: false,
+            token: null,
+            username: null,
+            usertype: null,
+            moderatorStatus: null,
+            changePasswordNeeded: false,
+        };
+    }
+
     return {
-        isLoggedIn: Boolean(token),
+        isLoggedIn: true,
         token,
         username: normalizedUsername,
         usertype: authStorage.getUsertype(),
@@ -97,6 +115,19 @@ const AuthProvider = ({ children }) => {
                 }));
             } catch (error) {
                 console.error('Failed to refresh auth profile:', error);
+                if (error.status === 401 || isTokenExpired(authState.token)) {
+                    authStorage.clear();
+                    if (!ignore) {
+                        setAuthState({
+                            isLoggedIn: false,
+                            token: null,
+                            username: null,
+                            usertype: null,
+                            moderatorStatus: null,
+                            changePasswordNeeded: null,
+                        });
+                    }
+                }
             }
         };
 

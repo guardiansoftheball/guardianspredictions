@@ -30,6 +30,21 @@ export function usePaginatedCards(allCards) {
   const total = allCards.length;
   const hasMore = visibleCount < total;
 
+  // Reset pagination when the filtered list changes
+  const prevTotalRef = useRef(total);
+  useEffect(() => {
+    if (prevTotalRef.current !== total) {
+      prevTotalRef.current = total;
+      setVisibleCount(0);
+      setLoading(false);
+      clearTimeout(timerRef.current);
+      // Trigger a fresh load after reset
+      setTimeout(() => {
+        sentinelVisible.current = true;
+      }, 0);
+    }
+  }, [total]);
+
   const loadNextPage = useCallback(() => {
     if (loading) return;
     setLoading(true);

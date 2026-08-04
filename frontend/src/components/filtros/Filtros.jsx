@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 
 const ChevronIcon = ({ open }) => (
   <svg
@@ -75,29 +75,23 @@ const MarketsIcon = () => (
 
 const FILTER_SECTIONS = [
   {
-    key: "frecuency",
-    label: "Frecuency",
-    Icon: ClockIcon,
-    options: ["Daily", "Weekly", "Monthly", "All"],
-  },
-  {
     key: "status",
     label: "Status",
     Icon: CheckIcon,
     options: ["Active", "Resolved"],
   },
   {
-    key: "popularity",
-    label: "Popularity",
-    Icon: StarIcon,
-    options: ["Daily", "Weekly", "Monthly", "All"],
-  },
-  {
-    key: "events",
+    key: "event",
     label: "Events",
     Icon: EventsIcon,
     options: ["Matches", "Press", "Standings", "Knockouts"],
   },
+];
+
+const SORT_OPTIONS = [
+  { key: "popular", label: "Most Popular" },
+  { key: "newest", label: "Newest" },
+  { key: "oldest", label: "Oldest" },
 ];
 
 const MARKET_CHIPS = [
@@ -115,7 +109,7 @@ const MARKET_CHIPS = [
   "Newell's",
 ];
 
-const FilterSection = ({ label, Icon, options, open, onToggle }) => (
+const FilterSection = ({ label, Icon, options, selected, onSelect, open, onToggle }) => (
   <div className="py-4 border-t border-white/10">
     <button
       type="button"
@@ -130,16 +124,21 @@ const FilterSection = ({ label, Icon, options, open, onToggle }) => (
     </button>
     {open && (
       <ul className="mt-3 flex flex-col gap-2 pl-[26px]">
-        {options.map((option) => (
-          <li key={option}>
-            <button
-              type="button"
-              className="text-[14px] text-white/60 hover:text-white transition-colors"
-            >
-              {option}
-            </button>
-          </li>
-        ))}
+        {options.map((option) => {
+          const isActive = selected === option.toLowerCase();
+          return (
+            <li key={option}>
+              <button
+                type="button"
+                onClick={() => onSelect(isActive ? null : option.toLowerCase())}
+                className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
+              >
+                {option}
+                {isActive && " ✕"}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     )}
   </div>
@@ -158,20 +157,89 @@ const CloseIcon = () => (
   </svg>
 );
 
-const FilterPanelContent = ({ openSections, toggleSection }) => (
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+    <path d="M4 7l16 0" />
+    <path d="M10 11l0 6" />
+    <path d="M14 11l0 6" />
+    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+  </svg>
+);
+
+const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount }) => {
+  const hasActiveFilters = !!(filters.search || filters.status || filters.event || filters.league);
+
+  return (
   <>
     {/* Header */}
     <h2 className="text-2xl font-bold">Markets</h2>
-    <p className="mt-1 text-sm text-white/50">12,000 predictions</p>
+    <div className="mt-1 flex items-center justify-between">
+      <p className="text-sm text-white/50">{resultCount} predictions</p>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={() => onFilterChange("clear")}
+          className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-red-400 transition-colors"
+        >
+          <TrashIcon />
+          Clear filters
+        </button>
+      )}
+    </div>
 
     {/* Search */}
     <div className="mt-4 mb-2 flex items-center gap-2 rounded-full border border-white/20 px-4 py-2">
       <SearchIcon />
       <input
         type="text"
-        placeholder="Search"
+        placeholder="Search teams or markets..."
+        value={filters.search}
+        onChange={(e) => onFilterChange("search", e.target.value)}
         className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
       />
+      {filters.search && (
+        <button
+          type="button"
+          onClick={() => onFilterChange("search", "")}
+          className="text-white/40 hover:text-white transition-colors"
+        >
+          <CloseIcon />
+        </button>
+      )}
+    </div>
+
+    {/* Sort */}
+    <div className="py-4 border-t border-white/10">
+      <button
+        type="button"
+        onClick={() => toggleSection("sort")}
+        className="flex w-full items-center justify-between text-white"
+      >
+        <span className="flex items-center gap-2">
+          <StarIcon />
+          <span className="text-[15px] font-semibold">Sort by</span>
+        </span>
+        <ChevronIcon open={!!openSections.sort} />
+      </button>
+      {openSections.sort && (
+        <ul className="mt-3 flex flex-col gap-2 pl-[26px]">
+          {SORT_OPTIONS.map((opt) => {
+            const isActive = filters.sort === opt.key;
+            return (
+              <li key={opt.key}>
+                <button
+                  type="button"
+                  onClick={() => onFilterChange("sort", opt.key)}
+                  className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
 
     {/* Dropdown filters */}
@@ -181,6 +249,8 @@ const FilterPanelContent = ({ openSections, toggleSection }) => (
         label={section.label}
         Icon={section.Icon}
         options={section.options}
+        selected={filters[section.key]}
+        onSelect={(val) => onFilterChange(section.key, val)}
         open={!!openSections[section.key]}
         onToggle={() => toggleSection(section.key)}
       />
@@ -201,24 +271,43 @@ const FilterPanelContent = ({ openSections, toggleSection }) => (
       </button>
       {openSections.markets && (
         <div className="mt-3 flex flex-wrap gap-2 pl-[26px]">
-          {MARKET_CHIPS.map((chip) => (
-            <button
-              key={chip}
-              type="button"
-              className="rounded-full border border-white/30 px-3 py-1 text-[13px] text-white/70 hover:text-white hover:border-white/60 transition-colors"
-            >
-              {chip}
-            </button>
-          ))}
+          {MARKET_CHIPS.map((chip) => {
+            const isActive = filters.league === chip;
+            return (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => onFilterChange("league", isActive ? null : chip)}
+                className={`rounded-full border px-3 py-1 text-[13px] transition-colors ${
+                  isActive
+                    ? "border-white bg-white/15 text-white font-semibold"
+                    : "border-white/30 text-white/70 hover:text-white hover:border-white/60"
+                }`}
+              >
+                {chip}
+                {isActive && " ✕"}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
-  </>
-);
 
-const Filtros = () => {
+  </>
+  );
+};
+
+const INITIAL_FILTERS = {
+  search: "",
+  status: null,
+  event: null,
+  league: null,
+  sort: "popular",
+};
+
+const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0 }) => {
   const [openSections, setOpenSections] = useState(() => {
-    const initial = { markets: true };
+    const initial = { markets: true, sort: true };
     FILTER_SECTIONS.forEach((section) => {
       initial[section.key] = true;
     });
@@ -226,14 +315,25 @@ const Filtros = () => {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const filters = externalFilters || INITIAL_FILTERS;
+  const onFilterChange = externalOnChange || (() => {});
+
   const toggleSection = (key) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const activeCount = [filters.status, filters.event, filters.league, filters.search].filter(Boolean).length;
 
   return (
     <>
       {/* ── DESKTOP: full filter panel ── */}
       <div className="hidden lg:block rounded-2xl border border-white/10 bg-primary-background px-5 py-6 text-white">
-        <FilterPanelContent openSections={openSections} toggleSection={toggleSection} />
+        <FilterPanelContent
+          openSections={openSections}
+          toggleSection={toggleSection}
+          filters={filters}
+          onFilterChange={onFilterChange}
+          resultCount={resultCount}
+        />
       </div>
 
       {/* ── MOBILE: search bar + filter button ── */}
@@ -242,16 +342,23 @@ const Filtros = () => {
           <SearchIcon />
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search teams or markets..."
+            value={filters.search}
+            onChange={(e) => onFilterChange("search", e.target.value)}
             className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
           />
         </div>
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+          className="shrink-0 relative flex items-center justify-center w-10 h-10 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
         >
           <FilterIcon />
+          {activeCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-[10px] font-bold flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -281,7 +388,13 @@ const Filtros = () => {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <FilterPanelContent openSections={openSections} toggleSection={toggleSection} />
+          <FilterPanelContent
+            openSections={openSections}
+            toggleSection={toggleSection}
+            filters={filters}
+            onFilterChange={onFilterChange}
+            resultCount={resultCount}
+          />
         </div>
       </aside>
     </>
@@ -289,3 +402,4 @@ const Filtros = () => {
 };
 
 export default Filtros;
+export { INITIAL_FILTERS };
