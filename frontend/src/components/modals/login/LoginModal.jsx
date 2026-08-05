@@ -28,7 +28,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
   const getPostLoginDestination = (mustChangePassword) => {
     if (mustChangePassword) return "/changepassword";
     const safeRedirects = new Set(["/", "/about", "/markets", "/polls", "/stats", "/style", "/new-markets"]);
-    return safeRedirects.has(redirectAfterLogin) ? redirectAfterLogin : "/markets";
+    return safeRedirects.has(redirectAfterLogin) ? redirectAfterLogin : "/new-markets";
   };
 
   const handleSubmit = async (e) => {

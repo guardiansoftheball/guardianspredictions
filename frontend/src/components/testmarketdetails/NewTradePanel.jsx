@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { submitBet, fetchUserShares, fetchSaleQuote, submitSale } from '../layouts/trade/TradeUtils';
+import { submitBet, fetchUserShares, fetchSaleQuote, submitSale, NO_SELLABLE_SHARES_MESSAGE } from '../layouts/trade/TradeUtils';
 import { API_URL } from '../../config';
 import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCredit';
 
@@ -190,12 +190,14 @@ const SuccessMsg = ({ msg }) => msg ? (
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
 const normalizeShares = (data) => {
-  if (!data) return { noSharesOwned: 0, yesSharesOwned: 0, value: 0 };
+  if (!data) return { noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 };
   if (Array.isArray(data)) return normalizeShares(data[0]);
   return {
-    noSharesOwned:  data.noSharesOwned  ?? data.NoSharesOwned  ?? 0,
-    yesSharesOwned: data.yesSharesOwned ?? data.YesSharesOwned ?? 0,
-    value:          data.value          ?? data.Value          ?? 0,
+    noSharesOwned:    data.noSharesOwned    ?? data.NoSharesOwned    ?? 0,
+    yesSharesOwned:   data.yesSharesOwned   ?? data.YesSharesOwned   ?? 0,
+    value:            data.value            ?? data.Value            ?? 0,
+    noSellableValue:  data.noSellableValue  ?? data.NoSellableValue  ?? 0,
+    yesSellableValue: data.yesSellableValue ?? data.YesSellableValue ?? 0,
   };
 };
 
@@ -379,7 +381,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 
 // ─── SELL TAB ─────────────────────────────────────────────────────────────────
 const SellTab = ({ marketId, market, token, onSuccess }) => {
-  const [shares, setShares]           = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0 });
+  const [shares, setShares]           = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
   const [sellAmount, setSellAmount]   = useState(1);
   const [selectedOutcome, setSelectedOutcome] = useState(null);
   const [feeData, setFeeData]         = useState(null);
@@ -389,11 +391,18 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
   const [saleQuote, setSaleQuote]     = useState(null);
   const [quoteError, setQuoteError]   = useState('');
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
+  const [sharesNotice, setSharesNotice] = useState('');
 
   const yesLabel = market?.yesLabel || 'Yes';
   const noLabel  = market?.noLabel  || 'No';
   const showFeeSection = !isLoading && Number(feeData?.sellSharesFee) > 0;
-  const maxSaleCredits = Math.max(0, Number(shares.value) || 0);
+  const selectedSellableValue = selectedOutcome === 'YES'
+    ? Math.max(0, Number(shares.yesSellableValue) || 0)
+    : Math.max(0, Number(shares.noSellableValue) || 0);
+  const maxSaleCredits = selectedSellableValue || Math.max(0, Number(shares.value) || 0);
+  const outcomeIsSellable = (outcome) => outcome === 'YES'
+    ? Number(shares.yesSellableValue) > 0
+    : Number(shares.noSellableValue) > 0;
 
   useEffect(() => {
     const fetchFeeData = async () => {
@@ -416,11 +425,12 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
 
   useEffect(() => {
     if (!token) {
-      setShares({ noSharesOwned: 0, yesSharesOwned: 0, value: 0 });
+      setShares({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
       setSelectedOutcome(null);
       setSellAmount(1);
       setSaleQuote(null);
       setQuoteError('');
+      setSharesNotice('');
       return;
     }
     setSharesLoading(true);
@@ -428,6 +438,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
       .then(data => {
         const normalized = normalizeShares(data);
         setShares(normalized);
+        setSharesNotice(Number(normalized.yesSellableValue) > 0 || Number(normalized.noSellableValue) > 0 ? '' : NO_SELLABLE_SHARES_MESSAGE);
         if (normalized.noSharesOwned > 0 && normalized.yesSharesOwned === 0) {
           setSelectedOutcome('NO');
           setSellAmount(defaultSaleAmount(normalized));
@@ -440,8 +451,8 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
         }
       })
       .catch(error => {
-        alert(`Error fetching shares: ${error.message}`);
-        setShares({ noSharesOwned: 0, yesSharesOwned: 0, value: 0 });
+        setSharesNotice(error.message || NO_SELLABLE_SHARES_MESSAGE);
+        setShares({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
         setSelectedOutcome(null);
         setSellAmount(1);
       })
@@ -543,7 +554,29 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
       {/* Position value */}
       {(shares.noSharesOwned > 0 || shares.yesSharesOwned > 0) && (
         <div style={{ textAlign: 'center', font: `600 13px ${FONT}`, color: MUTED }}>
-          Position Value: <span style={{ color: YES_TEXT }}>{shares.value}</span>
+          Position Value: <span style={{ color: YES_TEXT }}>{Math.max(0, Number(shares.value) || 0)}</span>
+        </div>
+      )}
+
+      {/* Sellable value */}
+      {(Number(shares.noSellableValue) > 0 || Number(shares.yesSellableValue) > 0) && (
+        <div style={{ textAlign: 'center', font: `600 13px ${FONT}`, color: MUTED }}>
+          Sellable Value: <span style={{ color: YES_TEXT }}>{selectedSellableValue || Math.max(Number(shares.noSellableValue), Number(shares.yesSellableValue))}</span>
+        </div>
+      )}
+
+      {/* Notice banner when shares aren't sellable */}
+      {sharesNotice && (
+        <div style={{
+          borderRadius: '10px',
+          border: '1px solid rgba(255,193,7,0.35)',
+          background: 'rgba(255,193,7,0.07)',
+          padding: '10px 12px',
+          font: `500 12px ${FONT}`,
+          color: '#ffe0a0',
+          lineHeight: '1.5',
+        }}>
+          {sharesNotice}
         </div>
       )}
 
@@ -575,7 +608,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
 
       {/* Action buttons per side */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {shares.noSharesOwned > 0 && (
+        {shares.noSharesOwned > 0 && outcomeIsSellable('NO') && (
           <SellActionGroup
             outcome="NO"
             label={noLabel}
@@ -585,7 +618,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
             onSubmit={() => { setSelectedOutcome('NO'); handleSaleSubmission('NO'); }}
           />
         )}
-        {shares.yesSharesOwned > 0 && (
+        {shares.yesSharesOwned > 0 && outcomeIsSellable('YES') && (
           <SellActionGroup
             outcome="YES"
             label={yesLabel}
