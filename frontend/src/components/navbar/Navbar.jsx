@@ -20,7 +20,7 @@ const NAV_LINKS = [
   { label: "Trending", to: "/", Icon: HomeSVG },
   { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
   { label: "Polls", to: "/", Icon: PollsSVG },
-  { label: "Stats", to: "/", Icon: StatsSVG },
+  { label: "Stats", to: "/stats", Icon: StatsSVG },
 ];
 
 const linkStyle = {
@@ -40,7 +40,7 @@ const BOTTOM_NAV = [
     activeOn: "/new-markets",
     Icon: MarketsSVG,
   },
-  { label: "Stats", to: "/", activeOn: null, Icon: StatsSVG },
+  { label: "Stats", to: "/stats", activeOn: "/stats", Icon: StatsSVG },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────

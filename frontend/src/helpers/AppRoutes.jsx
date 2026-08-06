@@ -7,6 +7,7 @@ import Markets from '../pages/markets/Markets';
 import Create from '../pages/create/Create';
 import About from '../pages/about/About';
 import Stats from '../pages/stats/Stats';
+import NewStats from '../pages/stats/NewStats';
 import Home from '../pages/home/Home';
 import MarketDetails from '../pages/marketDetails/MarketDetails';
 import MarketGroupDetails from '../pages/marketGroupDetails/MarketGroupDetails';
@@ -138,6 +139,13 @@ const AppRoutes = () => {
       </Route>
       <Redirect exact from='/user/:username' to='/newprofile/:username' />
       <Route exact path='/stats'>
+        {isLoggedIn && mustChangePassword ? (
+          <Redirect to='/changepassword' />
+        ) : (
+          <NewStats />
+        )}
+      </Route>
+      <Route exact path='/old/stats'>
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : (
