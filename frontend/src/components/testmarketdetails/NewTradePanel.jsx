@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { submitBet, fetchUserShares, fetchSaleQuote, submitSale, NO_SELLABLE_SHARES_MESSAGE } from '../layouts/trade/TradeUtils';
 import { API_URL } from '../../config';
 import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCredit';
@@ -133,7 +134,7 @@ const Row = ({ label, value, valueColor, valueFont }) => (
 
 const BRAND = '#9cc9f1';
 
-const ActionBtn = ({ onClick, disabled, loading, label }) => {
+const ActionBtn = ({ onClick, disabled, loading, label, processingLabel }) => {
   const off = disabled || loading;
   return (
     <button
@@ -157,7 +158,7 @@ const ActionBtn = ({ onClick, disabled, loading, label }) => {
       onMouseEnter={e => { if (!off) e.currentTarget.style.filter = 'brightness(0.9)'; }}
       onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
     >
-      {loading ? 'Processing...' : label}
+      {loading ? (processingLabel || 'Processing...') : label}
     </button>
   );
 };
@@ -213,6 +214,7 @@ const buildSaleSuccessMessage = (data) => {
 
 // ─── BUY TAB ──────────────────────────────────────────────────────────────────
 const BuyTab = ({ marketId, market, token, currentProbability, username, onSuccess }) => {
+  const { t } = useTranslation();
   const [side, setSide]       = useState(null);   // 'YES' | 'NO'
   const [amount, setAmount]   = useState(10);
   const [projection, setProjection] = useState(null);
@@ -317,7 +319,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
       {/* Amount */}
       <div>
         <div style={{ font: `600 12px ${FONT}`, color: MUTED2, marginBottom: '7px' }}>
-          Amount
+          {t('marketDetails.amount')}
         </div>
         <AmountInput
           value={amount}
@@ -329,7 +331,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
           {PRESETS.map(p => (
             <PresetBtn key={p} label={`+${p}`} onClick={() => setAmount(v => (parseInt(v) || 0) + p)} />
           ))}
-          <PresetBtn label="Max" onClick={() => setAmount(999)} />
+          <PresetBtn label={t('marketDetails.max')} onClick={() => setAmount(999)} />
         </div>
       </div>
 
@@ -369,11 +371,12 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
         onClick={handleSubmit}
         disabled={!side || !amount || amount < 1}
         loading={submitting}
-        label={side === 'YES' ? `Buy ${yesLabel}` : side === 'NO' ? `Buy ${noLabel}` : 'Select a side'}
+        processingLabel={t('marketDetails.processing')}
+        label={side === 'YES' ? t('marketDetails.buyOutcome', { outcome: yesLabel }) : side === 'NO' ? t('marketDetails.buyOutcome', { outcome: noLabel }) : t('marketDetails.selectSide')}
       />
 
       <div style={{ textAlign: 'center', font: `500 11px ${FONT}`, color: MUTED2 }}>
-        By trading you accept the market rules
+        {t('marketDetails.byTrading')}
       </div>
     </div>
   );
@@ -381,6 +384,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 
 // ─── SELL TAB ─────────────────────────────────────────────────────────────────
 const SellTab = ({ marketId, market, token, onSuccess }) => {
+  const { t } = useTranslation();
   const [shares, setShares]           = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
   const [sellAmount, setSellAmount]   = useState(1);
   const [selectedOutcome, setSelectedOutcome] = useState(null);
@@ -526,11 +530,11 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
   const isActionDisabled = sharesLoading || isSubmitting || isQuoteLoading;
 
   if (sharesLoading) {
-    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px ${FONT}`, color: MUTED2 }}>Loading positions...</div>;
+    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px ${FONT}`, color: MUTED2 }}>{t('marketDetails.loadingPositions')}</div>;
   }
 
   if (shares.noSharesOwned < 1 && shares.yesSharesOwned < 1) {
-    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px ${FONT}`, color: MUTED2 }}>No Shares Owned In This Market</div>;
+    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px ${FONT}`, color: MUTED2 }}>{t('marketDetails.selectOption')}</div>;
   }
 
   return (
@@ -585,7 +589,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
       {/* Sale order input */}
       <div>
         <div style={{ font: `700 11px ${FONT}`, letterSpacing: '.06em', color: MUTED2, marginBottom: '7px' }}>
-          SALE ORDER
+          {t('marketDetails.saleOrder').toUpperCase()}
         </div>
         <AmountInput
           value={sellAmount}
@@ -641,6 +645,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
 };
 
 const SellQuotePanel = ({ quote, quoteError, isLoading, selectedOutcome, onSelectAmount }) => {
+  const { t } = useTranslation();
   if (!selectedOutcome && !quoteError && !isLoading) return null;
   if (isLoading) return (
     <div style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', font: `500 12px ${FONT}`, color: MUTED2 }}>
@@ -662,9 +667,9 @@ const SellQuotePanel = ({ quote, quoteError, isLoading, selectedOutcome, onSelec
           {quote.allowed ? 'Allowed' : 'Adjust amount'}
         </span>
       </div>
-      <Row label="Sale order"       value={quote.requestedCredits} />
+      <Row label={t('marketDetails.saleOrder')}       value={quote.requestedCredits} />
       <Row label="Credits received" value={quote.netProceeds ?? quote.saleValue} valueColor={YES_TEXT} />
-      <Row label="Shares sold"      value={quote.sharesSold} />
+      <Row label={t('marketDetails.sharesSold')}      value={quote.sharesSold} />
       <Row label="Value per share"  value={quote.valuePerShare} />
       {quote.message && <div style={{ font: `500 11px ${FONT}`, color: MUTED }}>{quote.message}</div>}
       {!quote.allowed && quote.suggestedAmounts?.length > 0 && (
@@ -684,6 +689,7 @@ const SellQuotePanel = ({ quote, quoteError, isLoading, selectedOutcome, onSelec
 };
 
 const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, onSubmit }) => {
+  const { t } = useTranslation();
   const isYes = outcome === 'YES';
   const color = isYes ? YES_COLOR : NO_COLOR;
   const textColor = isYes ? YES_TEXT : NO_TEXT;
@@ -693,7 +699,7 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
         onClick={onSubmit}
         disabled={disabled}
         loading={false}
-        label={`Confirm Sale — ${label}`}
+        label={t('marketDetails.confirmSale', { label })}
         color={`linear-gradient(180deg,${color},${isYes ? '#AABA49' : '#e11d48'})`}
         shadow={`0 6px 18px ${isYes ? 'rgba(186,214,89,0.25)' : 'rgba(244,63,94,0.22)'}`}
       />
@@ -713,7 +719,7 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
           transition: 'all .15s',
         }}
       >
-        {isQuoteLoading ? 'Loading Terms...' : 'Terms'}
+        {isQuoteLoading ? t('marketDetails.loadingTerms') : t('marketDetails.terms')}
       </button>
     </div>
   );
@@ -721,6 +727,7 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
 
 // ─── MAIN PANEL ───────────────────────────────────────────────────────────────
 const NewTradePanel = ({ marketId, market, token, currentProbability, username, onSuccess }) => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState('buy');
 
   return (
@@ -737,7 +744,7 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         marginBottom: '16px',
       }}>
-        {[['buy', 'Buy'], ['sell', 'Sell']].map(([key, label]) => (
+        {[['buy', t('marketDetails.buy')], ['sell', t('marketDetails.sell')]].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}

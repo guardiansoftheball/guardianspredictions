@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
 import LoadingSpinner from "../../components/loaders/LoadingSpinner";
@@ -51,7 +52,7 @@ const YES_TEXT = COLOR.yesText;
 const NO_TEXT = COLOR.noText;
 
 // ─── identity / user info ─────────────────────────────────────────────────────
-const IdentityCard = ({ userData }) => {
+const IdentityCard = ({ userData, t }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
   const [personalEmoji, setPersonalEmoji] = useState(userData?.personalEmoji || "");
@@ -71,10 +72,10 @@ const IdentityCard = ({ userData }) => {
   const closeModal = () => setIsModalOpen(false);
 
   const modalTitle = {
-    emoji: "Select Emoji",
-    displayname: "Edit Display Name",
-    description: "Edit Description",
-    links: "Edit Personal Links",
+    emoji: t('profile.selectEmoji'),
+    displayname: t('profile.editDisplayName'),
+    description: t('profile.editDescription'),
+    links: t('profile.editLinks'),
   }[modalType] || "";
 
   const links = Object.values(personalLinks).filter(Boolean);
@@ -125,7 +126,7 @@ const IdentityCard = ({ userData }) => {
               onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
               onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
             >
-              View public profile
+              {t('profile.viewPublicProfile')}
             </Link>
           </div>
           {personalDescription ? (
@@ -134,7 +135,7 @@ const IdentityCard = ({ userData }) => {
             </p>
           ) : (
             <p style={{ margin: "10px 0 0", font: `400 13px ${FONT}`, color: MUTED3, fontStyle: "italic" }}>
-              No description yet.
+              {t('profile.noDescription')}
             </p>
           )}
           {links.length > 0 && (
@@ -168,10 +169,10 @@ const IdentityCard = ({ userData }) => {
 
         {/* Edit actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-          <GhostButton onClick={() => openModal("emoji")}>Edit emoji</GhostButton>
-          <GhostButton onClick={() => openModal("displayname")}>Edit display name</GhostButton>
-          <GhostButton onClick={() => openModal("description")}>Edit description</GhostButton>
-          <GhostButton onClick={() => openModal("links")}>Edit links</GhostButton>
+          <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
+          <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
+          <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
+          <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
         </div>
       </div>
 
@@ -218,7 +219,7 @@ const IdentityCard = ({ userData }) => {
 };
 
 // ─── portfolio ────────────────────────────────────────────────────────────────
-const PortfolioSection = ({ username }) => {
+const PortfolioSection = ({ username, t }) => {
   const { token } = useAuth();
   const [positions, setPositions] = useState([]);
   const [page, setPage] = useState(0);
@@ -261,7 +262,7 @@ const PortfolioSection = ({ username }) => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorBanner message={`Error loading portfolio: ${error}`} />;
-  if (!positions.length) return <EmptyState>No positions found. Start trading to build your portfolio.</EmptyState>;
+  if (!positions.length) return <EmptyState>{t('profile.noPositions')}</EmptyState>;
 
   const totalYes = positions.reduce((sum, pos) => sum + pos.yesSharesOwned, 0);
   const totalNo = positions.reduce((sum, pos) => sum + pos.noSharesOwned, 0);
@@ -281,23 +282,23 @@ const PortfolioSection = ({ username }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard label="Total markets" value={positions.length} />
-        <StatCard label="YES shares" value={totalYes} valueColor={YES_TEXT} />
-        <StatCard label="NO shares" value={totalNo} valueColor={NO_TEXT} />
+        <StatCard label={t('profile.totalMarkets')} value={positions.length} />
+        <StatCard label={t('profile.yesShares')} value={totalYes} valueColor={YES_TEXT} />
+        <StatCard label={t('profile.noShares')} value={totalNo} valueColor={NO_TEXT} />
       </div>
 
-      <Pagination label="Portfolio" pageInfo={pageInfo} onPageChange={setPage} />
+      <Pagination label={t('profile.portfolio')} pageInfo={pageInfo} onPageChange={setPage} />
 
       <div style={{ ...CARD, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.18)" }}>
-                <th style={th}>Market</th>
-                <th style={{ ...th, textAlign: "center" }}>YES</th>
-                <th style={{ ...th, textAlign: "center" }}>NO</th>
-                <th style={{ ...th, textAlign: "center" }}>Total</th>
-                <th style={{ ...th, textAlign: "center" }}>Last bet</th>
+                <th style={th}>{t('profile.market')}</th>
+                <th style={{ ...th, textAlign: "center" }}>{t('profile.yes')}</th>
+                <th style={{ ...th, textAlign: "center" }}>{t('profile.no')}</th>
+                <th style={{ ...th, textAlign: "center" }}>{t('profile.total')}</th>
+                <th style={{ ...th, textAlign: "center" }}>{t('profile.lastBet')}</th>
               </tr>
             </thead>
             <tbody>
@@ -313,7 +314,7 @@ const PortfolioSection = ({ username }) => {
                       onMouseEnter={(e) => (e.currentTarget.style.color = ACCENT)}
                       onMouseLeave={(e) => (e.currentTarget.style.color = TEXT)}
                     >
-                      {position.questionTitle || "Unknown Market"}
+                      {position.questionTitle || t('profile.unknownMarket')}
                     </Link>
                     <div style={{ marginTop: "3px", font: `500 11px ${FONT}`, color: MUTED3 }}>
                       ID: {position.marketId}
@@ -350,7 +351,7 @@ const PortfolioSection = ({ username }) => {
 };
 
 // ─── financials ───────────────────────────────────────────────────────────────
-const FinancialsSection = ({ username }) => {
+const FinancialsSection = ({ username, t }) => {
   const { token } = useAuth();
   const [financialData, setFinancialData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -384,7 +385,7 @@ const FinancialsSection = ({ username }) => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorBanner message={`Error loading financial data: ${error}`} />;
-  if (!financialData) return <EmptyState>No financial data available.</EmptyState>;
+  if (!financialData) return <EmptyState>{t('profile.noFinancialData')}</EmptyState>;
 
   const { balanceSheetItems, incomeStatementItems, cashFlowItems, marketPositionItems } =
     buildFinancialItemGroups(financialData);
@@ -393,22 +394,22 @@ const FinancialsSection = ({ username }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
-          label="Account balance"
+          label={t('profile.accountBalance')}
           value={financialData.accountBalance?.toLocaleString() ?? "N/A"}
           valueColor={(financialData.accountBalance ?? 0) >= 0 ? YES_TEXT : NO_TEXT}
         />
-        <StatCard label="Amount in play" value={financialData.amountInPlay?.toLocaleString() ?? "N/A"} />
+        <StatCard label={t('profile.amountInPlay')} value={financialData.amountInPlay?.toLocaleString() ?? "N/A"} />
         <StatCard
-          label="Total profits"
+          label={t('profile.totalProfits')}
           value={financialData.totalProfits?.toLocaleString() ?? "N/A"}
           valueColor={(financialData.totalProfits ?? 0) >= 0 ? YES_TEXT : NO_TEXT}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-        <FinancialGroup title="Balance Sheet — Financial Position" accent="#9cc9f1" items={balanceSheetItems} />
-        <FinancialGroup title="Income Statement — Profitability" accent="#C6E06C" items={incomeStatementItems} />
-        <FinancialGroup title="Cash Flow — Investment Activity" accent="#ffc107" items={cashFlowItems} />
-        <FinancialGroup title="Market Position — Trading Performance" accent="#c4b5fd" items={marketPositionItems} />
+        <FinancialGroup title={t('profile.balanceSheet')} accent="#9cc9f1" items={balanceSheetItems} />
+        <FinancialGroup title={t('profile.incomeStatement')} accent="#C6E06C" items={incomeStatementItems} />
+        <FinancialGroup title={t('profile.cashFlow')} accent="#ffc107" items={cashFlowItems} />
+        <FinancialGroup title={t('profile.marketPosition')} accent="#c4b5fd" items={marketPositionItems} />
       </div>
     </div>
   );
@@ -1052,10 +1053,11 @@ const MarketChangesSection = () => {
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 const NewProfile = () => {
+  const { t } = useTranslation();
   const { username } = useAuth();
   const location = useLocation();
   const { userData, userLoading, userError } = useUserData(username, true);
-  const [mainTab, setMainTab] = useState("Portfolio");
+  const [mainTab, setMainTab] = useState(() => t('profile.portfolio'));
 
   useEffect(() => {
     document.title = "Profile | Guardians Predictions";
@@ -1065,8 +1067,8 @@ const NewProfile = () => {
     String(userData?.usertype || "").toUpperCase() === "MODERATOR" &&
     String(userData?.moderatorStatus || "").toLowerCase() === "active";
 
-  const mainTabs = ["Portfolio", "Financials", ...(isActiveModerator ? ["My Markets", "Market Changes"] : [])];
-  const activeTab = mainTabs.includes(mainTab) ? mainTab : "Portfolio";
+  const mainTabs = [t('profile.portfolio'), t('profile.financials'), ...(isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
+  const activeTab = mainTabs.includes(mainTab) ? mainTab : t('profile.portfolio');
 
   const proposedMarket = location.state?.proposedMarket;
   const marketCreationCost = location.state?.marketCreationCost;
@@ -1109,7 +1111,7 @@ const NewProfile = () => {
           <ErrorBanner message={`Error loading user data: ${userError}`} />
         ) : (
           <>
-            <IdentityCard userData={userData} />
+            <IdentityCard userData={userData} t={t} />
 
             {isActiveModerator && proposedMarket && (
               <div
@@ -1120,7 +1122,7 @@ const NewProfile = () => {
                   padding: "16px 18px",
                 }}
               >
-                <SectionLabel color="#ffc107">Proposed market created</SectionLabel>
+                <SectionLabel color="#ffc107">{t('profile.proposedMarketCreated')}</SectionLabel>
                 <div style={{ marginTop: "6px", font: `700 16px ${FONT_HEAD}`, color: TEXT }}>
                   {proposedMarket.questionTitle}
                 </div>
@@ -1137,10 +1139,10 @@ const NewProfile = () => {
               <PillTabs tabs={mainTabs} active={activeTab} onChange={setMainTab} />
             </div>
 
-            {activeTab === "Portfolio" && <PortfolioSection username={username} />}
-            {activeTab === "Financials" && <FinancialsSection username={username} />}
-            {activeTab === "My Markets" && isActiveModerator && <MyMarketsSection />}
-            {activeTab === "Market Changes" && isActiveModerator && <MarketChangesSection />}
+            {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
+            {activeTab === t('profile.financials') && <FinancialsSection username={username} t={t} />}
+            {activeTab === t('profile.myMarkets') && isActiveModerator && <MyMarketsSection />}
+            {activeTab === t('profile.marketChanges') && isActiveModerator && <MarketChangesSection />}
           </>
         )}
       </div>

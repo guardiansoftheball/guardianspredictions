@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import logo from "../../assets/logo/logo.png";
 import {
   XSVG,
@@ -12,12 +13,12 @@ import {
 
 const LINK_COLUMNS = [
   [
-    { label: "FAQ", to: "#" },
-    { label: "Info", to: "/about" },
+    { labelKey: "footer.faq", to: "#" },
+    { labelKey: "footer.info", to: "/about" },
   ],
   [
-    { label: "Terms and Conditions", to: "#" },
-    { label: "Privacy Policy", to: "#" },
+    { labelKey: "footer.terms", to: "#" },
+    { labelKey: "footer.privacy", to: "#" },
   ],
 ];
 
@@ -33,6 +34,7 @@ const SOCIAL_LINKS = [
 const linkStyle = "text-[#F1EFEF] hover:text-white transition-colors text-sm";
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
     <footer className="w-full bg-primary-background border-t border-white/10">
       <div className="flex flex-wrap items-start justify-between gap-x-12 gap-y-8 px-10 py-10 max-lg:px-6">
@@ -50,8 +52,8 @@ const Footer = () => {
           {LINK_COLUMNS.map((column, i) => (
             <div key={i} className="flex flex-col gap-3">
               {column.map((link) => (
-                <Link key={link.label} to={link.to} className={linkStyle}>
-                  {link.label}
+                <Link key={link.labelKey} to={link.to} className={linkStyle}>
+                  {t(link.labelKey)}
                 </Link>
               ))}
             </div>
@@ -59,14 +61,14 @@ const Footer = () => {
 
           <div className="flex flex-col gap-3">
             <a href="mailto:info@guardianspredict.com" className={linkStyle}>
-              Email
+              {t('footer.email')}
             </a>
           </div>
         </div>
 
         {/* Social links */}
         <div className="flex flex-col gap-3">
-          <span className="text-[#F1EFEF] text-sm">Follow us on</span>
+          <span className="text-[#F1EFEF] text-sm">{t('footer.followUs')}</span>
           <div className="flex items-center gap-4">
             {SOCIAL_LINKS.map(({ label, Icon, href }) => (
               <a

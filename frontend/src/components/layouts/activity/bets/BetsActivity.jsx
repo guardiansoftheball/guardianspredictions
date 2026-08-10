@@ -1,28 +1,32 @@
 import { API_URL } from '../../../../config';
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Import Link
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { unwrapApiResponse } from '../../../../utils/apiResponse';
 
 const paginationButtonClass = [
-    'rounded',
+    'rounded-full',
     'border',
-    'border-transparent',
-    'bg-neutral-btn',
-    'px-3',
-    'py-1.5',
-    'text-xs',
-    'font-semibold',
-    'text-white',
-    'transition-colors',
+    'border-white/20',
+    'px-6',
+    'py-2',
+    'text-sm',
+    'font-medium',
+    'text-white/70',
+    'transition-all',
     'duration-200',
-    'hover:bg-neutral-btn-hover',
+    'hover:text-white',
+    'hover:border-white/40',
+    'hover:scale-105',
     'disabled:cursor-not-allowed',
-    'disabled:bg-custom-gray-light',
-    'disabled:text-gray-400',
-    'disabled:opacity-60',
+    'disabled:text-gray-500',
+    'disabled:border-white/10',
+    'disabled:opacity-50',
+    'disabled:hover:scale-100',
 ].join(' ');
 
 const BetsActivityLayout = ({ marketId, refreshTrigger }) => {
+    const { t } = useTranslation();
     const pageSize = 20;
     const [bets, setBets] = useState([]);
     const [page, setPage] = useState(0);
@@ -61,7 +65,7 @@ const BetsActivityLayout = ({ marketId, refreshTrigger }) => {
         <div className="p-4">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs uppercase tracking-[0.16em] text-gray-400">
-                    Showing bets page {page + 1}{bets.length ? ` (${pageStart + 1}-${pageStart + bets.length})` : ''}
+                    {t('activity.showingBets', { page: page + 1 })}{bets.length ? ` (${pageStart + 1}-${pageStart + bets.length})` : ''}
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -70,7 +74,7 @@ const BetsActivityLayout = ({ marketId, refreshTrigger }) => {
                         disabled={!canPageBack}
                         className={paginationButtonClass}
                     >
-                        Previous
+                        {t('activity.previous')}
                     </button>
                     <button
                         type="button"
@@ -78,16 +82,16 @@ const BetsActivityLayout = ({ marketId, refreshTrigger }) => {
                         disabled={!canPageForward}
                         className={paginationButtonClass}
                     >
-                        Next
+                        {t('activity.next')}
                     </button>
                 </div>
             </div>
             <div className="sp-grid-bets-header">
-                <div>Username</div>
-                <div className="text-center">Outcome</div>
-                <div className="text-right">Amount</div>
-                <div className="text-right">After</div>
-                <div className="text-right">Placed</div>
+                <div>{t('activity.username')}</div>
+                <div className="text-center">{t('activity.outcome')}</div>
+                <div className="text-right">{t('activity.amount')}</div>
+                <div className="text-right">{t('activity.after')}</div>
+                <div className="text-right">{t('activity.placed')}</div>
             </div>
             {bets.map((bet, index) => (
                 <div key={index} className="sp-grid-bets-row mt-2">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useHistory } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
 import Hero from "../../components/hero/Hero";
@@ -294,6 +295,7 @@ function getHomeCardLimit() {
 }
 
 const NewHome = () => {
+  const { t } = useTranslation();
   const [cardLimit] = useState(getHomeCardLimit);
   const homeCards = CARDS.slice(0, cardLimit);
   const { marketIds } = useActiveMarketIds(homeCards.length);
@@ -472,7 +474,7 @@ const NewHome = () => {
             className="group flex items-center gap-2 px-8 py-3 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all duration-200 hover:scale-105"
             style={{ backdropFilter: "blur(12px)", background: "rgba(255,255,255,0.06)" }}
           >
-            <span className="text-[15px] font-medium">Show more markets</span>
+            <span className="text-[15px] font-medium">{t('home.showMoreMarkets')}</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="18"

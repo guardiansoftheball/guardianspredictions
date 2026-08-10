@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider } from './helpers/AuthContent';
 import Footer from './components/footer/Footer';
 import AppRoutes from './helpers/AppRoutes';
@@ -11,6 +12,7 @@ const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', 
 const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/newprofile'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
+  const { t } = useTranslation();
   const showDiagnosticDetails = import.meta.env.DEV && error?.message;
 
   return (
@@ -19,14 +21,14 @@ function ErrorFallback({ error, resetErrorBoundary }) {
       role='alert'
       aria-live='assertive'
     >
-      <h1 className='text-4xl font-bold mb-4'>Oops! Something went wrong.</h1>
+      <h1 className='text-4xl font-bold mb-4'>{t('error.title')}</h1>
       <p className='text-xl mb-8'>
-        We could not load this part of SocialPredict. Please try again.
+        {t('error.message')}
       </p>
       {showDiagnosticDetails && (
         <details className='mb-8 max-w-2xl text-left'>
           <summary className='cursor-pointer text-sm text-gray-300'>
-            Development error details
+            {t('error.devDetails')}
           </summary>
           <pre className='mt-3 overflow-auto rounded bg-gray-800 p-4 text-sm text-gray-100'>
             {error.message}
@@ -37,7 +39,7 @@ function ErrorFallback({ error, resetErrorBoundary }) {
         onClick={resetErrorBoundary}
         className='px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors'
       >
-        Try again
+        {t('error.tryAgain')}
       </button>
     </div>
   );

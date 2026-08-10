@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
@@ -17,10 +18,10 @@ import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 const NAV_LINKS = [
-  { label: "Trending", to: "/", Icon: HomeSVG },
-  { label: "Markets", to: "/new-markets", Icon: MarketsSVG },
-  { label: "Polls", to: "/", Icon: PollsSVG },
-  { label: "Stats", to: "/stats", Icon: StatsSVG },
+  { labelKey: "nav.trending", to: "/", Icon: HomeSVG },
+  { labelKey: "nav.markets", to: "/new-markets", Icon: MarketsSVG },
+  { labelKey: "nav.polls", to: "/", Icon: PollsSVG },
+  { labelKey: "nav.stats", to: "/stats", Icon: StatsSVG },
 ];
 
 const linkStyle = {
@@ -33,14 +34,14 @@ const linkStyle = {
 };
 
 const BOTTOM_NAV = [
-  { label: "Trending", to: "/", activeOn: "/", Icon: HomeSVG },
+  { labelKey: "nav.trending", to: "/", activeOn: "/", Icon: HomeSVG },
   {
-    label: "Markets",
+    labelKey: "nav.markets",
     to: "/new-markets",
     activeOn: "/new-markets",
     Icon: MarketsSVG,
   },
-  { label: "Stats", to: "/stats", activeOn: "/stats", Icon: StatsSVG },
+  { labelKey: "nav.stats", to: "/stats", activeOn: "/stats", Icon: StatsSVG },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ const UserChip = ({
   canCreateMarket,
   onAdminReview,
   navVisible,
+  t,
+  i18n,
 }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = React.useRef(null);
@@ -62,8 +65,8 @@ const UserChip = ({
   const initials = (username || "?").slice(0, 2).toUpperCase();
   const fmt = (n) => {
     if (n == null) return "—";
-    if (n >= 1000) return (n / 1000).toFixed(1) + "k";
-    return String(Math.round(n));
+    if (n >= 100000) return (n / 1000).toFixed(1) + "k";
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   // Close when navbar hides on scroll
@@ -213,7 +216,7 @@ const UserChip = ({
                 marginTop: "3px",
               }}
             >
-              🪙 {fmt(credit)} credits
+              🪙 {fmt(credit)} {t('nav.credits')}
             </div>
           </div>
 
@@ -222,7 +225,7 @@ const UserChip = ({
             {isAdmin && (
               <DropdownItem
                 icon={<AdminIcon />}
-                label="Review Markets"
+                label={t('nav.reviewMarkets')}
                 active={pathname === "/admin/markets/review"}
                 onClick={() => {
                   setOpen(false);
@@ -233,7 +236,7 @@ const UserChip = ({
             {canCreateMarket && (
               <DropdownItem
                 icon={<CreateIcon />}
-                label="Create"
+                label={t('nav.create')}
                 active={pathname === "/create"}
                 onClick={() => {
                   setOpen(false);
@@ -244,7 +247,7 @@ const UserChip = ({
             {!isAdmin && (
               <DropdownItem
                 icon={<PersonIcon />}
-                label="My profile"
+                label={t('nav.myProfile')}
                 active={pathname === "/newprofile"}
                 onClick={() => {
                   setOpen(false);
@@ -254,7 +257,7 @@ const UserChip = ({
             )}
             <DropdownItem
               icon={<LogoutIcon />}
-              label="Sign out"
+              label={t('nav.signOut')}
               onClick={() => {
                 setOpen(false);
                 onLogout?.();
@@ -301,6 +304,124 @@ const DropdownItem = ({ icon, label, onClick, danger, active }) => (
     {label}
   </button>
 );
+
+const LanguageDropdown = ({ i18n }) => {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
+  const current = i18n.language?.slice(0, 2) || "en";
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (!ref.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: open ? "rgba(255,255,255,0.07)" : "transparent",
+          border: `1px solid ${open ? "rgba(156,201,241,0.25)" : "transparent"}`,
+          borderRadius: "10px",
+          padding: "8px 10px",
+          cursor: "pointer",
+          transition: "all .15s",
+          color: COLOR.text,
+        }}
+        onMouseEnter={(e) => {
+          if (!open) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+        }}
+        onMouseLeave={(e) => {
+          if (!open) e.currentTarget.style.background = open ? "rgba(255,255,255,0.07)" : "transparent";
+        }}
+      >
+        <GlobeIcon />
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 12 12"
+          fill="none"
+          style={{
+            transition: "transform .2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <path
+            d="M2 4l4 4 4-4"
+            stroke={COLOR.muted}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            minWidth: "140px",
+            zIndex: 100,
+            ...CARD_ELEVATED,
+            background: "rgba(10,22,38,0.97)",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+            overflow: "hidden",
+            padding: "4px",
+          }}
+        >
+          {[
+            { code: "en", label: "English" },
+            { code: "es", label: "Español" },
+          ].map(({ code, label }) => {
+            const active = current === code;
+            return (
+              <button
+                key={code}
+                onClick={() => {
+                  i18n.changeLanguage(code);
+                  setOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "9px 12px",
+                  borderRadius: "9px",
+                  border: active ? "1px solid rgba(156,201,241,0.25)" : "none",
+                  background: active ? "rgba(255,255,255,0.08)" : "transparent",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  color: active ? "rgba(255,255,255,0.85)" : COLOR.text,
+                  transition: "background .12s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = active ? "rgba(255,255,255,0.08)" : "transparent";
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AdminIcon = () => (
   <svg
@@ -349,6 +470,23 @@ const CreateIcon = () => (
   </svg>
 );
 
+const GlobeIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" />
+  </svg>
+);
+
 const LogoutIcon = () => (
   <svg
     width="15"
@@ -370,6 +508,7 @@ const NAV_HEIGHT = 80; // px — matches padding-top + height
 const SCROLL_THRESHOLD = 80; // px before switching to fixed mode
 
 const Navbar = () => {
+  const { t, i18n } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
   const { pathname } = useLocation();
@@ -492,10 +631,11 @@ const Navbar = () => {
         {/* Nav links */}
         <div style={{ display: "flex", alignItems: "center" }}>
           {NAV_LINKS.map((link) => {
+            const label = t(link.labelKey);
             const isActive = link.to !== "/" && link.to === pathname;
             return (
               <Link
-                key={link.label}
+                key={link.labelKey}
                 to={link.to}
                 style={{
                   ...linkStyle,
@@ -509,10 +649,11 @@ const Navbar = () => {
                     : {}),
                 }}
               >
-                {link.label}
+                {label}
               </Link>
             );
           })}
+          <LanguageDropdown i18n={i18n} />
         </div>
 
         {/* Auth / User */}
@@ -535,6 +676,8 @@ const Navbar = () => {
               canCreateMarket={canCreateMarket}
               onAdminReview={() => history.push("/admin/markets/review")}
               navVisible={navVisible}
+              t={t}
+              i18n={i18n}
             />
           ) : (
             <>
@@ -549,7 +692,7 @@ const Navbar = () => {
                   cursor: "pointer",
                 }}
               >
-                Sign in
+                {t('nav.signIn')}
               </button>
               <button
                 type="button"
@@ -570,7 +713,7 @@ const Navbar = () => {
                   cursor: "pointer",
                 }}
               >
-                Create account
+                {t('nav.createAccount')}
               </button>
             </>
           )}
@@ -622,7 +765,7 @@ const Navbar = () => {
         <nav className="flex-grow overflow-y-auto px-4 py-4">
           <ul className="space-y-2">
             {NAV_LINKS.map((link) => (
-              <li key={link.label}>
+              <li key={link.labelKey}>
                 <Link
                   to={link.to}
                   onClick={() => setSidebarOpen(false)}
@@ -633,7 +776,7 @@ const Navbar = () => {
                   }}
                 >
                   {link.Icon && <link.Icon className="w-5 h-5" />}
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               </li>
             ))}
@@ -726,7 +869,7 @@ const Navbar = () => {
                         gap: "10px",
                       }}
                     >
-                      <AdminIcon /> Review Markets
+                      <AdminIcon /> {t('nav.reviewMarkets')}
                     </button>
                   )}
                   {canCreateMarket && (
@@ -748,7 +891,7 @@ const Navbar = () => {
                         gap: "10px",
                       }}
                     >
-                      <CreateIcon /> Create
+                      <CreateIcon /> {t('nav.create')}
                     </button>
                   )}
                   {usertype !== "ADMIN" && (
@@ -770,9 +913,12 @@ const Navbar = () => {
                         gap: "10px",
                       }}
                     >
-                      <PersonIcon /> My profile
+                      <PersonIcon /> {t('nav.myProfile')}
                     </button>
                   )}
+                  <div style={{ padding: "4px 3px" }}>
+                    <LanguageDropdown i18n={i18n} />
+                  </div>
                   <button
                     onClick={() => {
                       setSidebarOpen(false);
@@ -791,7 +937,7 @@ const Navbar = () => {
                       gap: "10px",
                     }}
                   >
-                    <LogoutIcon /> Sign out
+                    <LogoutIcon /> {t('nav.signOut')}
                   </button>
                 </div>
               </div>
@@ -809,7 +955,7 @@ const Navbar = () => {
                     fontSize: "16px",
                   }}
                 >
-                  Sign in
+                  {t('nav.signIn')}
                 </button>
                 <button
                   type="button"
@@ -825,7 +971,7 @@ const Navbar = () => {
                     borderRadius: "20px",
                   }}
                 >
-                  Create account
+                  {t('nav.createAccount')}
                 </button>
               </>
             )}
@@ -835,11 +981,12 @@ const Navbar = () => {
 
       {/* ── MOBILE BOTTOM NAV ── */}
       <div className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-gray-900 border-t border-gray-700 flex justify-around items-center lg:hidden">
-        {BOTTOM_NAV.map(({ label, to, activeOn, Icon }) => {
+        {BOTTOM_NAV.map(({ labelKey, to, activeOn, Icon }) => {
+          const label = t(labelKey);
           const active = activeOn != null && pathname === activeOn;
           return (
             <Link
-              key={label}
+              key={labelKey}
               to={to}
               className={`flex flex-col items-center gap-0.5 transition-colors rounded-lg px-3 py-1 ${active ? "bg-white/10 text-white" : "text-gray-300 hover:text-white"}`}
               aria-label={label}
@@ -856,7 +1003,7 @@ const Navbar = () => {
           aria-label="Open menu"
         >
           <MenuGrowSVG className="w-5 h-5" />
-          <span className="text-[10px]">More</span>
+          <span className="text-[10px]">{t('nav.more')}</span>
         </button>
       </div>
 

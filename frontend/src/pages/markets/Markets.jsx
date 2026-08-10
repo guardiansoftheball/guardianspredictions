@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import SiteTabs from '../../components/tabs/SiteTabs';
 import MarketsByStatusTable from '../../components/tables/MarketsByStatusTable';
 import GlobalSearchBar from '../../components/search/GlobalSearchBar';
 import SearchResultsTable from '../../components/tables/SearchResultsTable';
 import { marketTagChipClassFor } from '../../components/markets/MarketTagChips';
-import { TAB_TO_STATUS } from '../../utils/statusMap';
 import { apiRequest } from '../../api/httpClient';
 import { listMarketTags } from '../../api/marketTagsApi';
 
@@ -96,7 +96,7 @@ const TopicNav = ({ topicPins = [] }) => {
                         className={`rounded-full border px-4 py-2 text-sm font-semibold transition hover:brightness-125 ${marketTagChipClassFor(pin.tag)}`}
                         title={pin.tag?.description || pin.label || pin.targetPageSlug}
                     >
-                        {pin.label || slugTitle(pin.targetPageSlug) || 'Topic'}
+                        {pin.label || slugTitle(pin.targetPageSlug) || t('markets.topicFallback')}
                     </Link>
                 ))}
             </div>
@@ -486,13 +486,20 @@ const DiscoveryPanel = ({ layout, persistentTopicPins = [], useLayoutTopicPins =
 };
 
 function Markets() {
+    const { t } = useTranslation();
+    const tabToStatus = {
+        [t('markets.active')]: 'active',
+        [t('markets.closed')]: 'closed',
+        [t('markets.resolved')]: 'resolved',
+        [t('markets.all')]: 'all',
+    };
     const { slug: topicSlugParam } = useParams();
     const topicSlug = topicSlugParam || '';
     const isTopicPage = !!topicSlug;
     const discoverySlug = isTopicPage ? topicSlug : 'markets';
     const [searchResults, setSearchResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
-    const [activeTab, setActiveTab] = useState('Active');
+    const [activeTab, setActiveTab] = useState(() => t('markets.active'));
     const [discoveryLayout, setDiscoveryLayout] = useState(defaultDiscoveryLayout);
     const [persistentTopicPins, setPersistentTopicPins] = useState([]);
     const [marketTagsBySlug, setMarketTagsBySlug] = useState({});
@@ -526,8 +533,8 @@ function Markets() {
         let ignore = false;
         const fallback = isTopicPage
             ? {
-                title: slugTitle(topicSlug) || 'Topic Markets',
-                description: 'Browse and search markets in this topic.',
+                title: slugTitle(topicSlug) || t('markets.topicMarkets'),
+                description: t('markets.browseDescription'),
                 primaryTagSlug: topicSlug,
                 searchScope: 'tag',
                 featuredMarketsEnabled: true,
@@ -597,33 +604,33 @@ function Markets() {
     };
 
     const tabsData = [
-        { 
-            label: 'Active', 
-            content: isSearching ? 
-                <SearchResultsTable searchResults={searchResults} /> : 
+        {
+            label: t('markets.active'),
+            content: isSearching ?
+                <SearchResultsTable searchResults={searchResults} /> :
                 <MarketsByStatusTable status="active" limit={MARKET_LIST_PAGE_SIZE} tagSlug={tagScope} discoverySlug={discoverySlug} />,
-            onSelect: () => handleTabChange('Active')
+            onSelect: () => handleTabChange(t('markets.active'))
         },
-        { 
-            label: 'Closed', 
-            content: isSearching ? 
-                <SearchResultsTable searchResults={searchResults} /> : 
+        {
+            label: t('markets.closed'),
+            content: isSearching ?
+                <SearchResultsTable searchResults={searchResults} /> :
                 <MarketsByStatusTable status="closed" limit={MARKET_LIST_PAGE_SIZE} tagSlug={tagScope} discoverySlug={discoverySlug} />,
-            onSelect: () => handleTabChange('Closed')
+            onSelect: () => handleTabChange(t('markets.closed'))
         },
-        { 
-            label: 'Resolved', 
-            content: isSearching ? 
-                <SearchResultsTable searchResults={searchResults} /> : 
+        {
+            label: t('markets.resolved'),
+            content: isSearching ?
+                <SearchResultsTable searchResults={searchResults} /> :
                 <MarketsByStatusTable status="resolved" limit={MARKET_LIST_PAGE_SIZE} tagSlug={tagScope} discoverySlug={discoverySlug} />,
-            onSelect: () => handleTabChange('Resolved')
+            onSelect: () => handleTabChange(t('markets.resolved'))
         },
-        { 
-            label: 'All', 
-            content: isSearching ? 
-                <SearchResultsTable searchResults={searchResults} /> : 
+        {
+            label: t('markets.all'),
+            content: isSearching ?
+                <SearchResultsTable searchResults={searchResults} /> :
                 <MarketsByStatusTable status="all" limit={MARKET_LIST_PAGE_SIZE} tagSlug={tagScope} discoverySlug={discoverySlug} />,
-            onSelect: () => handleTabChange('All')
+            onSelect: () => handleTabChange(t('markets.all'))
         },
     ];
 
@@ -634,7 +641,7 @@ function Markets() {
                     {isTopicPage ? (
                         <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(260px,420px)] md:items-start">
                             <div>
-                                <h1 className='text-2xl font-semibold text-gray-300 mb-2'>{discoveryLayout.title || 'Markets'}</h1>
+                                <h1 className='text-2xl font-semibold text-gray-300 mb-2'>{discoveryLayout.title || t('markets.title')}</h1>
                                 {discoveryLayout.description && (
                                     <p className="mb-3 max-w-3xl text-sm text-gray-400">{discoveryLayout.description}</p>
                                 )}
@@ -649,7 +656,7 @@ function Markets() {
                         </div>
                     ) : (
                         <>
-                            <h1 className='text-2xl font-semibold text-gray-300 mb-2'>{discoveryLayout.title || 'Markets'}</h1>
+                            <h1 className='text-2xl font-semibold text-gray-300 mb-2'>{discoveryLayout.title || t('markets.title')}</h1>
                             {discoveryLayout.description && (
                                 <p className="mb-3 max-w-3xl text-sm text-gray-400">{discoveryLayout.description}</p>
                             )}
@@ -664,7 +671,7 @@ function Markets() {
                 <div className='Center-content-table'>
                     <GlobalSearchBar 
                         onSearchResults={handleSearchResults}
-                        currentStatus={TAB_TO_STATUS[activeTab]}
+                        currentStatus={tabToStatus[activeTab]}
                         isSearching={isSearching}
                         setIsSearching={setIsSearching}
                         tagSlug={tagScope}

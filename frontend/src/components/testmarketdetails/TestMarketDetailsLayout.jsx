@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ComposedChart,
   Area,
@@ -391,6 +392,7 @@ function mcAvoidCollisions(rawTops, minGap = 20, maxTop = 82) {
 }
 
 function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
+  const { t } = useTranslation();
   const [range, setRange] = useState("Live");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
@@ -672,7 +674,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
         }}
       >
         <span style={{ font: `600 13px ${FONT_BODY}`, color: "#93a7bd" }}>
-          Volume: <b style={{ color: TEXT, fontWeight: 800 }}>—</b>
+          {t('marketDetails.volume')}: <b style={{ color: TEXT, fontWeight: 800 }}>—</b>
         </span>
         <div style={{ display: "flex", gap: "2px" }}>
           {MC_RANGES.map((r) => (
@@ -1106,6 +1108,7 @@ function MCNormalizeShares(data) {
 }
 
 function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
+  const { t } = useTranslation();
   if (isLoading)
     return (
       <div
@@ -1205,7 +1208,7 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
           font: `600 12px ${FONT_BODY}`,
         }}
       >
-        <span style={{ color: MUTED2 }}>Shares sold</span>
+        <span style={{ color: MUTED2 }}>{t('marketDetails.sharesSold')}</span>
         <span style={{ color: TEXT }}>{quote.sharesSold}</span>
       </div>
       <div
@@ -1269,6 +1272,7 @@ function MultiChoiceTradePanel({
   isMarketOpen,
   onSuccess,
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("buy");
   const [buyOutcome, setBuyOutcome] = useState("YES");
   const [amount, setAmount] = useState(10);
@@ -1534,8 +1538,8 @@ function MultiChoiceTradePanel({
         }}
       >
         {[
-          ["buy", "Buy"],
-          ["sell", "Sell"],
+          ["buy", t('marketDetails.buy')],
+          ["sell", t('marketDetails.sell')],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -1599,7 +1603,7 @@ function MultiChoiceTradePanel({
                 marginBottom: "7px",
               }}
             >
-              Amount
+              {t('marketDetails.amount')}
             </div>
             <div
               style={{
@@ -1705,9 +1709,9 @@ function MultiChoiceTradePanel({
               gap: "8px",
             }}
           >
-            <StatRow label="Avg price" value={`${priceCentsOutcome}¢`} />
+            <StatRow label={t('marketDetails.avgPrice')} value={`${priceCentsOutcome}¢`} />
             <StatRow
-              label="New probability"
+              label={t('marketDetails.newProbability')}
               value={
                 projLoading
                   ? "..."
@@ -1716,9 +1720,9 @@ function MultiChoiceTradePanel({
                     : "—"
               }
             />
-            <StatRow label="Shares" value={shares} />
+            <StatRow label={t('marketDetails.shares')} value={shares} />
             <StatRow
-              label="Potential return"
+              label={t('marketDetails.potentialReturn')}
               value={potReturn !== "—" ? `$${potReturn}` : "—"}
               valueColor={YES_TEXT}
             />
@@ -1780,13 +1784,13 @@ function MultiChoiceTradePanel({
               whiteSpace: "nowrap",
               animation: submitting || !amount ? "none" : "gp-mcBrandPulse 3s ease-in-out infinite",
             }}
-            title={submitting ? undefined : `Buy ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+            title={submitting ? undefined : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
             onMouseEnter={(e) => { if (!(submitting || !amount)) e.currentTarget.style.filter = "brightness(0.9)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.filter = ""; }}
           >
             {submitting
-              ? "Processing..."
-              : `Buy ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+              ? t('marketDetails.processing')
+              : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
           </button>
         </>
       ) : (
@@ -1808,7 +1812,7 @@ function MultiChoiceTradePanel({
                 padding: "16px 0",
               }}
             >
-              Select an option above to sell
+              {t('marketDetails.selectOption')}
             </div>
           ) : sellSharesLoading ? (
             <div
@@ -1819,7 +1823,7 @@ function MultiChoiceTradePanel({
                 padding: "16px 0",
               }}
             >
-              Loading positions...
+              {t('marketDetails.loadingPositions')}
             </div>
           ) : sellShares.yesSharesOwned < 1 ? (
             <div
@@ -1830,7 +1834,7 @@ function MultiChoiceTradePanel({
                 padding: "16px 0",
               }}
             >
-              No shares owned in {selectedAnswer.answerLabel}
+              {t('marketDetails.noShares', { label: selectedAnswer.answerLabel })}
             </div>
           ) : (
             <>
@@ -1861,10 +1865,10 @@ function MultiChoiceTradePanel({
                     {selectedAnswer.answerLabel}
                   </div>
                   <div style={{ font: `800 18px ${FONT_HEAD}`, color: TEXT }}>
-                    {sellShares.yesSharesOwned} shares
+                    {t('marketDetails.sharesCount', { count: sellShares.yesSharesOwned })}
                   </div>
                   <div style={{ font: `600 12px ${FONT_BODY}`, color: MUTED2 }}>
-                    Value: {sellShares.value}
+                    {t('marketDetails.value', { value: sellShares.value })}
                   </div>
                 </div>
               </div>
@@ -1878,7 +1882,7 @@ function MultiChoiceTradePanel({
                     marginBottom: "7px",
                   }}
                 >
-                  Sale Order
+                  {t('marketDetails.saleOrder')}
                 </div>
                 <div
                   style={{
@@ -2010,8 +2014,8 @@ function MultiChoiceTradePanel({
                   }}
                 >
                   {isSellSubmitting
-                    ? "Processing..."
-                    : `Confirm Sale — ${selectedAnswer.answerLabel}`}
+                    ? t('marketDetails.processing')
+                    : t('marketDetails.confirmSale', { label: selectedAnswer.answerLabel })}
                 </button>
                 <button
                   onClick={handleRequestQuote}
@@ -2029,7 +2033,7 @@ function MultiChoiceTradePanel({
                     transition: "all .15s",
                   }}
                 >
-                  {isQuoteLoading ? "Loading Terms..." : "Terms"}
+                  {isQuoteLoading ? t('marketDetails.loadingTerms') : t('marketDetails.terms')}
                 </button>
               </div>
             </>
@@ -2138,6 +2142,7 @@ function MarketLayout({
   tradePanelContent,
   loading,
 }) {
+  const { t } = useTranslation();
   return (
     <div>
       {/* Breadcrumb */}
@@ -2269,21 +2274,21 @@ function MarketLayout({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
-            Closes {closesLabel}
+            {t('marketDetails.closes')} {closesLabel}
           </span>
           <span style={{ opacity: 0.3 }}>·</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
-            {fmt(totalVolume)} vol
+            {fmt(totalVolume)} {t('marketDetails.vol')}
           </span>
           <span style={{ opacity: 0.3 }}>·</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            {fmt(numUsers)} traders
+            {fmt(numUsers)} {t('marketDetails.traders')}
           </span>
         </div>
       </div>
@@ -2304,7 +2309,7 @@ function MarketLayout({
             <div style={{ ...MARKET_CARD, padding: "16px" }}>
               {loading ? (
                 <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
-                  Loading...
+                  {t('marketDetails.loading')}
                 </div>
               ) : tradePanelContent}
             </div>
@@ -2314,7 +2319,7 @@ function MarketLayout({
           <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             {loading ? (
               <div style={{ height: "240px", display: "flex", alignItems: "center", justifyContent: "center", color: MUTED2 }}>
-                Loading chart...
+                {t('marketDetails.loadingChart')}
               </div>
             ) : chartContent}
           </div>
@@ -2328,7 +2333,7 @@ function MarketLayout({
                 color: MUTED2,
                 marginBottom: "10px",
               }}>
-                RESOLUTION CRITERIA
+                {t('marketDetails.resolutionCriteria')}
               </div>
               <p style={{
                 margin: 0,
@@ -2369,7 +2374,7 @@ function MarketLayout({
           >
             {loading ? (
               <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
-                Loading...
+                {t('marketDetails.loading')}
               </div>
             ) : tradePanelContent}
           </div>
@@ -2520,6 +2525,7 @@ function BinaryChart({
   noLabel = "No",
   totalVolume = 0,
 }) {
+  const { t } = useTranslation();
   const curP = Math.max(0.01, Math.min(0.99, Number(rawProb) || 0.5));
   const [range, setRange] = useState("Live");
   const [hoverT, setHoverT] = useState(null);
@@ -2790,7 +2796,7 @@ function BinaryChart({
         }}
       >
         <span style={{ font: `600 13px ${FONT_BODY}`, color: "#5d7189" }}>
-          Volume:{" "}
+          {t('marketDetails.volume')}:{" "}
           <b style={{ color: "#c3d1e0", fontWeight: 700 }}>
             ${Number(totalVolume || 0).toLocaleString()}
           </b>

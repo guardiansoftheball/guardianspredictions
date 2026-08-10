@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const ChevronIcon = ({ open }) => (
   <svg
@@ -76,22 +77,24 @@ const MarketsIcon = () => (
 const FILTER_SECTIONS = [
   {
     key: "status",
-    label: "Status",
+    labelKey: "filters.status",
     Icon: CheckIcon,
-    options: ["Active", "Resolved"],
+    optionKeys: ["filters.active", "filters.resolved"],
+    optionValues: ["active", "resolved"],
   },
   {
     key: "event",
-    label: "Events",
+    labelKey: "filters.events",
     Icon: EventsIcon,
-    options: ["Matches", "Press", "Standings", "Knockouts"],
+    optionKeys: ["filters.matches", "filters.press", "filters.standings", "filters.knockouts"],
+    optionValues: ["matches", "press", "standings", "knockouts"],
   },
 ];
 
 const SORT_OPTIONS = [
-  { key: "popular", label: "Most Popular" },
-  { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
+  { key: "popular", labelKey: "filters.mostPopular" },
+  { key: "newest", labelKey: "filters.newest" },
+  { key: "oldest", labelKey: "filters.oldest" },
 ];
 
 const MARKET_CHIPS = [
@@ -124,16 +127,16 @@ const FilterSection = ({ label, Icon, options, selected, onSelect, open, onToggl
     </button>
     {open && (
       <ul className="mt-3 flex flex-col gap-2 pl-[26px]">
-        {options.map((option) => {
-          const isActive = selected === option.toLowerCase();
+        {options.map(({ label: optLabel, value }) => {
+          const isActive = selected === value;
           return (
-            <li key={option}>
+            <li key={value}>
               <button
                 type="button"
-                onClick={() => onSelect(isActive ? null : option.toLowerCase())}
+                onClick={() => onSelect(isActive ? null : value)}
                 className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
               >
-                {option}
+                {optLabel}
                 {isActive && " ✕"}
               </button>
             </li>
@@ -168,14 +171,15 @@ const TrashIcon = () => (
 );
 
 const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount }) => {
+  const { t } = useTranslation();
   const hasActiveFilters = !!(filters.search || filters.status || filters.event || filters.league);
 
   return (
   <>
     {/* Header */}
-    <h2 className="text-2xl font-bold">Markets</h2>
+    <h2 className="text-2xl font-bold">{t('filters.marketsTitle')}</h2>
     <div className="mt-1 flex items-center justify-between">
-      <p className="text-sm text-white/50">{resultCount} predictions</p>
+      <p className="text-sm text-white/50">{resultCount} {t('filters.predictions')}</p>
       {hasActiveFilters && (
         <button
           type="button"
@@ -183,7 +187,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
           className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-red-400 transition-colors"
         >
           <TrashIcon />
-          Clear filters
+          {t('filters.clearFilters')}
         </button>
       )}
     </div>
@@ -193,7 +197,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
       <SearchIcon />
       <input
         type="text"
-        placeholder="Search teams or markets..."
+        placeholder={t('filters.searchPlaceholder')}
         value={filters.search}
         onChange={(e) => onFilterChange("search", e.target.value)}
         className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
@@ -218,7 +222,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
       >
         <span className="flex items-center gap-2">
           <StarIcon />
-          <span className="text-[15px] font-semibold">Sort by</span>
+          <span className="text-[15px] font-semibold">{t('filters.sortBy')}</span>
         </span>
         <ChevronIcon open={!!openSections.sort} />
       </button>
@@ -233,7 +237,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
                   onClick={() => onFilterChange("sort", opt.key)}
                   className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               </li>
             );
@@ -246,9 +250,9 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
     {FILTER_SECTIONS.map((section) => (
       <FilterSection
         key={section.key}
-        label={section.label}
+        label={t(section.labelKey)}
         Icon={section.Icon}
-        options={section.options}
+        options={section.optionKeys.map((key, i) => ({ label: t(key), value: section.optionValues[i] }))}
         selected={filters[section.key]}
         onSelect={(val) => onFilterChange(section.key, val)}
         open={!!openSections[section.key]}
@@ -265,7 +269,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
       >
         <span className="flex items-center gap-2">
           <MarketsIcon />
-          <span className="text-[15px] font-semibold">Markets</span>
+          <span className="text-[15px] font-semibold">{t('filters.marketsTitle')}</span>
         </span>
         <ChevronIcon open={!!openSections.markets} />
       </button>
@@ -306,6 +310,7 @@ const INITIAL_FILTERS = {
 };
 
 const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0 }) => {
+  const { t } = useTranslation();
   const [openSections, setOpenSections] = useState(() => {
     const initial = { markets: true, sort: true };
     FILTER_SECTIONS.forEach((section) => {
@@ -342,7 +347,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
           <SearchIcon />
           <input
             type="text"
-            placeholder="Search teams or markets..."
+            placeholder={t('filters.searchPlaceholder')}
             value={filters.search}
             onChange={(e) => onFilterChange("search", e.target.value)}
             className="w-full bg-transparent text-[14px] text-white placeholder-white/50 outline-none"
@@ -378,7 +383,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
           ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <span className="text-lg font-bold">Filters</span>
+          <span className="text-lg font-bold">{t('filters.filtersTitle')}</span>
           <button
             onClick={() => setDrawerOpen(false)}
             className="text-white/60 hover:text-white transition-colors"
