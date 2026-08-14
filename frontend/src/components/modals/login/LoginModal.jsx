@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useHistory } from "react-router-dom";
 import { Button } from "../../ui/Button";
 import { Input }  from "../../ui/Input";
@@ -19,6 +20,7 @@ const SSO_PROVIDERS = [
 ];
 
 const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRegister, onForgotPassword }) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
@@ -42,7 +44,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         history.push(getPostLoginDestination(result.mustChangePassword));
       }
     } catch (err) {
-      setError(err.message || "An error occurred during login. Please try again.");
+      setError(err.message || t('auth.login.loginError'));
     } finally {
       setLoading(false);
     }
@@ -74,14 +76,14 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           <div className="flex flex-col gap-3">
             <Input
               type="text"
-              placeholder="Email / Username"
+              placeholder={t('auth.login.emailPlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
             />
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t('auth.login.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
@@ -94,7 +96,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           {/* Next */}
           <div className="flex justify-end">
             <Button type="submit" variant="primary" loading={loading} withArrow>
-              Next
+              {t('auth.login.next')}
             </Button>
           </div>
         </form>
@@ -102,7 +104,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
         {/* Separator */}
         <div className="flex items-center gap-3">
           <div className="flex-1 border-t border-white/40" />
-          <span className="text-white/50 text-[20px]">or</span>
+          <span className="text-white/50 text-[20px]">{t('auth.login.or')}</span>
           <div className="flex-1 border-t border-white/40" />
         </div>
 
@@ -113,7 +115,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
               key={alt}
               variant="glass"
               disabled
-              title={`${alt} (coming soon)`}
+              title={t('auth.login.comingSoon', { provider: alt })}
               className="h-[52px] w-[104px] rounded-[16px]"
             >
               {icon && <img src={icon} alt={alt} className="h-[30px] w-[30px] object-contain" />}
@@ -127,7 +129,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
           onClick={onSwitchToRegister}
           className="h-[58px] w-full"
         >
-          Sign up
+          {t('auth.login.signUp')}
         </Button>
 
         {/* Forgot password */}
@@ -136,7 +138,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
             onClick={onForgotPassword}
             className="text-white/95 text-[16px] underline hover:text-white transition-colors"
           >
-            Forgot my password
+            {t('auth.login.forgotPassword')}
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../../helpers/AuthContent';
 import { getEndofDayDateTime } from '../../components/utils/dateTimeTools/FormDateTimeTools';
@@ -28,6 +29,7 @@ const SuccessBanner = ({ msg }) => msg ? (
 ) : null;
 
 function TestAdminCreate() {
+  const { t } = useTranslation();
   const [questionTitle, setQuestionTitle] = useState('');
   const [description, setDescription] = useState('');
   const [resolutionDateTime, setResolutionDateTime] = useState(getEndofDayDateTime());
@@ -50,15 +52,15 @@ function TestAdminCreate() {
   const history = useHistory();
 
   const createMarketReasonMessages = {
-    USER_NOT_APPROVED: 'User does not have approval to create markets in moderator mode.',
-    AUTHORIZATION_DENIED: 'You are not allowed to create this market.',
-    INSUFFICIENT_BALANCE: 'You do not have enough credit to create this market.',
-    VALIDATION_FAILED: 'Check the market fields and try again.',
-    INVALID_REQUEST: 'Check the market fields and try again.',
+    USER_NOT_APPROVED: t('createMarket.errors.USER_NOT_APPROVED'),
+    AUTHORIZATION_DENIED: t('createMarket.errors.AUTHORIZATION_DENIED'),
+    INSUFFICIENT_BALANCE: t('createMarket.errors.INSUFFICIENT_BALANCE'),
+    VALIDATION_FAILED: t('createMarket.errors.VALIDATION_FAILED'),
+    INVALID_REQUEST: t('createMarket.errors.INVALID_REQUEST'),
   };
 
   useEffect(() => {
-    document.title = 'Create Market | Admin';
+    document.title = t('createMarket.pageTitle');
     let ignore = false;
     const loadSetup = async () => {
       try {
@@ -90,7 +92,7 @@ function TestAdminCreate() {
   const toggleTagSlug = (slug) => {
     setSelectedTagSlugs((current) => {
       if (current.includes(slug)) return current.filter((v) => v !== slug);
-      if (current.length >= 5) { setError('You can select up to five market tags.'); return current; }
+      if (current.length >= 5) { setError(t('createMarket.maxTagsError')); return current; }
       setError('');
       return [...current, slug];
     });
@@ -103,7 +105,7 @@ function TestAdminCreate() {
   const addAnswerLabel = () => {
     setAnswerLabels((current) => {
       const hardCap = multipleChoicePolicy.hardAnswerSafetyCap || 50;
-      if (current.length >= hardCap) { setError(`Multiple-choice market groups can have up to ${hardCap} answers.`); return current; }
+      if (current.length >= hardCap) { setError(t('createMarket.maxAnswersError', { max: hardCap })); return current; }
       setError('');
       return [...current, ''];
     });
@@ -115,14 +117,14 @@ function TestAdminCreate() {
 
   const validateAnswerLabels = () => {
     const trimmedLabels = answerLabels.map((l) => l.trim()).filter(Boolean);
-    if (trimmedLabels.length < 2) return { error: 'Add at least two answer options.', labels: [] };
+    if (trimmedLabels.length < 2) return { error: t('createMarket.minAnswersError'), labels: [] };
     const hardCap = multipleChoicePolicy.hardAnswerSafetyCap || 50;
-    if (trimmedLabels.length > hardCap) return { error: `Multiple-choice market groups can have up to ${hardCap} answers.`, labels: [] };
+    if (trimmedLabels.length > hardCap) return { error: t('createMarket.maxAnswersError', { max: hardCap }), labels: [] };
     const seen = new Set();
     for (const label of trimmedLabels) {
-      if (label.length > 160) return { error: 'Answer labels must be 160 characters or fewer.', labels: [] };
+      if (label.length > 160) return { error: t('createMarket.labelTooLong'), labels: [] };
       const key = label.toLowerCase();
-      if (seen.has(key)) return { error: 'Answer labels must be unique.', labels: [] };
+      if (seen.has(key)) return { error: t('createMarket.labelsNotUnique'), labels: [] };
       seen.add(key);
     }
     return { error: '', labels: trimmedLabels };
@@ -137,15 +139,15 @@ function TestAdminCreate() {
     const trimmedNoLabel = noLabel.trim();
 
     if (marketType === 'binary') {
-      if (trimmedYesLabel && (trimmedYesLabel.length < 1 || trimmedYesLabel.length > 20)) { setError('Yes label must be between 1 and 20 characters'); return; }
-      if (trimmedNoLabel && (trimmedNoLabel.length < 1 || trimmedNoLabel.length > 20)) { setError('No label must be between 1 and 20 characters'); return; }
+      if (trimmedYesLabel && (trimmedYesLabel.length < 1 || trimmedYesLabel.length > 20)) { setError(t('createMarket.yesLabelError')); return; }
+      if (trimmedNoLabel && (trimmedNoLabel.length < 1 || trimmedNoLabel.length > 20)) { setError(t('createMarket.noLabelError')); return; }
     }
 
     let isoDateTime = resolutionDateTime;
     if (resolutionDateTime) {
       const dateTime = new Date(resolutionDateTime);
       if (!isNaN(dateTime.getTime())) isoDateTime = dateTime.toISOString();
-      else { setError('Invalid date-time value'); return; }
+      else { setError(t('createMarket.invalidDateTime')); return; }
     }
 
     try {
@@ -176,7 +178,7 @@ function TestAdminCreate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(marketData),
         reasonMessages: createMarketReasonMessages,
-        fallbackMessage: 'Market creation failed. Please try again.',
+        fallbackMessage: t('createMarket.creationFailed'),
       });
 
       window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
@@ -188,7 +190,7 @@ function TestAdminCreate() {
       }
       history.push(`/markets/${responseData.id}`);
     } catch (err) {
-      setError(err.message || 'Market creation failed. Please try again.');
+      setError(err.message || t('createMarket.creationFailed'));
     }
   };
 
@@ -202,23 +204,23 @@ function TestAdminCreate() {
       <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">Moderator mode</p>
-          <h1 className="text-4xl font-bold text-white">Create a Market</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">Propose a new binary or multiple-choice market for admin review.</p>
+          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('createMarket.eyebrow')}</p>
+          <h1 className="text-4xl font-bold text-white">{t('createMarket.heading')}</h1>
+          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('createMarket.description')}</p>
         </div>
 
         {/* Proposal cost */}
         <GlassCard className="mb-6 border-[#9CC9F1]/20">
-          <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">Market proposal cost</p>
+          <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">{t('createMarket.proposalCost')}</p>
           <p className="mt-2 text-2xl font-bold text-white">
-            {marketCreationCost === null ? 'Loading...' : `${marketCreationCost} credits`}
+            {marketCreationCost === null ? t('createMarket.loading') : t('createMarket.credits', { cost: marketCreationCost })}
           </p>
           <p className="mt-2 text-sm text-gray-400">
-            This amount is deducted when you create the proposal. If an admin rejects the proposal, the proposal cost is refunded.
+            {t('createMarket.proposalCostDesc')}
           </p>
           {marketType === 'group' && (
             <p className="mt-2 text-sm text-gray-400">
-              Initial multiple-choice answers are included in the group proposal cost. Later answer additions cost {multipleChoicePolicy.addAnswerCost ?? 0} credits each if enabled.
+              {t('createMarket.groupCostDesc', { cost: multipleChoicePolicy.addAnswerCost ?? 0 })}
             </p>
           )}
         </GlassCard>
@@ -226,9 +228,9 @@ function TestAdminCreate() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Market type */}
           <GlassCard>
-            <p className="text-sm font-semibold text-white">Market Type</p>
+            <p className="text-sm font-semibold text-white">{t('createMarket.marketType')}</p>
             <p className="mt-1 text-xs text-gray-400">
-              Multiple-choice binary groups create one parent page and a normal YES/NO child market for each answer.
+              {t('createMarket.marketTypeDesc')}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
@@ -240,8 +242,8 @@ function TestAdminCreate() {
                     : 'border-white/10 bg-white/5 text-gray-300 hover:border-[#9CC9F1]/40'
                 }`}
               >
-                <span className="block text-sm font-semibold">Binary Market</span>
-                <span className="mt-1 block text-xs text-gray-400">One YES/NO market.</span>
+                <span className="block text-sm font-semibold">{t('createMarket.binaryMarket')}</span>
+                <span className="mt-1 block text-xs text-gray-400">{t('createMarket.binaryMarketDesc')}</span>
               </button>
               <button
                 type="button"
@@ -252,9 +254,9 @@ function TestAdminCreate() {
                     : 'border-white/10 bg-white/5 text-gray-300 hover:border-[#9CC9F1]/40'
                 }`}
               >
-                <span className="block text-sm font-semibold">Multiple-Choice Binary Group</span>
+                <span className="block text-sm font-semibold">{t('createMarket.multipleChoiceGroup')}</span>
                 <span className="mt-1 block text-xs text-gray-400">
-                  Each answer becomes its own YES/NO market. Initial answers do not add proposal cost.
+                  {t('createMarket.multipleChoiceGroupDesc')}
                 </span>
               </button>
             </div>
@@ -263,14 +265,14 @@ function TestAdminCreate() {
           {/* Question title */}
           <GlassCard>
             <label htmlFor="market-question-title" className="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
-              Question Title
+              {t('createMarket.questionTitle')}
             </label>
             <EmojiPickerInput
               id="market-question-title"
               type="text"
               value={questionTitle}
               onChange={(e) => setQuestionTitle(e.target.value)}
-              placeholder="Enter the market question"
+              placeholder={t('createMarket.questionPlaceholder')}
               className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
             />
           </GlassCard>
@@ -278,14 +280,14 @@ function TestAdminCreate() {
           {/* Description */}
           <GlassCard>
             <label htmlFor="market-description" className="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
-              Description
+              {t('createMarket.descriptionLabel')}
             </label>
             <EmojiPickerInput
               id="market-description"
               type="textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide details about the market"
+              placeholder={t('createMarket.descriptionPlaceholder')}
               className="w-full h-32 resize-y rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
             />
           </GlassCard>
@@ -295,13 +297,13 @@ function TestAdminCreate() {
             <GlassCard>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-white">Market Tags</p>
+                  <p className="text-sm font-semibold text-white">{t('createMarket.marketTags')}</p>
                   <p className="mt-1 text-xs text-gray-400">
-                    Pick up to five categories so admins can review routing and users can find this market.
+                    {t('createMarket.marketTagsDesc')}
                   </p>
                 </div>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
-                  {selectedTagSlugs.length}/5 selected
+                  {t('createMarket.tagsSelected', { count: selectedTagSlugs.length })}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -334,43 +336,43 @@ function TestAdminCreate() {
           {marketType === 'binary' ? (
             <>
               <GlassCard>
-                <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-3">Outcome Labels (Optional)</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-3">{t('createMarket.outcomeLabels')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="market-yes-label" className="block text-sm font-medium text-gray-300 mb-1">Yes Label</label>
+                    <label htmlFor="market-yes-label" className="block text-sm font-medium text-gray-300 mb-1">{t('createMarket.yesLabel')}</label>
                     <EmojiPickerInput
                       id="market-yes-label"
                       type="text"
                       value={yesLabel}
                       onChange={(e) => setYesLabel(e.target.value)}
-                      placeholder='e.g., BULL, WIN, PASS'
+                      placeholder={t('createMarket.yesPlaceholder')}
                       maxLength={20}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Custom label for positive outcome (defaults to "YES")</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('createMarket.yesLabelDesc')}</p>
                   </div>
                   <div>
-                    <label htmlFor="market-no-label" className="block text-sm font-medium text-gray-300 mb-1">No Label</label>
+                    <label htmlFor="market-no-label" className="block text-sm font-medium text-gray-300 mb-1">{t('createMarket.noLabel')}</label>
                     <EmojiPickerInput
                       id="market-no-label"
                       type="text"
                       value={noLabel}
                       onChange={(e) => setNoLabel(e.target.value)}
-                      placeholder='e.g., BEAR, LOSE, FAIL'
+                      placeholder={t('createMarket.noPlaceholder')}
                       maxLength={20}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Custom label for negative outcome (defaults to "NO")</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('createMarket.noLabelDesc')}</p>
                   </div>
                 </div>
                 {(yesLabel.trim() || noLabel.trim()) && (
                   <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">Preview</p>
+                    <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">{t('createMarket.preview')}</p>
                     <div className="flex items-center gap-3">
                       <span className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-sm font-semibold text-emerald-300">
                         {yesLabel.trim() || 'YES'}
                       </span>
-                      <span className="text-gray-500 text-sm">vs</span>
+                      <span className="text-gray-500 text-sm">{t('createMarket.vs')}</span>
                       <span className="rounded-lg bg-rose-500/20 border border-rose-500/30 px-3 py-1 text-sm font-semibold text-rose-300">
                         {noLabel.trim() || 'NO'}
                       </span>
@@ -383,18 +385,18 @@ function TestAdminCreate() {
             <GlassCard>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-white">Answer Options</p>
+                  <p className="text-sm font-semibold text-white">{t('createMarket.answerOptions')}</p>
                   <p className="mt-1 text-xs text-gray-400">
-                    Each answer becomes a separate YES/NO child market under one parent page.
+                    {t('createMarket.answerOptionsDesc')}
                   </p>
                 </div>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
-                  {answerLabels.length}/{multipleChoicePolicy.hardAnswerSafetyCap || 50} answers
+                  {t('createMarket.answersCount', { count: answerLabels.length, max: multipleChoicePolicy.hardAnswerSafetyCap || 50 })}
                 </span>
               </div>
               {answerLabels.length >= (multipleChoicePolicy.softAnswerReviewThreshold || 12) && (
                 <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Large answer sets can be harder for participants to compare. Initial answers are still included in the group proposal cost.
+                  {t('createMarket.largeAnswerWarning')}
                 </div>
               )}
               <div className="flex flex-col gap-3">
@@ -405,7 +407,7 @@ function TestAdminCreate() {
                       type="text"
                       value={answerLabel}
                       onChange={(e) => updateAnswerLabel(index, e.target.value)}
-                      placeholder={`Answer ${index + 1}`}
+                      placeholder={t('createMarket.answerPlaceholder', { number: index + 1 })}
                       maxLength={160}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
                     />
@@ -415,7 +417,7 @@ function TestAdminCreate() {
                       disabled={answerLabels.length <= 2}
                       className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-gray-300 transition hover:border-rose-400/50 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Remove
+                      {t('createMarket.remove')}
                     </button>
                   </div>
                 ))}
@@ -425,13 +427,13 @@ function TestAdminCreate() {
                 onClick={addAnswerLabel}
                 className="mt-3 rounded-lg border border-[#9CC9F1]/40 px-4 py-2 text-sm font-semibold text-[#9CC9F1] transition hover:bg-[#9CC9F1]/10"
               >
-                Add Answer
+                {t('createMarket.addAnswer')}
               </button>
               <div className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-emerald-200">Auto-approve later answer options</p>
+                  <p className="text-sm font-semibold text-emerald-200">{t('createMarket.autoApproveTitle')}</p>
                   <p className="mt-1 text-xs text-emerald-200/70">
-                    If enabled, active moderators can add later answer options immediately. If disabled, their options wait for your approval.
+                    {t('createMarket.autoApproveDesc')}
                   </p>
                 </div>
                 <button
@@ -458,7 +460,7 @@ function TestAdminCreate() {
           <GlassCard>
             <DatetimeSelector
               id="market-resolution-date-time"
-              label="Resolution Date Time"
+              label={t('createMarket.resolutionDateTime')}
               value={resolutionDateTime}
               onChange={(e) => setResolutionDateTime(e.target.value)}
               className="w-full"
@@ -470,21 +472,21 @@ function TestAdminCreate() {
 
           {createdMarket && (
             <GlassCard className="border-[#9CC9F1]/20">
-              <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">Proposed market created</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">{t('createMarket.proposedMarketCreated')}</p>
               <h2 className="mt-2 text-lg font-semibold text-white">{createdMarket.questionTitle}</h2>
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                <p><span className="text-gray-400">Market ID:</span> <span className="font-mono text-white">{createdMarket.id}</span></p>
-                <p><span className="text-gray-400">Status:</span> <span className="font-mono text-white">{createdMarket.status}</span></p>
+                <p><span className="text-gray-400">{t('createMarket.marketId')}</span> <span className="font-mono text-white">{createdMarket.id}</span></p>
+                <p><span className="text-gray-400">{t('createMarket.status')}</span> <span className="font-mono text-white">{createdMarket.status}</span></p>
               </div>
               <p className="mt-3 text-sm text-gray-400">
-                This moderator-mode proposal is not tradable until an admin approves it. You will be redirected to your Proposed Markets tab.
+                {t('createMarket.proposedNotTradable')}
               </p>
             </GlassCard>
           )}
 
           {/* Submit */}
           <Button variant="celeste" type="submit" className="w-full">
-            {marketType === 'group' ? 'Create Market Group' : 'Create Market'}
+            {marketType === 'group' ? t('createMarket.createMarketGroup') : t('createMarket.createMarketBtn')}
           </Button>
         </form>
       </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helpers/AuthContent';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
@@ -44,40 +45,44 @@ import {
 const PAGE_SIZE = 20;
 const RETRY_DELAY_MS = 1200;
 
-const reviewTabs = [
-  { label: 'Pending Review', status: 'proposed' },
-  { label: 'Published', status: 'published' },
-  { label: 'Rejected', status: 'rejected' },
+const TAB_KEYS = {
+  pendingReview: 'pendingReview',
+  published: 'published',
+  rejected: 'rejected',
+  stewardship: 'stewardship',
+  descriptionAmendments: 'descriptionAmendments',
+  answerAdditions: 'answerAdditions',
+  tags: 'tags',
+  pendingAmendments: 'pendingAmendments',
+  approvedAmendments: 'approvedAmendments',
+  rejectedAmendments: 'rejectedAmendments',
+  pendingAnswers: 'pendingAnswers',
+  approvedAnswers: 'approvedAnswers',
+  rejectedAnswers: 'rejectedAnswers',
+};
+
+const reviewTabDefs = [
+  { key: TAB_KEYS.pendingReview, status: 'proposed' },
+  { key: TAB_KEYS.published, status: 'published' },
+  { key: TAB_KEYS.rejected, status: 'rejected' },
 ];
 
-const amendmentReviewTabs = [
-  { label: 'Pending Amendments', status: 'pending' },
-  { label: 'Approved Amendments', status: 'approved' },
-  { label: 'Rejected Amendments', status: 'rejected' },
+const amendmentTabDefs = [
+  { key: TAB_KEYS.pendingAmendments, status: 'pending' },
+  { key: TAB_KEYS.approvedAmendments, status: 'approved' },
+  { key: TAB_KEYS.rejectedAmendments, status: 'rejected' },
 ];
 
-const answerAdditionReviewTabs = [
-  { label: 'Pending Answers', status: 'pending' },
-  { label: 'Approved Answers', status: 'approved' },
-  { label: 'Rejected Answers', status: 'rejected' },
+const answerAdditionTabDefs = [
+  { key: TAB_KEYS.pendingAnswers, status: 'pending' },
+  { key: TAB_KEYS.approvedAnswers, status: 'approved' },
+  { key: TAB_KEYS.rejectedAnswers, status: 'rejected' },
 ];
 
-const marketGroupAnswerPolicyOptions = [
-  {
-    value: 'auto',
-    title: 'Auto-approve all answer options',
-    description: 'Every active moderator answer option is immediately added to its grouped market.',
-  },
-  {
-    value: 'moderator',
-    title: 'Let the steward choose per market',
-    description: 'Default. The grouped market steward controls auto-approval with the toggle on that market page.',
-  },
-  {
-    value: 'admin',
-    title: 'Only admins approve answer options',
-    description: 'Answer options from other moderators stay pending for admin review, regardless of the steward toggle.',
-  },
+const policyOptionKeys = [
+  { value: 'auto', titleKey: 'governance.policyAutoTitle', descKey: 'governance.policyAutoDesc' },
+  { value: 'moderator', titleKey: 'governance.policyModeratorTitle', descKey: 'governance.policyModeratorDesc' },
+  { value: 'admin', titleKey: 'governance.policyAdminTitle', descKey: 'governance.policyAdminDesc' },
 ];
 
 const maxMarketTagsPerMarket = 5;
@@ -171,16 +176,17 @@ const SearchInput = ({ id, label, value, onChange, placeholder, loading }) => (
 );
 
 const PaginationBar = ({ page, visibleCount, total, hasPrev, hasNext, onPrev, onNext, loading }) => {
+  const { t } = useTranslation();
   const start = total > 0 ? page * PAGE_SIZE + 1 : 0;
   const end = total > 0 ? page * PAGE_SIZE + visibleCount : 0;
   return (
     <GlassCard className="flex items-center justify-between !py-3">
       <span className="text-xs text-gray-400">
-        {total > 0 ? `Showing ${start}–${end} of ${total}` : '(0 results)'}
+        {total > 0 ? t('adminReview.common.showing', { start, end, total }) : t('adminReview.common.zeroResults')}
       </span>
       <div className="flex gap-2">
-        <Button variant="dark" disabled={loading || !hasPrev} onClick={onPrev}>Previous</Button>
-        <Button variant="dark" disabled={loading || !hasNext} onClick={onNext}>Next</Button>
+        <Button variant="dark" disabled={loading || !hasPrev} onClick={onPrev}>{t('adminReview.common.previous')}</Button>
+        <Button variant="dark" disabled={loading || !hasNext} onClick={onNext}>{t('adminReview.common.next')}</Button>
       </div>
     </GlassCard>
   );
@@ -189,6 +195,7 @@ const PaginationBar = ({ page, visibleCount, total, hasPrev, hasNext, onPrev, on
 // ─── GovernanceAutoApprovalSetting ────────────────────────────────────────────
 
 const GovernanceAutoApprovalSetting = ({ settingKey, title, description, savedMessage }) => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [settings, setSettings] = useState({ autoApproveDescriptionAmendments: false, autoApproveMarketProposals: false, autoApproveMarketGroupAnswers: false, marketGroupAnswerAdditionApprovalPolicy: 'moderator', version: 0 });
   const [draft, setDraft] = useState(false);
@@ -235,10 +242,10 @@ const GovernanceAutoApprovalSetting = ({ settingKey, title, description, savedMe
           </span>
         </label>
         <Button variant="celeste" disabled={loading || saving || !changed} onClick={save}>
-          {saving ? 'Saving…' : 'Save Setting'}
+          {saving ? t('adminReview.common.saving') : t('adminReview.common.saveSetting')}
         </Button>
       </div>
-      <span className="text-xs text-gray-500">Version {settings.version || 1}</span>
+      <span className="text-xs text-gray-500">{t('adminReview.common.version', { version: settings.version || 1 })}</span>
       <ErrorBanner msg={error} />
       <SuccessBanner msg={message} />
     </GlassCard>
@@ -248,6 +255,7 @@ const GovernanceAutoApprovalSetting = ({ settingKey, title, description, savedMe
 // ─── AnswerAdditionApprovalPolicySetting ──────────────────────────────────────
 
 const AnswerAdditionApprovalPolicySetting = () => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [settings, setSettings] = useState({ autoApproveDescriptionAmendments: false, autoApproveMarketProposals: false, autoApproveMarketGroupAnswers: false, marketGroupAnswerAdditionApprovalPolicy: 'moderator', version: 0 });
   const [draft, setDraft] = useState('moderator');
@@ -277,7 +285,7 @@ const AnswerAdditionApprovalPolicySetting = () => {
       const p = normalizePolicy(saved.marketGroupAnswerAdditionApprovalPolicy, saved.autoApproveMarketGroupAnswers);
       setSettings({ ...saved, marketGroupAnswerAdditionApprovalPolicy: p });
       setDraft(p);
-      setMessage('Answer option approval policy saved.');
+      setMessage(t('adminReview.governance.answerOptionPolicySaved'));
     } catch (err) { setError(err.message || 'Unable to save policy.'); }
     finally { setSaving(false); }
   };
@@ -287,21 +295,21 @@ const AnswerAdditionApprovalPolicySetting = () => {
   return (
     <GlassCard className="flex flex-col gap-3">
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-white">Answer Option Approval Policy</h3>
-        <p className="mt-1 text-sm text-gray-400">Controls what happens when active moderators add answer options to grouped markets.</p>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-white">{t('adminReview.governance.answerOptionApprovalPolicy')}</h3>
+        <p className="mt-1 text-sm text-gray-400">{t('adminReview.governance.answerOptionApprovalPolicyDesc')}</p>
       </div>
       <div className="grid gap-2">
-        {marketGroupAnswerPolicyOptions.map((opt) => (
+        {policyOptionKeys.map((opt) => (
           <label key={opt.value} className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-sm transition ${draft === opt.value ? 'border-sky-500/60 bg-sky-500/10 text-white' : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20'}`}>
             <input type="radio" name="answerPolicy" value={opt.value} checked={draft === opt.value} disabled={loading || saving} onChange={(e) => setDraft(e.target.value)} className="mt-1 h-4 w-4" />
-            <span><span className="block font-semibold">{opt.title}</span><span className="mt-1 block text-xs text-gray-400">{opt.description}</span></span>
+            <span><span className="block font-semibold">{t(`adminReview.${opt.titleKey}`)}</span><span className="mt-1 block text-xs text-gray-400">{t(`adminReview.${opt.descKey}`)}</span></span>
           </label>
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500">Version {settings.version || 1}</span>
+        <span className="text-xs text-gray-500">{t('adminReview.common.version', { version: settings.version || 1 })}</span>
         <Button variant="celeste" disabled={loading || saving || !changed} onClick={save}>
-          {saving ? 'Saving…' : 'Save Policy'}
+          {saving ? t('adminReview.common.saving') : t('adminReview.common.savePolicy')}
         </Button>
       </div>
       <ErrorBanner msg={error} />
@@ -313,6 +321,7 @@ const AnswerAdditionApprovalPolicySetting = () => {
 // ─── AdminMarketQueue ─────────────────────────────────────────────────────────
 
 const AdminMarketQueue = ({ status }) => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [markets, setMarkets] = useState([]);
   const [activeTags, setActiveTags] = useState([]);
@@ -387,7 +396,7 @@ const AdminMarketQueue = ({ status }) => {
         setMarkets((c) => c.map((m) => m.id === updated.id ? { ...m, ...updated } : m));
       }
       setTagForms((c) => { const n = { ...c }; delete n[k]; return n; });
-      setSuccess(`Updated tags for ${market.isMarketGroup ? `group ${market.marketGroup?.id || market.id}` : `market ${market.id}`}.`);
+      setSuccess(market.isMarketGroup ? t('adminReview.marketQueue.updatedTagsGroup', { id: market.marketGroup?.id || market.id }) : t('adminReview.marketQueue.updatedTagsMarket', { id: market.id }));
     } catch (err) { setError(err.message || 'Unable to update tags.'); }
     finally { setBusyKey(null); }
   };
@@ -412,8 +421,8 @@ const AdminMarketQueue = ({ status }) => {
     const atLimit = selected.length >= maxMarketTagsPerMarket;
     return (
       <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
-        <div className="text-xs font-mono uppercase tracking-widest text-gray-400">Admin tag adjustment</div>
-        <p className="text-xs text-gray-500">{market.isMarketGroup ? 'Add or remove active tags across all grouped answer markets.' : 'Add or remove active tags before or after publication.'}</p>
+        <div className="text-xs font-mono uppercase tracking-widest text-gray-400">{t('adminReview.marketQueue.tagAdjustment')}</div>
+        <p className="text-xs text-gray-500">{market.isMarketGroup ? t('adminReview.marketQueue.tagGroupedDesc') : t('adminReview.marketQueue.tagSingleDesc')}</p>
         {choices.length ? (
           <div className="flex flex-wrap gap-2">
             {choices.map((tag) => {
@@ -421,15 +430,15 @@ const AdminMarketQueue = ({ status }) => {
               const disabled = !sel && (atLimit || !tag.isActive);
               return (
                 <button key={tag.slug} type="button" disabled={disabled || busyKey === k} onClick={() => toggleTag(market, tag.slug)} className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50 ${sel ? 'border-[#9CC9F1] bg-[#9CC9F1]/20 text-white' : 'border-white/20 bg-white/5 text-gray-300 hover:border-white/40'}`}>
-                  {sel ? '✓ ' : ''}{tag.displayName || tag.slug}{!tag.isActive ? ' (inactive)' : ''}
+                  {sel ? '✓ ' : ''}{tag.displayName || tag.slug}{!tag.isActive ? ` ${t('adminReview.marketQueue.inactive')}` : ''}
                 </button>
               );
             })}
           </div>
         ) : (
-          <p className="text-xs text-amber-300">Create active tags in the Tags tab before assigning them.</p>
+          <p className="text-xs text-amber-300">{t('adminReview.marketQueue.createTagsFirst')}</p>
         )}
-        <Button variant="celeste" disabled={busyKey === k || !changed} onClick={() => saveMarketTags(market)}>Save Tags</Button>
+        <Button variant="celeste" disabled={busyKey === k || !changed} onClick={() => saveMarketTags(market)}>{t('adminReview.marketQueue.saveTags')}</Button>
       </div>
     );
   };
@@ -443,11 +452,11 @@ const AdminMarketQueue = ({ status }) => {
         {status === 'proposed' && (
           <>
             <Button variant="success" disabled={busyKey === k} onClick={() => approveMarket(market)}>
-              {market.isMarketGroup ? 'Approve Group' : 'Approve'}
+              {market.isMarketGroup ? t('adminReview.common.approveGroup') : t('adminReview.common.approve')}
             </Button>
-            <textarea value={rejectionReasons[k] || ''} onChange={(e) => setRejectionReasons((c) => ({ ...c, [k]: e.target.value }))} rows={3} placeholder="Reason for rejection" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
+            <textarea value={rejectionReasons[k] || ''} onChange={(e) => setRejectionReasons((c) => ({ ...c, [k]: e.target.value }))} rows={3} placeholder={t('adminReview.common.reasonForRejection')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
             <Button variant="danger" disabled={busyKey === k || !(rejectionReasons[k] || '').trim()} onClick={() => rejectMarket(market)}>
-              {market.isMarketGroup ? 'Reject Group and Refund' : 'Reject and Refund'}
+              {market.isMarketGroup ? t('adminReview.common.rejectGroupAndRefund') : t('adminReview.common.rejectAndRefund')}
             </Button>
           </>
         )}
@@ -460,13 +469,13 @@ const AdminMarketQueue = ({ status }) => {
   return (
     <div className="flex flex-col gap-4">
       {status === 'proposed' && (
-        <GovernanceAutoApprovalSetting settingKey="autoApproveMarketProposals" title="Auto-approve new market proposals" description="When enabled, new moderator-created proposals become published and tradable immediately." savedMessage="Market proposal auto-approval setting saved." />
+        <GovernanceAutoApprovalSetting settingKey="autoApproveMarketProposals" title={t('adminReview.governance.autoApproveProposals')} description={t('adminReview.governance.autoApproveProposalsDesc')} savedMessage={t('adminReview.governance.proposalAutoApprovalSaved')} />
       )}
       <ErrorBanner msg={error} />
       <SuccessBanner msg={success} />
-      <SearchInput id={`mq-search-${status}`} label="Search markets" value={searchQuery} onChange={setSearchQuery} placeholder={`Search ${status} markets by title or description`} loading={loading} />
+      <SearchInput id={`mq-search-${status}`} label={t('adminReview.common.searchMarkets')} value={searchQuery} onChange={setSearchQuery} placeholder={t('adminReview.marketQueue.searchPlaceholder', { status })} loading={loading} />
       <PaginationBar page={page} visibleCount={markets.length} total={total} hasPrev={page > 0} hasNext={(page + 1) * PAGE_SIZE < total} onPrev={() => setPage((p) => Math.max(0, p - 1))} onNext={() => setPage((p) => p + 1)} loading={loading} />
-      <MarketLifecycleTable markets={markets} emptyMessage={`No ${status} markets found.`} showCreator showSteward actions={tagEditingEnabled ? renderActions : null} />
+      <MarketLifecycleTable markets={markets} emptyMessage={t('adminReview.marketQueue.noMarketsFound', { status })} showCreator showSteward actions={tagEditingEnabled ? renderActions : null} />
     </div>
   );
 };
@@ -474,6 +483,7 @@ const AdminMarketQueue = ({ status }) => {
 // ─── DescriptionAmendmentStatusQueue ─────────────────────────────────────────
 
 const DescriptionAmendmentStatusQueue = ({ status }) => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [amendments, setAmendments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -506,7 +516,7 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
       if (amendment.isMarketGroupAmendment) await reviewGroupedMarketDescriptionAmendments({ token, amendmentIds: children.map((c) => c.id), status: nextStatus, reason });
       else await reviewMarketDescriptionAmendment({ token, amendmentId: amendment.id, status: nextStatus, reason });
       setReasonById((c) => ({ ...c, [k]: '' }));
-      setSuccess(`${amendment.isMarketGroupAmendment ? 'Grouped amendment' : `Amendment v${amendment.version}`} ${nextStatus}.`);
+      setSuccess(t('adminReview.amendments.statusResult', { type: amendment.isMarketGroupAmendment ? t('adminReview.amendments.groupedAmendment') : `Amendment v${amendment.version}`, status: nextStatus }));
       await load({ query: searchQuery, pageNumber: page });
     } catch (err) { setError(err.message || 'Unable to review amendment.'); }
     finally { setBusyKey(null); }
@@ -518,9 +528,9 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
     <div className="flex flex-col gap-4">
       <ErrorBanner msg={error} />
       <SuccessBanner msg={success} />
-      <SearchInput id={`amend-search-${status}`} label="Search amendments" value={searchQuery} onChange={setSearchQuery} placeholder="Search market title, description, amendment text, submitter, or reason" loading={loading} />
+      <SearchInput id={`amend-search-${status}`} label={t('adminReview.amendments.searchLabel')} value={searchQuery} onChange={setSearchQuery} placeholder={t('adminReview.amendments.searchPlaceholder')} loading={loading} />
       <PaginationBar page={page} visibleCount={amendments.length} total={total} hasPrev={page > 0} hasNext={(page + 1) * PAGE_SIZE < total} onPrev={() => setPage((p) => Math.max(0, p - 1))} onNext={() => setPage((p) => p + 1)} loading={loading} />
-      {total === 0 && <GlassCard className="text-center text-gray-400">No {status} description amendments found.</GlassCard>}
+      {total === 0 && <GlassCard className="text-center text-gray-400">{t('adminReview.amendments.noAmendmentsFound', { status })}</GlassCard>}
       {amendments.map((amendment) => {
         const k = amendKey(amendment);
         const children = amendment.isMarketGroupAmendment ? amendment.childAmendments || [] : [amendment];
@@ -531,9 +541,9 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
         return (
           <GlassCard key={k} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
-              <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-200">{amendment.isMarketGroupAmendment ? `Group #${amendment.marketGroup.id}` : `Market #${amendment.marketId}`}</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-200">{amendment.isMarketGroupAmendment ? 'Grouped Amendment' : `Amendment ${amendment.version}`}</span>
-              <span>Submitted by @{amendment.createdBy}</span>
+              <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-200">{amendment.isMarketGroupAmendment ? t('adminReview.amendments.groupLabel', { id: amendment.marketGroup.id }) : t('adminReview.amendments.marketLabel', { id: amendment.marketId })}</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-200">{amendment.isMarketGroupAmendment ? t('adminReview.amendments.groupedAmendment') : t('adminReview.amendments.amendmentVersion', { version: amendment.version })}</span>
+              <span>{t('adminReview.amendments.submittedBy', { user: amendment.createdBy })}</span>
               {amendment.createdAt && <span>{new Date(amendment.createdAt).toLocaleString()}</span>}
             </div>
             <a href={`/markets/${primaryId}`} className="text-lg font-semibold text-white underline decoration-sky-500/40 underline-offset-4 hover:text-sky-200 transition">{title}</a>
@@ -542,15 +552,15 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
                 {children.map((c) => <span key={c.id} className="rounded-full border border-sky-800/50 bg-sky-900/30 px-2.5 py-1 text-xs text-sky-100">{c.marketGroup?.answerLabel || `Market #${c.marketId}`} · Amendment {c.version}</span>)}
               </div>
             )}
-            {amendment.submitReason && <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300"><span className="font-semibold text-white">Submit reason:</span> {amendment.submitReason}</div>}
+            {amendment.submitReason && <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300"><span className="font-semibold text-white">{t('adminReview.common.submitReason')}</span> {amendment.submitReason}</div>}
             <div className="rounded-lg border border-white/10 bg-white/5 p-4 flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Description</p>
-              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-200">{amendment.marketDescription || 'No description.'}</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">{t('adminReview.amendments.description')}</p>
+              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-200">{amendment.marketDescription || t('adminReview.amendments.noDescription')}</p>
               {previousAmendments.length > 0 && (
                 <div className="flex flex-col gap-2 mt-2">
                   {previousAmendments.map((prev) => (
                     <div key={prev.id || prev.version} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2"><span>Amendment {prev.version}</span><span>Approved by @{prev.approvedBy || 'admin'}</span>{prev.approvedAt && <span>{new Date(prev.approvedAt).toLocaleString()}</span>}</div>
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2"><span>{t('adminReview.amendments.amendmentVersion', { version: prev.version })}</span><span>{t('adminReview.amendments.approvedBy', { user: prev.approvedBy || 'admin' })}</span>{prev.approvedAt && <span>{new Date(prev.approvedAt).toLocaleString()}</span>}</div>
                       <MarkdownLite>{prev.body}</MarkdownLite>
                     </div>
                   ))}
@@ -558,15 +568,15 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
               )}
             </div>
             <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-300">Proposed Amendment {amendment.version}</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-300">{t('adminReview.amendments.proposedAmendment', { version: amendment.version })}</p>
               <MarkdownLite>{amendment.body}</MarkdownLite>
             </div>
-            {status === 'rejected' && amendment.rejectionReason && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">Rejection reason: {amendment.rejectionReason}</div>}
+            {status === 'rejected' && amendment.rejectionReason && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{t('adminReview.common.rejectionReason', { reason: amendment.rejectionReason })}</div>}
             {canReview && (
               <div className="grid gap-3 md:grid-cols-[1fr,auto,auto] md:items-start">
-                <textarea value={reason} onChange={(e) => setReasonById((c) => ({ ...c, [k]: e.target.value }))} rows={3} placeholder="Decision reason required" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
-                <Button variant="success" disabled={busyKey === k || !reason.trim()} onClick={() => review(amendment, 'approved')}>{amendment.isMarketGroupAmendment ? 'Approve Group' : 'Approve'}</Button>
-                <Button variant="danger" disabled={busyKey === k || !reason.trim()} onClick={() => review(amendment, 'rejected')}>{amendment.isMarketGroupAmendment ? 'Reject Group' : 'Reject'}</Button>
+                <textarea value={reason} onChange={(e) => setReasonById((c) => ({ ...c, [k]: e.target.value }))} rows={3} placeholder={t('adminReview.common.decisionReasonRequired')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
+                <Button variant="success" disabled={busyKey === k || !reason.trim()} onClick={() => review(amendment, 'approved')}>{amendment.isMarketGroupAmendment ? t('adminReview.common.approveGroup') : t('adminReview.common.approve')}</Button>
+                <Button variant="danger" disabled={busyKey === k || !reason.trim()} onClick={() => review(amendment, 'rejected')}>{amendment.isMarketGroupAmendment ? t('adminReview.common.rejectGroup') : t('adminReview.common.reject')}</Button>
               </div>
             )}
           </GlassCard>
@@ -576,17 +586,21 @@ const DescriptionAmendmentStatusQueue = ({ status }) => {
   );
 };
 
-const DescriptionAmendmentQueue = () => (
-  <div className="flex flex-col gap-4">
-    <InfoBanner>Description amendments are append-only contract clarifications. Approving one makes it visible on the public market page.</InfoBanner>
-    <GovernanceAutoApprovalSetting settingKey="autoApproveDescriptionAmendments" title="Auto-approve new amendments" description="When enabled, newly proposed steward amendments are immediately accepted." savedMessage="Amendment auto-approval setting saved." />
-    <SiteTabs variant="dark" tabs={amendmentReviewTabs.map((t) => ({ label: t.label, content: <DescriptionAmendmentStatusQueue status={t.status} /> }))} defaultTab="Pending Amendments" />
-  </div>
-);
+const DescriptionAmendmentQueue = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-4">
+      <InfoBanner>{t('adminReview.amendments.infoBanner')}</InfoBanner>
+      <GovernanceAutoApprovalSetting settingKey="autoApproveDescriptionAmendments" title={t('adminReview.governance.autoApproveAmendments')} description={t('adminReview.governance.autoApproveAmendmentsDesc')} savedMessage={t('adminReview.governance.amendmentAutoApprovalSaved')} />
+      <SiteTabs variant="dark" tabs={amendmentTabDefs.map((td) => ({ label: t(`adminReview.tabs.${td.key}`), content: <DescriptionAmendmentStatusQueue status={td.status} /> }))} defaultTab={t('adminReview.tabs.pendingAmendments')} />
+    </div>
+  );
+};
 
 // ─── MarketGroupAnswerAdditionStatusQueue ─────────────────────────────────────
 
 const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [additions, setAdditions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -613,12 +627,12 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
 
   const review = async (addition, nextStatus) => {
     const reason = String(reasonById[addition.id] || '').trim();
-    if (nextStatus === 'rejected' && !reason) { setError('A rejection reason is required.'); return; }
+    if (nextStatus === 'rejected' && !reason) { setError(t('adminReview.common.rejectionReasonRequired')); return; }
     setBusyId(addition.id); setError(''); setSuccess('');
     try {
       await reviewMarketGroupAnswerAddition({ token, additionId: addition.id, status: nextStatus, reason, confirm: nextStatus === 'approved' });
       setReasonById((c) => ({ ...c, [addition.id]: '' }));
-      setSuccess(`Answer option "${addition.answerLabel}" ${nextStatus}.`);
+      setSuccess(t('adminReview.answerAdditions.answerOptionStatus', { label: addition.answerLabel, status: nextStatus }));
       await load({ query: searchQuery, pageNumber: page });
     } catch (err) { setError(err.message || 'Unable to review addition.'); }
     finally { setBusyId(null); }
@@ -630,9 +644,9 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
     <div className="flex flex-col gap-4">
       <ErrorBanner msg={error} />
       <SuccessBanner msg={success} />
-      <SearchInput id={`aa-search-${status}`} label="Search answer options" value={searchQuery} onChange={setSearchQuery} placeholder="Search group title, answer label, proposer, reviewer, or reason" loading={loading} />
+      <SearchInput id={`aa-search-${status}`} label={t('adminReview.answerAdditions.searchLabel')} value={searchQuery} onChange={setSearchQuery} placeholder={t('adminReview.answerAdditions.searchPlaceholder')} loading={loading} />
       <PaginationBar page={page} visibleCount={additions.length} total={total} hasPrev={page > 0} hasNext={(page + 1) * PAGE_SIZE < total} onPrev={() => setPage((p) => Math.max(0, p - 1))} onNext={() => setPage((p) => p + 1)} loading={loading} />
-      {total === 0 && <GlassCard className="text-center text-gray-400">No {status} answer additions found.</GlassCard>}
+      {total === 0 && <GlassCard className="text-center text-gray-400">{t('adminReview.answerAdditions.noAdditionsFound', { status })}</GlassCard>}
       {additions.map((addition) => {
         const group = addition.marketGroup || {};
         const href = addition.marketId ? `/markets/${addition.marketId}` : (group.id ? `/markets/group/${group.id}` : '#');
@@ -640,26 +654,26 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
         return (
           <GlassCard key={addition.id} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
-              <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-200">Group #{addition.groupId}</span>
+              <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-200">{t('adminReview.answerAdditions.groupLabel', { id: addition.groupId })}</span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-200">{addition.status}</span>
-              <span>Proposed by <a href={`/newprofile/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
+              <span>{t('adminReview.answerAdditions.proposedBy')} <a href={`/newprofile/${addition.proposedBy}`} className="text-sky-300 hover:text-sky-200">@{addition.proposedBy}</a></span>
               {addition.createdAt && <span>{new Date(addition.createdAt).toLocaleString()}</span>}
             </div>
             <div className="flex flex-col gap-2">
               <a href={href} className="text-lg font-semibold text-white underline decoration-sky-500/40 underline-offset-4 hover:text-sky-200 transition">{group.questionTitle || addition.groupTitle || `Grouped market #${addition.groupId}`}</a>
               <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-sky-300">Answer Option</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-sky-300">{t('adminReview.answerAdditions.answerOption')}</p>
                 <p className="mt-1 text-xl font-semibold text-white">{addition.answerLabel}</p>
-                <p className="mt-2 text-sm text-sky-100/70">Configured add-answer cost: {addition.additionCost} credits</p>
+                <p className="mt-2 text-sm text-sky-100/70">{t('adminReview.answerAdditions.addAnswerCost', { cost: addition.additionCost })}</p>
               </div>
             </div>
-            {addition.status === 'rejected' && addition.rejectionReason && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">Rejection reason: {addition.rejectionReason}</div>}
-            {addition.status === 'approved' && <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">Approved by @{addition.reviewedBy || 'admin'}{addition.reviewedAt ? ` at ${new Date(addition.reviewedAt).toLocaleString()}` : ''}.</div>}
+            {addition.status === 'rejected' && addition.rejectionReason && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{t('adminReview.common.rejectionReason', { reason: addition.rejectionReason })}</div>}
+            {addition.status === 'approved' && <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">{t('adminReview.answerAdditions.approvedBy', { user: addition.reviewedBy || 'admin', date: addition.reviewedAt ? ` at ${new Date(addition.reviewedAt).toLocaleString()}` : '' })}</div>}
             {canReview && (
               <div className="grid gap-3 md:grid-cols-[1fr,auto,auto] md:items-start">
-                <textarea value={reason} onChange={(e) => setReasonById((c) => ({ ...c, [addition.id]: e.target.value }))} rows={3} placeholder="Decision reason required for rejection" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
-                <Button variant="success" disabled={busyId === addition.id} onClick={() => review(addition, 'approved')}>Approve Answer</Button>
-                <Button variant="danger" disabled={busyId === addition.id || !reason.trim()} onClick={() => review(addition, 'rejected')}>Reject</Button>
+                <textarea value={reason} onChange={(e) => setReasonById((c) => ({ ...c, [addition.id]: e.target.value }))} rows={3} placeholder={t('adminReview.common.decisionReasonRequiredForRejection')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
+                <Button variant="success" disabled={busyId === addition.id} onClick={() => review(addition, 'approved')}>{t('adminReview.answerAdditions.approveAnswer')}</Button>
+                <Button variant="danger" disabled={busyId === addition.id || !reason.trim()} onClick={() => review(addition, 'rejected')}>{t('adminReview.common.reject')}</Button>
               </div>
             )}
           </GlassCard>
@@ -669,17 +683,21 @@ const MarketGroupAnswerAdditionStatusQueue = ({ status }) => {
   );
 };
 
-const MarketGroupAnswerAdditionQueue = () => (
-  <div className="flex flex-col gap-4">
-    <InfoBanner>Added answers create new binary child markets without changing existing child market history.</InfoBanner>
-    <AnswerAdditionApprovalPolicySetting />
-    <SiteTabs variant="dark" tabs={answerAdditionReviewTabs.map((t) => ({ label: t.label, content: <MarketGroupAnswerAdditionStatusQueue status={t.status} /> }))} defaultTab="Pending Answers" />
-  </div>
-);
+const MarketGroupAnswerAdditionQueue = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-4">
+      <InfoBanner>{t('adminReview.answerAdditions.infoBanner')}</InfoBanner>
+      <AnswerAdditionApprovalPolicySetting />
+      <SiteTabs variant="dark" tabs={answerAdditionTabDefs.map((td) => ({ label: t(`adminReview.tabs.${td.key}`), content: <MarketGroupAnswerAdditionStatusQueue status={td.status} /> }))} defaultTab={t('adminReview.tabs.pendingAnswers')} />
+    </div>
+  );
+};
 
 // ─── MarketStewardshipQueue ───────────────────────────────────────────────────
 
 const MarketStewardshipQueue = () => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [markets, setMarkets] = useState([]);
   const [moderators, setModerators] = useState([]);
@@ -743,7 +761,7 @@ const MarketStewardshipQueue = () => {
         return c.map((m) => m.id === updated.id ? { ...m, ...updated } : m);
       });
       setStewardForms((c) => ({ ...c, [k]: { stewardUsername: updated.stewardUsername || form.stewardUsername, reason: '' } }));
-      setSuccess(`${market.isMarketGroup ? 'Group' : 'Market'} ${updated.id} steward reassigned to ${updated.stewardUsername}.`);
+      setSuccess(t('adminReview.stewardship.reassignedSuccess', { type: market.isMarketGroup ? 'Group' : 'Market', id: updated.id, username: updated.stewardUsername }));
     } catch (err) { setError(err.message || 'Unable to reassign steward.'); }
     finally { setBusyKey(null); }
   };
@@ -758,13 +776,13 @@ const MarketStewardshipQueue = () => {
     return (
       <div className="flex flex-col gap-3 min-w-[260px]">
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span className="font-mono uppercase tracking-widest text-gray-400">New steward</span>
-          <input list={listId} value={form.stewardUsername} onChange={(e) => updateForm(k, { stewardUsername: e.target.value })} placeholder="Search active moderators by username" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none" />
+          <span className="font-mono uppercase tracking-widest text-gray-400">{t('adminReview.stewardship.newSteward')}</span>
+          <input list={listId} value={form.stewardUsername} onChange={(e) => updateForm(k, { stewardUsername: e.target.value })} placeholder={t('adminReview.stewardship.searchModerators')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none" />
           <datalist id={listId}>{moderators.map((m) => <option key={m.username} value={m.username} label={m.displayName || m.username} />)}</datalist>
         </label>
-        <textarea value={form.reason} onChange={(e) => updateForm(k, { reason: e.target.value })} rows={3} placeholder="Reason for stewardship reassignment" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
-        <Button variant="celeste" disabled={busyKey === k || !canSubmit} onClick={() => reassign(market)}>Reassign Steward</Button>
-        {selected === currentSteward && <p className="text-xs text-gray-500">Choose a different active moderator to enable reassignment.</p>}
+        <textarea value={form.reason} onChange={(e) => updateForm(k, { reason: e.target.value })} rows={3} placeholder={t('adminReview.stewardship.reasonPlaceholder')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none resize-none" />
+        <Button variant="celeste" disabled={busyKey === k || !canSubmit} onClick={() => reassign(market)}>{t('adminReview.stewardship.reassign')}</Button>
+        {selected === currentSteward && <p className="text-xs text-gray-500">{t('adminReview.stewardship.chooseDifferent')}</p>}
       </div>
     );
   };
@@ -773,16 +791,16 @@ const MarketStewardshipQueue = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <InfoBanner>Creator stays immutable. Reassign a market steward when a moderator is suspended, unavailable, conflicted, or no longer responsible for resolving the market.</InfoBanner>
+      <InfoBanner>{t('adminReview.stewardship.infoBanner')}</InfoBanner>
       <div className="flex flex-col gap-2">
-        <SearchInput id="stewardship-search" label="Search stewardship markets" value={searchQuery} onChange={setSearchQuery} placeholder="Search title or description across proposed, published, closed, and resolved markets" loading={loading} />
-        <p className="text-xs text-gray-500 px-1">Rejected and cancelled markets are excluded from stewardship governance.</p>
+        <SearchInput id="stewardship-search" label={t('adminReview.stewardship.searchLabel')} value={searchQuery} onChange={setSearchQuery} placeholder={t('adminReview.stewardship.searchPlaceholder')} loading={loading} />
+        <p className="text-xs text-gray-500 px-1">{t('adminReview.stewardship.excludedNote')}</p>
       </div>
       <ErrorBanner msg={error} />
       <SuccessBanner msg={success} />
-      {!modsLoading && moderators.length === 0 && <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">No active moderators available for reassignment.</div>}
+      {!modsLoading && moderators.length === 0 && <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">{t('adminReview.stewardship.noModerators')}</div>}
       <PaginationBar page={page} visibleCount={markets.length} total={total} hasPrev={page > 0} hasNext={(page + 1) * PAGE_SIZE < total} onPrev={() => setPage((p) => Math.max(0, p - 1))} onNext={() => setPage((p) => p + 1)} loading={loading} />
-      <MarketLifecycleTable markets={markets} emptyMessage="No markets found for stewardship governance." showCreator showSteward actions={renderActions} />
+      <MarketLifecycleTable markets={markets} emptyMessage={t('adminReview.stewardship.noMarkets')} showCreator showSteward actions={renderActions} />
       <PaginationBar page={page} visibleCount={markets.length} total={total} hasPrev={page > 0} hasNext={(page + 1) * PAGE_SIZE < total} onPrev={() => setPage((p) => Math.max(0, p - 1))} onNext={() => setPage((p) => p + 1)} loading={loading} />
     </div>
   );
@@ -819,6 +837,7 @@ const ColorKeyPicker = ({ value, onChange }) => {
 const emptyTagForm = { slug: '', displayName: '', description: '', colorKey: 'slate', sortOrder: 0 };
 
 const MarketTaxonomyAdmin = () => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState(emptyTagForm);
@@ -845,17 +864,17 @@ const MarketTaxonomyAdmin = () => {
       const created = await createAdminMarketTag({ token, tag: form });
       setTags((c) => [...c, created].sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.displayName).localeCompare(String(b.displayName))));
       setForm(emptyTagForm);
-      setSuccess(`Created tag ${created.displayName}.`);
+      setSuccess(t('adminReview.tags.createdTag', { name: created.displayName }));
     } catch (err) { setError(err.message || 'Unable to create tag.'); }
   };
 
   const setTagActive = async (tag, isActive) => {
-    if (!isActive && !window.confirm(`Deactivate "${tag.displayName}"?\n\nIt will stay visible on markets but cannot be newly assigned until reactivated.`)) return;
+    if (!isActive && !window.confirm(t('adminReview.tags.deactivateConfirm', { name: tag.displayName }))) return;
     setBusySlug(tag.slug); setError(''); setSuccess('');
     try {
       const updated = await updateAdminMarketTag({ token, slug: tag.slug, tag: { displayName: tag.displayName, description: tag.description || '', colorKey: tag.colorKey || 'slate', sortOrder: tag.sortOrder || 0, isActive, confirmDeactivate: !isActive } });
       setTags((c) => c.map((t) => t.slug === updated.slug ? updated : t));
-      setSuccess(`${updated.displayName} is now ${updated.isActive ? 'active' : 'inactive'}.`);
+      setSuccess(t('adminReview.tags.tagStatus', { name: updated.displayName, status: updated.isActive ? t('adminReview.tags.active') : 'inactive' }));
     } catch (err) { setError(err.message || 'Unable to update tag.'); }
     finally { setBusySlug(''); }
   };
@@ -865,23 +884,23 @@ const MarketTaxonomyAdmin = () => {
   return (
     <div className="flex flex-col gap-6">
       <GlassCard>
-        <h2 className="text-lg font-semibold text-white">Market Tags</h2>
-        <p className="mt-2 text-sm text-gray-300">Admins define the tag vocabulary. Moderators can attach active tags during market creation; admins can review those tags before publication.</p>
-        <p className="mt-2 text-xs text-amber-300">Deactivating a tag does not remove it from existing markets. It only prevents new assignments until reactivated.</p>
+        <h2 className="text-lg font-semibold text-white">{t('adminReview.tags.title')}</h2>
+        <p className="mt-2 text-sm text-gray-300">{t('adminReview.tags.tagsDescription')}</p>
+        <p className="mt-2 text-xs text-amber-300">{t('adminReview.tags.deactivateNote')}</p>
       </GlassCard>
       <ErrorBanner msg={error} />
       <SuccessBanner msg={success} />
       <form onSubmit={createTag} className="flex flex-col gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm text-gray-300">Display name<input value={form.displayName} onChange={(e) => updateForm({ displayName: e.target.value })} required maxLength={120} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
-          <label className="flex flex-col gap-1 text-sm text-gray-300">Slug (optional)<input value={form.slug} onChange={(e) => updateForm({ slug: e.target.value })} placeholder="auto-generated" maxLength={64} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
+          <label className="flex flex-col gap-1 text-sm text-gray-300">{t('adminReview.tags.displayName')}<input value={form.displayName} onChange={(e) => updateForm({ displayName: e.target.value })} required maxLength={120} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
+          <label className="flex flex-col gap-1 text-sm text-gray-300">{t('adminReview.tags.slug')}<input value={form.slug} onChange={(e) => updateForm({ slug: e.target.value })} placeholder={t('adminReview.tags.autoGenerated')} maxLength={64} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
         </div>
-        <label className="flex flex-col gap-1 text-sm text-gray-300">Description<textarea value={form.description} onChange={(e) => updateForm({ description: e.target.value })} rows={3} maxLength={500} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none resize-none" /></label>
+        <label className="flex flex-col gap-1 text-sm text-gray-300">{t('adminReview.tags.tagDescription')}<textarea value={form.description} onChange={(e) => updateForm({ description: e.target.value })} rows={3} maxLength={500} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none resize-none" /></label>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm text-gray-300">Color key<ColorKeyPicker value={form.colorKey} onChange={(k) => updateForm({ colorKey: k })} /></label>
-          <label className="flex flex-col gap-1 text-sm text-gray-300">Sort order<input type="number" value={form.sortOrder} onChange={(e) => updateForm({ sortOrder: Number(e.target.value || 0) })} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
+          <label className="flex flex-col gap-1 text-sm text-gray-300">{t('adminReview.tags.colorKey')}<ColorKeyPicker value={form.colorKey} onChange={(k) => updateForm({ colorKey: k })} /></label>
+          <label className="flex flex-col gap-1 text-sm text-gray-300">{t('adminReview.tags.sortOrder')}<input type="number" value={form.sortOrder} onChange={(e) => updateForm({ sortOrder: Number(e.target.value || 0) })} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-[#9CC9F1]/50 focus:outline-none" /></label>
         </div>
-        <Button variant="celeste" type="submit" className="self-start">Create Tag</Button>
+        <Button variant="celeste" type="submit" className="self-start">{t('adminReview.tags.createTag')}</Button>
       </form>
       <div className="flex flex-col gap-3">
         {tags.map((tag) => (
@@ -890,14 +909,14 @@ const MarketTaxonomyAdmin = () => {
               <MarketTagChips tags={[tag]} />
               <div className="mt-2 font-mono text-xs text-gray-500">{tag.slug}</div>
               {tag.description && <p className="mt-2 text-sm text-gray-300">{tag.description}</p>}
-              {!tag.isActive && <p className="mt-2 text-xs text-amber-300">Inactive — cannot be newly assigned until reactivated.</p>}
+              {!tag.isActive && <p className="mt-2 text-xs text-amber-300">{t('adminReview.tags.inactiveNote')}</p>}
             </div>
             <Button variant={tag.isActive ? 'danger' : 'success'} disabled={busySlug === tag.slug} onClick={() => setTagActive(tag, !tag.isActive)}>
-              {tag.isActive ? 'Deactivate' : 'Reactivate'}
+              {tag.isActive ? t('adminReview.tags.deactivate') : t('adminReview.tags.reactivate')}
             </Button>
           </GlassCard>
         ))}
-        {!tags.length && <GlassCard className="text-center text-gray-400">No tags have been created yet.</GlassCard>}
+        {!tags.length && <GlassCard className="text-center text-gray-400">{t('adminReview.tags.noTags')}</GlassCard>}
       </div>
     </div>
   );
@@ -944,31 +963,34 @@ const ShortcutCard = ({ eyebrow, title, description, count, active, onClick }) =
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const TestAdminMarketsReview = () => {
+  const { t } = useTranslation();
   const counts = useReviewWorkCounts();
-  const [activeTab, setActiveTab] = useState('Pending Review');
+  const [activeTab, setActiveTab] = useState(TAB_KEYS.pendingReview);
 
-  useEffect(() => { document.title = 'Market Review | Admin'; }, []);
+  useEffect(() => { document.title = t('adminReview.pageTitle'); }, [t]);
+
+  const tabLabel = (key) => t(`adminReview.tabs.${key}`);
 
   const shortcuts = [
-    { tab: 'Pending Review', eyebrow: 'Market Queue', title: 'Pending Markets', description: 'Approve, reject, and tag proposed binary or grouped markets.', count: counts.pendingMarkets },
-    { tab: 'Description Amendments', eyebrow: 'Contract Changes', title: 'Pending Amendments', description: 'Review append-only market description changes before publication.', count: counts.pendingAmendments },
-    { tab: 'Answer Additions', eyebrow: 'Grouped Markets', title: 'Pending Answer Options', description: 'Review added answer options for multiple-choice binary markets.', count: counts.pendingAnswers },
-    { tab: 'Stewardship', eyebrow: 'Operations', title: 'Stewardship', description: 'Reassign operational responsibility when markets need a new steward.', count: null },
+    { tabKey: TAB_KEYS.pendingReview, eyebrow: t('adminReview.shortcuts.marketQueue'), title: t('adminReview.shortcuts.pendingMarkets'), description: t('adminReview.shortcuts.pendingMarketsDesc'), count: counts.pendingMarkets },
+    { tabKey: TAB_KEYS.descriptionAmendments, eyebrow: t('adminReview.shortcuts.contractChanges'), title: t('adminReview.shortcuts.pendingAmendments'), description: t('adminReview.shortcuts.pendingAmendmentsDesc'), count: counts.pendingAmendments },
+    { tabKey: TAB_KEYS.answerAdditions, eyebrow: t('adminReview.shortcuts.groupedMarkets'), title: t('adminReview.shortcuts.pendingAnswerOptions'), description: t('adminReview.shortcuts.pendingAnswerOptionsDesc'), count: counts.pendingAnswers },
+    { tabKey: TAB_KEYS.stewardship, eyebrow: t('adminReview.shortcuts.operations'), title: t('adminReview.shortcuts.stewardship'), description: t('adminReview.shortcuts.stewardshipDesc'), count: null },
   ];
 
-  const badgeFor = (label) => {
-    if (label === 'Pending Review') return formatBadge(counts.pendingMarkets);
-    if (label === 'Description Amendments') return formatBadge(counts.pendingAmendments);
-    if (label === 'Answer Additions') return formatBadge(counts.pendingAnswers);
+  const badgeFor = (key) => {
+    if (key === TAB_KEYS.pendingReview) return formatBadge(counts.pendingMarkets);
+    if (key === TAB_KEYS.descriptionAmendments) return formatBadge(counts.pendingAmendments);
+    if (key === TAB_KEYS.answerAdditions) return formatBadge(counts.pendingAnswers);
     return '';
   };
 
   const tabs = [
-    ...reviewTabs.map((t) => ({ label: t.label, badge: badgeFor(t.label), content: <AdminMarketQueue status={t.status} /> })),
-    { label: 'Stewardship', content: <MarketStewardshipQueue /> },
-    { label: 'Description Amendments', badge: badgeFor('Description Amendments'), content: <DescriptionAmendmentQueue /> },
-    { label: 'Answer Additions', badge: badgeFor('Answer Additions'), content: <MarketGroupAnswerAdditionQueue /> },
-    { label: 'Tags', content: <MarketTaxonomyAdmin /> },
+    ...reviewTabDefs.map((td) => ({ label: tabLabel(td.key), badge: badgeFor(td.key), content: <AdminMarketQueue status={td.status} /> })),
+    { label: tabLabel(TAB_KEYS.stewardship), content: <MarketStewardshipQueue /> },
+    { label: tabLabel(TAB_KEYS.descriptionAmendments), badge: badgeFor(TAB_KEYS.descriptionAmendments), content: <DescriptionAmendmentQueue /> },
+    { label: tabLabel(TAB_KEYS.answerAdditions), badge: badgeFor(TAB_KEYS.answerAdditions), content: <MarketGroupAnswerAdditionQueue /> },
+    { label: tabLabel(TAB_KEYS.tags), content: <MarketTaxonomyAdmin /> },
   ];
 
   return (
@@ -981,21 +1003,21 @@ const TestAdminMarketsReview = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">Moderator mode</p>
-          <h1 className="text-4xl font-bold text-white">Review Markets</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">Review markets, amendments, answer options, stewardship, and tags from one operational queue.</p>
+          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('adminReview.eyebrow')}</p>
+          <h1 className="text-4xl font-bold text-white">{t('adminReview.heading')}</h1>
+          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('adminReview.description')}</p>
         </div>
 
         {/* Shortcut cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
           {shortcuts.map((s) => (
-            <ShortcutCard key={s.tab} {...s} active={activeTab === s.tab} onClick={() => setActiveTab(s.tab)} />
+            <ShortcutCard key={s.tabKey} {...s} active={activeTab === s.tabKey} onClick={() => setActiveTab(s.tabKey)} />
           ))}
         </div>
 
         {/* Tabs */}
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
-          <SiteTabs variant="dark" tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+          <SiteTabs variant="dark" tabs={tabs} activeTab={tabLabel(activeTab)} onTabChange={(label) => { const key = Object.values(TAB_KEYS).find((k) => tabLabel(k) === label); setActiveTab(key || activeTab); }} />
         </div>
       </div>
 

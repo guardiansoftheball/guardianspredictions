@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 
@@ -7,6 +8,7 @@ const imgLogo      = "/guardiansPredictionLogo.svg";
 const imgIconClose = "/icons/icon-close.svg";
 
 const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
 
   if (!isOpen) return null;
@@ -20,9 +22,9 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         <button
           onClick={onClose}
           className="absolute right-6 top-5 opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Cerrar"
+          aria-label={t('auth.forgotPassword.close')}
         >
-          <img src={imgIconClose} alt="cerrar" className="h-[18px] w-[18px]" />
+          <img src={imgIconClose} alt={t('auth.forgotPassword.close')} className="h-[18px] w-[18px]" />
         </button>
 
         {/* Logo */}
@@ -32,34 +34,34 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
         {/* Copy */}
         <p className="text-center text-white/90 text-[16px]">
-          Ingresá tu e-mail y te enviaremos instrucciones para recuperar tu contraseña.
+          {t('auth.forgotPassword.instructions')}
         </p>
 
         {/* Fields */}
         <div className="flex flex-col gap-3">
           <Input
             type="text"
-            placeholder="E-mail"
+            placeholder={t('auth.forgotPassword.emailPlaceholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
           />
         </div>
 
-        {/* Enviar */}
+        {/* Send */}
         <div className="flex justify-end">
           <Button variant="primary" withArrow>
-            Enviar
+            {t('auth.forgotPassword.send')}
           </Button>
         </div>
 
-        {/* Volver a login */}
+        {/* Back to login */}
         <div className="flex justify-center">
           <button
             onClick={onSwitchToLogin}
             className="text-white/95 text-[16px] underline hover:text-white transition-colors"
           >
-            Volver a iniciar sesión
+            {t('auth.forgotPassword.backToLogin')}
           </button>
         </div>
 

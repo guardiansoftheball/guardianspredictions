@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 
@@ -18,6 +19,7 @@ const SSO_PROVIDERS = [
 ];
 
 const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
+  const { t } = useTranslation();
   const [email, setEmail]                     = useState("");
   const [password, setPassword]               = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,9 +35,9 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         <button
           onClick={onClose}
           className="absolute right-6 top-5 opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Cerrar"
+          aria-label={t('auth.register.close')}
         >
-          <img src={imgIconClose} alt="cerrar" className="h-[18px] w-[18px]" />
+          <img src={imgIconClose} alt={t('auth.register.close')} className="h-[18px] w-[18px]" />
         </button>
 
         {/* Logo */}
@@ -47,38 +49,38 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         <div className="flex flex-col gap-3">
           <Input
             type="text"
-            placeholder="E-mail"
+            placeholder={t('auth.register.emailPlaceholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
           />
           <Input
             type="password"
-            placeholder="Password"
+            placeholder={t('auth.register.passwordPlaceholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
           />
           <Input
             type="password"
-            placeholder="Confirmar password"
+            placeholder={t('auth.register.confirmPasswordPlaceholder')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
           />
         </div>
 
-        {/* Registrarme */}
+        {/* Sign up */}
         <div className="flex justify-end">
           <Button variant="primary" withArrow>
-            Registrarme
+            {t('auth.register.signUpBtn')}
           </Button>
         </div>
 
         {/* Separator */}
         <div className="flex items-center gap-3">
           <div className="flex-1 border-t border-white/40" />
-          <span className="text-white/50 text-[20px]">o</span>
+          <span className="text-white/50 text-[20px]">{t('auth.register.or')}</span>
           <div className="flex-1 border-t border-white/40" />
         </div>
 
@@ -89,7 +91,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
               key={alt}
               variant="glass"
               disabled
-              title={`${alt} (próximamente)`}
+              title={t('auth.register.comingSoon', { provider: alt })}
               className="h-[52px] w-[104px] rounded-[16px]"
             >
               {icon && <img src={icon} alt={alt} className="h-[30px] w-[30px] object-contain" />}
@@ -97,13 +99,13 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
           ))}
         </div>
 
-        {/* Ya tengo cuenta */}
+        {/* Already have account */}
         <div className="flex justify-center">
           <button
             onClick={onSwitchToLogin}
             className="text-white/95 text-[16px] underline hover:text-white transition-colors"
           >
-            Ya tengo una cuenta
+            {t('auth.register.alreadyHaveAccount')}
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useHistory } from 'react-router-dom';
 import SiteButton from '../../buttons/SiteButtons';
 import { RegularInput } from '../../inputs/InputBar';
@@ -6,18 +7,19 @@ import { AuthContext } from '../../../helpers/AuthContent';
 import { authenticatedApiRequest } from '../../../api/httpClient';
 
 function ChangePasswordLayout() {
+    const { t } = useTranslation();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const history = useHistory();  // Initialize useHistory hook
-    const { logout } = useContext(AuthContext); // Use logout from AuthContext
+    const history = useHistory();
+    const { logout } = useContext(AuthContext);
     const changePasswordReasonMessages = {
-        AUTHORIZATION_DENIED: 'Current password is incorrect.',
-        VALIDATION_FAILED: 'New password must be 8-128 characters, include uppercase, lowercase, and a digit, contain no spaces, and differ from the current password.',
-        INVALID_TOKEN: 'Your session has expired. Please log in again.',
-        INVALID_REQUEST: 'Invalid password change request.',
+        AUTHORIZATION_DENIED: t('auth.changePassword.errors.AUTHORIZATION_DENIED'),
+        VALIDATION_FAILED: t('auth.changePassword.errors.VALIDATION_FAILED'),
+        INVALID_TOKEN: t('auth.changePassword.errors.INVALID_TOKEN'),
+        INVALID_REQUEST: t('auth.changePassword.errors.INVALID_REQUEST'),
     };
 
     const handleCurrentPasswordChange = (event) => {
@@ -38,7 +40,7 @@ function ChangePasswordLayout() {
         setSuccess('');
 
         if (newPassword !== confirmPassword) {
-            setError("New passwords do not match.");
+            setError(t('auth.changePassword.passwordsNoMatch'));
             return;
         }
 
@@ -49,31 +51,29 @@ function ChangePasswordLayout() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ currentPassword, newPassword }),
-                fallbackMessage: 'Failed to change password',
+                fallbackMessage: t('auth.changePassword.fallback'),
                 reasonMessages: changePasswordReasonMessages,
             });
 
-            // Set success message
-            setSuccess("Password changed successfully! Logging out. Please log in with your new password.");
+            setSuccess(t('auth.changePassword.success'));
 
-            // Logout user and redirect to login page after a short delay
             setTimeout(() => {
                 logout();
-                history.push('/'); // Return to a real route with the login modal available
-            }, 2000);  // Delay of 2000 milliseconds (2 seconds)
+                history.push('/');
+            }, 2000);
         } catch (err) {
             console.error('Failed to change password:', err);
-            setError(capitalizeFirstChar(err.message || 'Failed to change password'));
+            setError(capitalizeFirstChar(err.message || t('auth.changePassword.fallback')));
         }
     };
 
     return (
         <div className="p-6 bg-primary-background shadow-md rounded-lg text-white">
-            <h1 className="text-2xl font-bold mb-4">Change Password</h1>
-            <p>Password change required. You will be automatically logged out after password has been changed.</p>
+            <h1 className="text-2xl font-bold mb-4">{t('auth.changePassword.title')}</h1>
+            <p>{t('auth.changePassword.description')}</p>
             <form onSubmit={handleSubmit} className="space-y-8">
                 <label htmlFor="current-password" className="block text-sm font-medium text-gray-300">
-                    Current Password
+                    {t('auth.changePassword.currentPassword')}
                 </label>
                 <RegularInput
                     id="current-password"
@@ -81,12 +81,12 @@ function ChangePasswordLayout() {
                     type="password"
                     value={currentPassword}
                     onChange={handleCurrentPasswordChange}
-                    placeholder="Current Password"
+                    placeholder={t('auth.changePassword.currentPassword')}
                     autoComplete="current-password"
                     required
                 />
                 <label htmlFor="new-password" className="block text-sm font-medium text-gray-300">
-                    New Password
+                    {t('auth.changePassword.newPassword')}
                 </label>
                 <RegularInput
                     id="new-password"
@@ -94,16 +94,16 @@ function ChangePasswordLayout() {
                     type="password"
                     value={newPassword}
                     onChange={handleNewPasswordChange}
-                    placeholder="New Password"
+                    placeholder={t('auth.changePassword.newPassword')}
                     autoComplete="new-password"
                     ariaDescribedBy="new-password-requirements"
                     required
                 />
                 <p id="new-password-requirements" className="text-sm text-gray-300">
-                    Use 8-128 characters with uppercase, lowercase, and a digit.
+                    {t('auth.changePassword.requirements')}
                 </p>
                 <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-300">
-                    Confirm New Password
+                    {t('auth.changePassword.confirmNewPassword')}
                 </label>
                 <RegularInput
                     id="confirm-new-password"
@@ -111,12 +111,12 @@ function ChangePasswordLayout() {
                     type="password"
                     value={confirmPassword}
                     onChange={handleConfirmPasswordChange}
-                    placeholder="Confirm New Password"
+                    placeholder={t('auth.changePassword.confirmNewPassword')}
                     autoComplete="new-password"
                     required
                 />
                 <SiteButton type="submit">
-                    Save New Password
+                    {t('auth.changePassword.saveBtn')}
                 </SiteButton>
             </form>
             {success && <p className="text-green-500" role="status">{success}</p>}
@@ -125,11 +125,9 @@ function ChangePasswordLayout() {
     );
 }
 
-// Utility function to capitalize the first character of a string
-// TODO: Move to utils file if needed elsewhere /RR
 function capitalizeFirstChar(str) {
   if (typeof str !== 'string' || str.length === 0) {
-    return str; // Handle empty or non-string input
+    return str;
   }
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

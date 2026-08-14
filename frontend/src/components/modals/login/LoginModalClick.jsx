@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import LoginModal from './LoginModal';
 import { useAuth } from '../../../helpers/AuthContent';
 import { useHistory } from 'react-router-dom';
 import { LoginSVG } from '../../../assets/components/SvgIcons';
 
 const LoginModalButton = ({ iconOnly = false }) => {
+  const { t } = useTranslation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { login } = useAuth();
   const [redirectAfterLogin, setRedirectAfterLogin] = useState('/');
@@ -28,7 +30,7 @@ const LoginModalButton = ({ iconOnly = false }) => {
             iconOnly ? '' : 'mr-3'
           }`}
         />
-        {!iconOnly && <span className='text-sm'>Login</span>}
+        {!iconOnly && <span className='text-sm'>{t('auth.login.loginButton')}</span>}
       </button>
       {isLoginModalOpen && (
         <LoginModal

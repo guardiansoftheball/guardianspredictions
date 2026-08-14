@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { API_URL } from '../../config';
 import { authStorage } from '../../api/authStorage';
@@ -24,22 +25,6 @@ const COLORS = {
   pink: '#f472b6',
   emerald: '#34d399',
   rose: '#fb7185',
-};
-
-const setupConfigExplanations = {
-  initialMarketProbability: 'Default probability percentage for new markets when first created',
-  initialMarketSubsidization: 'Initial funding provided to new markets to bootstrap liquidity',
-  initialMarketYes: 'Starting number of YES shares available in new markets',
-  initialMarketNo: 'Starting number of NO shares available in new markets',
-  createMarketCost: 'Cost in points for users to create a new prediction market',
-  traderBonus: 'Bonus points awarded to users for participating in trading',
-  initialAccountBalance: 'Starting balance given to new user accounts',
-  maximumDebtAllowed: 'Maximum negative balance users can reach before restrictions',
-  minimumBet: 'Smallest bet amount allowed on any market',
-  maxDustPerSale: 'Maximum dust (small remainder) allowed when selling positions',
-  initialBetFee: 'Fee charged when placing the first bet on a market',
-  buySharesFee: 'Fee charged when purchasing shares in a market',
-  sellSharesFee: 'Fee charged when selling shares back to the market',
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -85,15 +70,15 @@ const InfoBanner = ({ children }) => (
   <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{children}</div>
 );
 
-const PaginationBar = ({ page, visibleCount, total, hasPrev, hasNext, onPrev, onNext, loading }) => {
+const PaginationBar = ({ page, visibleCount, total, hasPrev, hasNext, onPrev, onNext, loading, t }) => {
   const start = total > 0 ? page * LEADERBOARD_PAGE_SIZE + 1 : 0;
   const end = total > 0 ? page * LEADERBOARD_PAGE_SIZE + visibleCount : 0;
   return (
     <GlassCard className="flex items-center justify-between !py-3">
-      <span className="text-xs text-gray-400">{total > 0 ? `Showing ${start}–${end}` : '(0 results)'}</span>
+      <span className="text-xs text-gray-400">{total > 0 ? t('stats.leaderboard.showing', { start, end }) : t('stats.leaderboard.zeroResults')}</span>
       <div className="flex gap-2">
-        <Button variant="dark" disabled={loading || !hasPrev} onClick={onPrev}>Previous</Button>
-        <Button variant="dark" disabled={loading || !hasNext} onClick={onNext}>Next</Button>
+        <Button variant="dark" disabled={loading || !hasPrev} onClick={onPrev}>{t('stats.leaderboard.previous')}</Button>
+        <Button variant="dark" disabled={loading || !hasNext} onClick={onNext}>{t('stats.leaderboard.next')}</Button>
       </div>
     </GlassCard>
   );
@@ -131,34 +116,52 @@ const ProfitBar = ({ profit, maxAbsProfit }) => {
 
 // ─── Tab: Setup Configuration ─────────────────────────────────────────────────
 
-const SetupConfigTab = ({ statsData }) => (
-  <div className="flex flex-col gap-4">
-    <InfoBanner>These are the platform's economic configuration parameters. They control market creation costs, initial balances, fees, and other financial settings.</InfoBanner>
-    <div className="overflow-x-auto rounded-xl border border-white/10">
-      <table className="min-w-full divide-y divide-white/10 text-left text-sm">
-        <thead className="bg-white/5 text-xs uppercase tracking-widest text-gray-400">
-          <tr>
-            <th className="px-4 py-3">Variable</th>
-            <th className="px-4 py-3">Value</th>
-            <th className="hidden px-4 py-3 sm:table-cell">Explanation</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-white/5">
-          {statsData?.setupConfiguration && Object.entries(statsData.setupConfiguration).map(([key, value]) => (
-            <tr key={key} className="hover:bg-white/5 transition">
-              <td className="px-4 py-3 align-top">
-                <div className="font-mono text-sm text-[#9CC9F1]">{key}</div>
-                <div className="mt-1 text-xs text-gray-500 sm:hidden">{setupConfigExplanations[key] || 'Configuration parameter'}</div>
-              </td>
-              <td className="px-4 py-3 align-top font-semibold text-white">{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
-              <td className="hidden px-4 py-3 align-top text-gray-400 sm:table-cell">{setupConfigExplanations[key] || 'Configuration parameter for platform behavior'}</td>
+const SetupConfigTab = ({ statsData }) => {
+  const { t } = useTranslation();
+  const explanations = {
+    initialMarketProbability: t('stats.setupConfig.explanations.initialMarketProbability'),
+    initialMarketSubsidization: t('stats.setupConfig.explanations.initialMarketSubsidization'),
+    initialMarketYes: t('stats.setupConfig.explanations.initialMarketYes'),
+    initialMarketNo: t('stats.setupConfig.explanations.initialMarketNo'),
+    createMarketCost: t('stats.setupConfig.explanations.createMarketCost'),
+    traderBonus: t('stats.setupConfig.explanations.traderBonus'),
+    initialAccountBalance: t('stats.setupConfig.explanations.initialAccountBalance'),
+    maximumDebtAllowed: t('stats.setupConfig.explanations.maximumDebtAllowed'),
+    minimumBet: t('stats.setupConfig.explanations.minimumBet'),
+    maxDustPerSale: t('stats.setupConfig.explanations.maxDustPerSale'),
+    initialBetFee: t('stats.setupConfig.explanations.initialBetFee'),
+    buySharesFee: t('stats.setupConfig.explanations.buySharesFee'),
+    sellSharesFee: t('stats.setupConfig.explanations.sellSharesFee'),
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <InfoBanner>{t('stats.setupConfig.description')}</InfoBanner>
+      <div className="overflow-x-auto rounded-xl border border-white/10">
+        <table className="min-w-full divide-y divide-white/10 text-left text-sm">
+          <thead className="bg-white/5 text-xs uppercase tracking-widest text-gray-400">
+            <tr>
+              <th className="px-4 py-3">{t('stats.setupConfig.variable')}</th>
+              <th className="px-4 py-3">{t('stats.setupConfig.value')}</th>
+              <th className="hidden px-4 py-3 sm:table-cell">{t('stats.setupConfig.explanation')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {statsData?.setupConfiguration && Object.entries(statsData.setupConfiguration).map(([key, value]) => (
+              <tr key={key} className="hover:bg-white/5 transition">
+                <td className="px-4 py-3 align-top">
+                  <div className="font-mono text-sm text-[#9CC9F1]">{key}</div>
+                  <div className="mt-1 text-xs text-gray-500 sm:hidden">{explanations[key] || t('stats.setupConfig.configParam')}</div>
+                </td>
+                <td className="px-4 py-3 align-top font-semibold text-white">{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
+                <td className="hidden px-4 py-3 align-top text-gray-400 sm:table-cell">{explanations[key] || t('stats.setupConfig.configParamFull')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── FormulaToggle ────────────────────────────────────────────────────────────
 
@@ -197,6 +200,7 @@ const MetricRow = ({ label, value, explanation, formula, showFormula, onToggleFo
 // ─── Tab: System Financial Metrics (with charts) ─────────────────────────────
 
 const SystemMetricsTab = () => {
+  const { t } = useTranslation();
   const [systemMetrics, setSystemMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -211,7 +215,7 @@ const SystemMetricsTab = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
       });
-      if (!response.ok) await readReportingError(response, 'Log in to see system stats', 'Failed to fetch system metrics');
+      if (!response.ok) await readReportingError(response, t('stats.metrics.loginRequired'), t('stats.metrics.fetchError'));
       const data = await response.json();
       const result = unwrapApiResponse(data);
       setFreshness(result?.freshness || null);
@@ -228,11 +232,11 @@ const SystemMetricsTab = () => {
     if (!systemMetrics) return [];
     const u = systemMetrics.moneyUtilized;
     return [
-      { name: 'Unused Debt', value: Math.abs(u.unusedDebt.value), color: COLORS.amber, explanation: u.unusedDebt.explanation, formula: u.unusedDebt.formula, key: 'unusedDebt' },
-      { name: 'Active Bets', value: Math.abs(u.activeBetVolume.value), color: COLORS.purple, explanation: u.activeBetVolume.explanation, formula: u.activeBetVolume.formula, key: 'activeBetVolume' },
-      { name: 'Market Fees', value: Math.abs(u.marketCreationFees.value), color: COLORS.orange, explanation: u.marketCreationFees.explanation, formula: u.marketCreationFees.formula, key: 'marketCreationFees' },
-      { name: 'Participation Fees', value: Math.abs(u.participationFees.value), color: COLORS.cyan, explanation: u.participationFees.explanation, formula: u.participationFees.formula, key: 'participationFees' },
-      { name: 'Bonuses', value: Math.abs(u.bonusesPaid.value), color: COLORS.pink, explanation: u.bonusesPaid.explanation, key: 'bonusesPaid' },
+      { name: t('stats.metrics.unusedDebtShort'), value: Math.abs(u.unusedDebt.value), color: COLORS.amber, explanation: u.unusedDebt.explanation, formula: u.unusedDebt.formula, key: 'unusedDebt' },
+      { name: t('stats.metrics.activeBetsShort'), value: Math.abs(u.activeBetVolume.value), color: COLORS.purple, explanation: u.activeBetVolume.explanation, formula: u.activeBetVolume.formula, key: 'activeBetVolume' },
+      { name: t('stats.metrics.marketFeesShort'), value: Math.abs(u.marketCreationFees.value), color: COLORS.orange, explanation: u.marketCreationFees.explanation, formula: u.marketCreationFees.formula, key: 'marketCreationFees' },
+      { name: t('stats.metrics.participationFees'), value: Math.abs(u.participationFees.value), color: COLORS.cyan, explanation: u.participationFees.explanation, formula: u.participationFees.formula, key: 'participationFees' },
+      { name: t('stats.metrics.bonusesShort'), value: Math.abs(u.bonusesPaid.value), color: COLORS.pink, explanation: u.bonusesPaid.explanation, key: 'bonusesPaid' },
     ].filter((d) => d.value > 0);
   }, [systemMetrics]);
 
@@ -242,21 +246,20 @@ const SystemMetricsTab = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">Beta</span>
+        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">{t('stats.beta')}</span>
         <Button variant="celeste" disabled={loading} onClick={fetchMetrics}>
-          {loading ? 'Calculating...' : 'Calculate Metrics'}
+          {loading ? t('stats.metrics.calculating') : t('stats.metrics.calculateBtn')}
         </Button>
       </div>
 
       <InfoBanner>
-        These financial metrics are currently in beta. Balance calculations may not perfectly align
-        as we continue to refine the accounting logic.
+        {t('stats.metrics.betaDisclaimer')}
       </InfoBanner>
 
       {loading && (
         <div className="flex items-center justify-center gap-3 py-8">
           <LoadingSpinner />
-          <span className="text-sm text-gray-300">Computing system metrics...</span>
+          <span className="text-sm text-gray-300">{t('stats.metrics.computing')}</span>
         </div>
       )}
 
@@ -265,7 +268,7 @@ const SystemMetricsTab = () => {
 
       {!systemMetrics && !loading && !error && (
         <GlassCard className="text-center text-gray-400">
-          Click "Calculate Metrics" to view detailed financial analysis.
+          {t('stats.metrics.noData')}
         </GlassCard>
       )}
 
@@ -273,7 +276,7 @@ const SystemMetricsTab = () => {
         <div className="flex flex-col gap-5">
           {freshnessLabel && (
             <GlassCard className="!py-3 text-sm text-gray-300">
-              System metrics generated at {freshnessLabel}. Trade confirmations remain authoritative.
+              {t('stats.metrics.freshnessLabel', { time: freshnessLabel })}
             </GlassCard>
           )}
 
@@ -282,14 +285,14 @@ const SystemMetricsTab = () => {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-3xl">💰</span>
               <div>
-                <h3 className="text-xl font-bold text-white">Money Created</h3>
-                <span className="text-sm text-gray-400">Total System Capacity</span>
+                <h3 className="text-xl font-bold text-white">{t('stats.metrics.moneyCreated')}</h3>
+                <span className="text-sm text-gray-400">{t('stats.metrics.totalSystemCapacity')}</span>
               </div>
             </div>
             {/* Capacity usage bar */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-400">Utilized vs Total Capacity</span>
+                <span className="text-xs text-gray-400">{t('stats.metrics.utilizationLabel')}</span>
                 <span className="text-xs text-gray-400">
                   {fmt(systemMetrics.moneyUtilized.totalUtilized.value)} / {fmt(systemMetrics.moneyCreated.userDebtCapacity.value)}
                 </span>
@@ -308,13 +311,13 @@ const SystemMetricsTab = () => {
             <div className="divide-y divide-white/5">
               <MetricRow
                 icon="👥"
-                label="Number of Users"
+                label={t('stats.metrics.numUsers')}
                 value={systemMetrics.moneyCreated.numUsers.value}
                 explanation={systemMetrics.moneyCreated.numUsers.explanation}
               />
               <MetricRow
                 icon="💳"
-                label="User Debt Capacity"
+                label={t('stats.metrics.userDebtCapacity')}
                 value={systemMetrics.moneyCreated.userDebtCapacity.value}
                 explanation={systemMetrics.moneyCreated.userDebtCapacity.explanation}
                 formula={systemMetrics.moneyCreated.userDebtCapacity.formula}
@@ -324,7 +327,7 @@ const SystemMetricsTab = () => {
               />
               <MetricRow
                 icon="📊"
-                label="Total Utilized"
+                label={t('stats.metrics.totalUtilized')}
                 value={systemMetrics.moneyUtilized.totalUtilized.value}
                 explanation={systemMetrics.moneyUtilized.totalUtilized.explanation}
                 formula={systemMetrics.moneyUtilized.totalUtilized.formula}
@@ -340,8 +343,8 @@ const SystemMetricsTab = () => {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-3xl">📊</span>
               <div>
-                <h3 className="text-xl font-bold text-white">Money Utilized</h3>
-                <span className="text-sm text-gray-400">Where the money went</span>
+                <h3 className="text-xl font-bold text-white">{t('stats.metrics.moneyUtilized')}</h3>
+                <span className="text-sm text-gray-400">{t('stats.metrics.whereMoneyWent')}</span>
               </div>
             </div>
             {utilizationData.length > 0 ? (
@@ -379,7 +382,7 @@ const SystemMetricsTab = () => {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No utilization data available.</p>
+              <p className="text-sm text-gray-500">{t('stats.metrics.noUtilizationData')}</p>
             )}
           </GlassCard>
 
@@ -388,8 +391,8 @@ const SystemMetricsTab = () => {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-3xl">{isBalanced ? '✅' : '❌'}</span>
               <div>
-                <h3 className="text-xl font-bold text-white">Accounting Verification</h3>
-                <span className="text-sm text-gray-400">Balance Check</span>
+                <h3 className="text-xl font-bold text-white">{t('stats.metrics.accountingVerification')}</h3>
+                <span className="text-sm text-gray-400">{t('stats.metrics.balanceCheck')}</span>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -397,11 +400,11 @@ const SystemMetricsTab = () => {
               <div className="flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-4">
                 <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 ${isBalanced ? 'border-emerald-400/50 bg-emerald-400/10' : 'border-rose-400/50 bg-rose-400/10'}`}>
                   <span className={`text-xl font-bold ${isBalanced ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isBalanced ? 'YES' : 'NO'}
+                    {isBalanced ? t('stats.metrics.yes') : t('stats.metrics.no')}
                   </span>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white">System {isBalanced ? 'Balanced' : 'Imbalanced'}</div>
+                  <div className="text-sm font-semibold text-white">{isBalanced ? t('stats.metrics.systemBalanced') : t('stats.metrics.systemImbalanced')}</div>
                   <p className="text-xs text-gray-500 mt-1">{systemMetrics.verification.balanced.explanation}</p>
                 </div>
               </div>
@@ -420,7 +423,7 @@ const SystemMetricsTab = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">Surplus / Deficit</span>
+                    <span className="text-sm font-semibold text-white">{t('stats.metrics.surplusDeficit')}</span>
                     <FormulaToggle formula={surplus?.formula} show={showFormulas.surplus} onToggle={() => toggleFormula('surplus')} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{surplus?.explanation}</p>
@@ -437,6 +440,7 @@ const SystemMetricsTab = () => {
 // ─── Tab: Global Leaderboard (with inline profit bars) ────────────────────────
 
 const GlobalLeaderboardTab = () => {
+  const { t } = useTranslation();
   const [leaderboard, setLeaderboard] = useState(null);
   const [freshness, setFreshness] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -453,7 +457,7 @@ const GlobalLeaderboardTab = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
       });
-      if (!response.ok) await readReportingError(response, 'Log in to see leaderboard', 'Failed to fetch global leaderboard');
+      if (!response.ok) await readReportingError(response, t('stats.leaderboard.loginRequired'), t('stats.leaderboard.fetchError'));
       const data = await response.json();
       const result = unwrapApiResponse(data);
       const rows = Array.isArray(result) ? result : (Array.isArray(result?.entries) ? result.entries : []);
@@ -486,21 +490,20 @@ const GlobalLeaderboardTab = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">Beta</span>
+        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">{t('stats.beta')}</span>
         <Button variant="celeste" disabled={loading} onClick={() => fetchLeaderboard(0)}>
-          {loading ? 'Calculating...' : 'Calculate Leaderboard'}
+          {loading ? t('stats.leaderboard.calculating') : t('stats.leaderboard.calculateBtn')}
         </Button>
       </div>
 
       <InfoBanner>
-        This global leaderboard aggregates profit calculations across all markets. Rankings are based on
-        total profit (current position value minus total amount spent) across both resolved and active markets.
+        {t('stats.leaderboard.betaDisclaimer')}
       </InfoBanner>
 
       {loading && (
         <div className="flex items-center justify-center gap-3 py-8">
           <LoadingSpinner />
-          <span className="text-sm text-gray-300">Computing global leaderboard...</span>
+          <span className="text-sm text-gray-300">{t('stats.leaderboard.computing')}</span>
         </div>
       )}
 
@@ -509,7 +512,7 @@ const GlobalLeaderboardTab = () => {
 
       {!leaderboard && !loading && !error && (
         <GlassCard className="text-center text-gray-400">
-          Click "Calculate Leaderboard" to view global profit rankings.
+          {t('stats.leaderboard.noData')}
         </GlassCard>
       )}
 
@@ -517,7 +520,7 @@ const GlobalLeaderboardTab = () => {
         <div className="flex flex-col gap-3">
           {freshnessLabel && (
             <GlassCard className="!py-3 text-sm text-gray-300">
-              Global leaderboard generated at {freshnessLabel}. Trade confirmations remain authoritative.
+              {t('stats.leaderboard.freshnessLabel', { time: freshnessLabel })}
             </GlassCard>
           )}
 
@@ -530,16 +533,17 @@ const GlobalLeaderboardTab = () => {
             onPrev={() => fetchLeaderboard(Math.max(0, page - 1))}
             onNext={() => fetchLeaderboard(page + 1)}
             loading={loading}
+            t={t}
           />
 
           {/* Header row */}
           <div className="hidden sm:grid sm:grid-cols-[60px,1fr,2fr,80px,80px,120px] gap-3 px-4 py-2 text-xs uppercase tracking-widest text-gray-400">
-            <span>Rank</span>
-            <span>User</span>
-            <span>Profit</span>
-            <span className="text-right">Value</span>
-            <span className="text-right">Spent</span>
-            <span className="text-right">Markets</span>
+            <span>{t('stats.leaderboard.rank')}</span>
+            <span>{t('stats.leaderboard.user')}</span>
+            <span>{t('stats.leaderboard.profit')}</span>
+            <span className="text-right">{t('stats.leaderboard.value')}</span>
+            <span className="text-right">{t('stats.leaderboard.spent')}</span>
+            <span className="text-right">{t('stats.leaderboard.markets')}</span>
           </div>
 
           {/* Rows */}
@@ -580,7 +584,7 @@ const GlobalLeaderboardTab = () => {
 
                     {/* Markets */}
                     <span className="text-sm text-gray-400 text-right">
-                      {user.activeMarkets} active · {user.resolvedMarkets} resolved
+                      {user.activeMarkets} {t('stats.leaderboard.active')} · {user.resolvedMarkets} {t('stats.leaderboard.resolved')}
                     </span>
                   </div>
                 </GlassCard>
@@ -591,7 +595,7 @@ const GlobalLeaderboardTab = () => {
       )}
 
       {leaderboard && leaderboard.length === 0 && (
-        <GlassCard className="text-center text-gray-400">No users with betting activity found.</GlassCard>
+        <GlassCard className="text-center text-gray-400">{t('stats.leaderboard.noResults')}</GlassCard>
       )}
     </div>
   );
@@ -600,12 +604,13 @@ const GlobalLeaderboardTab = () => {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const NewStats = () => {
+  const { t } = useTranslation();
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('Global Leaderboard');
+  const [activeTab, setActiveTab] = useState(t('stats.tabs.globalLeaderboard'));
 
-  useEffect(() => { document.title = 'Platform Statistics'; }, []);
+  useEffect(() => { document.title = t('stats.pageTitle'); }, [t]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -624,15 +629,15 @@ const NewStats = () => {
   }, []);
 
   const shortcuts = [
-    { tab: 'Global Leaderboard', eyebrow: 'Rankings', title: 'Global Leaderboard', description: 'View profit rankings across all users and markets.' },
-    { tab: 'System Metrics', eyebrow: 'Financials', title: 'System Metrics', description: 'Analyze money created, utilized, and accounting verification.' },
-    { tab: 'Setup Configuration', eyebrow: 'Config', title: 'Setup Configuration', description: 'Review platform economic parameters and fee structure.' },
+    { tab: t('stats.tabs.globalLeaderboard'), eyebrow: t('stats.shortcuts.rankings'), title: t('stats.tabs.globalLeaderboard'), description: t('stats.shortcuts.leaderboardDesc') },
+    { tab: t('stats.tabs.systemMetrics'), eyebrow: t('stats.shortcuts.financials'), title: t('stats.tabs.systemMetrics'), description: t('stats.shortcuts.metricsDesc') },
+    { tab: t('stats.tabs.setupConfig'), eyebrow: t('stats.shortcuts.config'), title: t('stats.tabs.setupConfig'), description: t('stats.shortcuts.configDesc') },
   ];
 
   const tabs = [
-    { label: 'Global Leaderboard', content: <GlobalLeaderboardTab /> },
-    { label: 'System Metrics', content: <SystemMetricsTab /> },
-    { label: 'Setup Configuration', content: loading ? <LoadingSpinner /> : error ? <ErrorBanner msg={error} /> : <SetupConfigTab statsData={statsData} /> },
+    { label: t('stats.tabs.globalLeaderboard'), content: <GlobalLeaderboardTab /> },
+    { label: t('stats.tabs.systemMetrics'), content: <SystemMetricsTab /> },
+    { label: t('stats.tabs.setupConfig'), content: loading ? <LoadingSpinner /> : error ? <ErrorBanner msg={error} /> : <SetupConfigTab statsData={statsData} /> },
   ];
 
   return (
@@ -643,9 +648,9 @@ const NewStats = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">Platform</p>
-          <h1 className="text-4xl font-bold text-white">Statistics</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">System configuration, financial metrics, and global leaderboard for the platform.</p>
+          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('stats.pageEyebrow')}</p>
+          <h1 className="text-4xl font-bold text-white">{t('stats.pageHeading')}</h1>
+          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('stats.pageSubtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
