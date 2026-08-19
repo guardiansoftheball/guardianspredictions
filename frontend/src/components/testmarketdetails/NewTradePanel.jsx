@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { submitBet, fetchUserShares, fetchSaleQuote, submitSale, NO_SELLABLE_SHARES_MESSAGE } from '../layouts/trade/TradeUtils';
 import { API_URL } from '../../config';
 import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCredit';
+import { useToast } from '../../hooks/useToast';
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT      = 'Manrope,system-ui,sans-serif';
@@ -385,6 +386,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 // ─── SELL TAB ─────────────────────────────────────────────────────────────────
 const SellTab = ({ marketId, market, token, onSuccess }) => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [shares, setShares]           = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
   const [sellAmount, setSellAmount]   = useState(1);
   const [selectedOutcome, setSelectedOutcome] = useState(null);
@@ -475,7 +477,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
   const requestSaleQuote = (outcomeOverride, amountOverride = sellAmount) => {
     const outcomeToUse = outcomeOverride || selectedOutcome;
     if (!outcomeToUse) {
-      alert('Please select which shares you would like to sell.');
+      toast.error('Please select which shares you would like to sell.');
       return Promise.resolve(null);
     }
     const saleData = { marketId, outcome: outcomeToUse, amount: amountOverride };
@@ -491,7 +493,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
   const handleSaleSubmission = (outcomeOverride) => {
     const outcomeToUse = outcomeOverride || selectedOutcome;
     if (!outcomeToUse) {
-      alert('Please select which shares you would like to sell.');
+      toast.error('Please select which shares you would like to sell.');
       return;
     }
     const saleData = { marketId, outcome: outcomeToUse, amount: sellAmount };
@@ -500,7 +502,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
       .then(quote => {
         setSaleQuote(quote);
         if (!quote.allowed) {
-          alert(quote.message || 'Sale preview is not allowed. Try a different Sale Order amount.');
+          toast.error(quote.message || 'Sale preview is not allowed. Try a different Sale Order amount.');
           setIsSubmitting(false);
           return;
         }
@@ -508,7 +510,7 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
           saleData,
           token,
           (data) => {
-            alert(buildSaleSuccessMessage(data));
+            toast.success(buildSaleSuccessMessage(data));
             setSelectedOutcome(null);
             setSellAmount(1);
             setIsSubmitting(false);
@@ -516,13 +518,13 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
             onSuccess?.();
           },
           (error) => {
-            alert(`Sale failed: ${error.message}`);
+            toast.error(`Sale failed: ${error.message}`);
             setIsSubmitting(false);
           }
         );
       })
       .catch(error => {
-        alert(`Sale quote failed: ${error.message}`);
+        toast.error(`Sale quote failed: ${error.message}`);
         setIsSubmitting(false);
       });
   };

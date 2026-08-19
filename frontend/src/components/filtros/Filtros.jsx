@@ -97,20 +97,7 @@ const SORT_OPTIONS = [
   { key: "oldest", labelKey: "filters.oldest" },
 ];
 
-const MARKET_CHIPS = [
-  "AFA",
-  "LPF",
-  "JDT",
-  "Argentino Juniors",
-  "Aldosivi",
-  "Barrancas Central",
-  "Belgrano Cordoba",
-  "Boca Juniors",
-  "Central Cordoba",
-  "Huracan",
-  "Independiente",
-  "Newell's",
-];
+// Market chips are now passed dynamically via the marketChips prop
 
 const FilterSection = ({ label, Icon, options, selected, onSelect, open, onToggle }) => (
   <div className="py-4 border-t border-white/10">
@@ -170,7 +157,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount }) => {
+const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount, marketChips = [] }) => {
   const { t } = useTranslation();
   const hasActiveFilters = !!(filters.search || filters.status || filters.event || filters.league);
 
@@ -275,7 +262,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
       </button>
       {openSections.markets && (
         <div className="mt-3 flex flex-wrap gap-2 pl-[26px]">
-          {MARKET_CHIPS.map((chip) => {
+          {marketChips.map((chip) => {
             const isActive = filters.league === chip;
             return (
               <button
@@ -309,7 +296,7 @@ const INITIAL_FILTERS = {
   sort: "popular",
 };
 
-const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0 }) => {
+const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0, marketChips = [] }) => {
   const { t } = useTranslation();
   const [openSections, setOpenSections] = useState(() => {
     const initial = { markets: true, sort: true };
@@ -338,6 +325,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
           filters={filters}
           onFilterChange={onFilterChange}
           resultCount={resultCount}
+          marketChips={marketChips}
         />
       </div>
 

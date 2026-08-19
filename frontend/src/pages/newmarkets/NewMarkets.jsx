@@ -8,9 +8,9 @@ import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import GhostCard from "../../components/cards/GhostCard";
 import { skeletonForType } from "../../components/cards/SkeletonCard";
-import { CARDS } from "../newhome/NewHome";
-import { useActiveMarketIds } from "../../hooks/useActiveMarketIds";
+import { useMarkets } from "../../hooks/useMarkets";
 import { usePaginatedCards } from "../../hooks/usePaginatedCards";
+import { listMarketTags } from "../../api/marketTagsApi";
 
 const normalize = (str) => (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -66,6 +66,17 @@ function filterAndSortCards(cards, filters) {
 
 const NewMarkets = () => {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const { cards: apiCards, loading: marketsLoading } = useMarkets();
+  const [marketTags, setMarketTags] = useState([]);
+
+  useEffect(() => {
+    listMarketTags().then((res) => {
+      const tags = res?.tags || res;
+      if (Array.isArray(tags)) {
+        setMarketTags(tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug));
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleFilterChange = useCallback((key, value) => {
     if (key === "clear") {
@@ -75,9 +86,8 @@ const NewMarkets = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const filteredCards = useMemo(() => filterAndSortCards(CARDS, filters), [filters]);
+  const filteredCards = useMemo(() => filterAndSortCards(apiCards, filters), [apiCards, filters]);
 
-  const { marketIds } = useActiveMarketIds(filteredCards.length);
   const { visibleCards, skeletonCount, sentinelRef } =
     usePaginatedCards(filteredCards);
 
@@ -118,6 +128,7 @@ const NewMarkets = () => {
             filters={filters}
             onFilterChange={handleFilterChange}
             resultCount={filteredCards.length}
+            marketChips={marketTags}
           />
         </aside>
 
@@ -166,10 +177,7 @@ const NewMarkets = () => {
                 }}
               >
                 {visibleCards.map((card, i) => {
-                  const marketId =
-                    marketIds.length > 0
-                      ? marketIds[i % marketIds.length]
-                      : i + 1;
+                  const linkTarget = `/markets/${card.id || i + 1}`;
                   const cardEl =
                     card.type === "match" ? (
                       <MatchCard
@@ -202,7 +210,7 @@ const NewMarkets = () => {
                   return (
                     <Link
                       key={i}
-                      to={`/markets/${marketId}`}
+                      to={linkTarget}
                       style={{ textDecoration: "none", display: "contents" }}
                     >
                       {cardEl}

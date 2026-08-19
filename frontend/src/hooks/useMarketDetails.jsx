@@ -255,7 +255,7 @@ export const useMarketDetails = () => {
   const [token, setToken] = useState(null);
   const [currentProbability, setCurrentProbability] = useState(0);
   const { marketId } = useParams();
-  const [triggerRefresh, setTriggerRefresh] = useState(false);
+  const [triggerRefresh, setTriggerRefresh] = useState(0);
 
   useEffect(() => {
     const fetchedToken = localStorage.getItem('token');
@@ -263,8 +263,13 @@ export const useMarketDetails = () => {
     setIsLoggedIn(!!fetchedToken);
   }, []);
 
+  // Clear details only when navigating to a different market
   useEffect(() => {
     setDetails(null);
+    setError(null);
+  }, [marketId]);
+
+  useEffect(() => {
     setError(null);
     let cancelled = false;
 
@@ -306,7 +311,7 @@ export const useMarketDetails = () => {
   }, [marketId, triggerRefresh]);
 
   const refetchData = () => {
-    setTriggerRefresh((prev) => !prev);
+    setTriggerRefresh((prev) => prev + 1);
   };
 
   return { details, error, isLoggedIn, token, refetchData, currentProbability };

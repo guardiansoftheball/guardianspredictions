@@ -20,6 +20,7 @@ import {
 import { proposeMarketDescriptionAmendment } from '../../api/marketDescriptionAmendmentsApi';
 import { apiRequest } from '../../api/httpClient';
 import useFrontendConfig from '../../hooks/useFrontendConfig';
+import { useToast } from '../../hooks/useToast';
 
 const DEFAULT_CREATOR_EMOJI = '👤';
 
@@ -737,6 +738,7 @@ export default function GroupedMarketDetailsLayout({
   refetchData,
 }) {
   const { frontendConfig } = useFrontendConfig();
+  const toast = useToast();
   const [groupData, setGroupData] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -963,7 +965,7 @@ export default function GroupedMarketDetailsLayout({
       if (refetchData) {
         refetchData();
       }
-      alert('Grouped market resolved successfully.');
+      toast.success('Grouped market resolved successfully.');
     } catch (err) {
       setResolveError(err.message || 'Unable to resolve grouped market.');
     } finally {

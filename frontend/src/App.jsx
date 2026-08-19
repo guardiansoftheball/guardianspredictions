@@ -3,6 +3,7 @@ import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from './helpers/AuthContent';
+import ToastProvider from './components/toast/ToastProvider';
 import Footer from './components/footer/Footer';
 import AppRoutes from './helpers/AppRoutes';
 import '../index.css';
@@ -74,9 +75,11 @@ function App() {
       }}
     >
       <AuthProvider>
-        <Router>
-          <AppLayout />
-        </Router>
+        <ToastProvider>
+          <Router>
+            <AppLayout />
+          </Router>
+        </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

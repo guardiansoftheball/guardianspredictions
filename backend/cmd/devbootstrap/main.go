@@ -40,6 +40,15 @@ type bootstrapMarket struct {
 	tagColorKey string
 }
 
+type bootstrapMarketGroup struct {
+	title       string
+	description string
+	answers     []string
+	tagSlug     string
+	tagName     string
+	tagColorKey string
+}
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "dev bootstrap failed: %v\n", err)
@@ -121,6 +130,9 @@ func run() error {
 		if err := upsertBootstrapMarkets(tx, prefix, config.Economics().MarketCreation.InitialMarketProbability); err != nil {
 			return err
 		}
+		if err := upsertBootstrapMarketGroups(tx, prefix, config.Economics().MarketCreation.InitialMarketProbability); err != nil {
+			return err
+		}
 		return expireBootstrapMarketDiscoverySnapshots(tx)
 	}); err != nil {
 		return err
@@ -131,8 +143,9 @@ func run() error {
 	fmt.Printf("Admin: admin\n")
 	fmt.Printf("Users: %s01 through %s%02d\n", prefix, prefix, count)
 	fmt.Printf("Moderator fixture: %s01\n", prefix)
-	fmt.Printf("Markets: Market A, Market B, Market C owned by %s01\n", prefix)
-	fmt.Printf("Tags: Category A, Category B, Category C\n")
+	fmt.Printf("Markets: Market A, Market B, Market C + 2 World Cup binary markets owned by %s01\n", prefix)
+	fmt.Printf("Market Groups: Argentina vs Brazil, Mexico vs United States, Germany vs Netherlands, Who will go further in the 2026 World Cup?, Who advances further Colombia or Uruguay?\n")
+	fmt.Printf("Tags: Category A, Category B, Category C, World Cup, CONMEBOL, UEFA\n")
 	fmt.Printf("InitialAccountBalance: %d\n", initialBalance)
 	fmt.Printf("CreditAvailableBeforeBets: %d\n", initialBalance+maximumDebtAllowed)
 	fmt.Printf("MustChangePassword: false\n")
@@ -241,6 +254,20 @@ func upsertBootstrapMarkets(db *gorm.DB, prefix string, initialProbability float
 			tagSlug:     "category-c",
 			tagName:     "Category C",
 			tagColorKey: "amber",
+		},
+		{
+			title:       "Will Argentina defend their 2026 World Cup title?",
+			description: "Will Argentina win the 2026 FIFA World Cup?",
+			tagSlug:     "world-cup",
+			tagName:     "World Cup",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Will there be a goal-scoring record at the 2026 World Cup?",
+			description: "Will the 2026 World Cup set a new record for total goals scored?",
+			tagSlug:     "world-cup",
+			tagName:     "World Cup",
+			tagColorKey: "sky",
 		},
 	}
 
@@ -394,6 +421,186 @@ func upsertBootstrapMarketTagAssignment(db *gorm.DB, marketID int64, tagID int64
 		"source":      "devbootstrap",
 	}).Error; err != nil {
 		return fmt.Errorf("update tag assignment %d/%d: %w", marketID, tagID, err)
+	}
+	return nil
+}
+
+func upsertBootstrapMarketGroups(db *gorm.DB, prefix string, initialProbability float64) error {
+	if initialProbability == 0 {
+		initialProbability = 0.5
+	}
+	owner := fmt.Sprintf("%s01", prefix)
+
+	groups := []bootstrapMarketGroup{
+		{
+			title:       "Argentina vs Brazil",
+			description: "Who will win the match between Argentina and Brazil?",
+			answers:     []string{"Argentina", "Brazil", "Draw"},
+			tagSlug:     "world-cup",
+			tagName:     "World Cup",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Mexico vs United States",
+			description: "Who will win the match between Mexico and United States?",
+			answers:     []string{"Mexico", "United States", "Draw"},
+			tagSlug:     "conmebol",
+			tagName:     "CONMEBOL",
+			tagColorKey: "emerald",
+		},
+		{
+			title:       "Germany vs Netherlands",
+			description: "Who will win the match between Germany and Netherlands?",
+			answers:     []string{"Germany", "Netherlands", "Draw"},
+			tagSlug:     "uefa",
+			tagName:     "UEFA",
+			tagColorKey: "amber",
+		},
+		{
+			title:       "Who will go further in the 2026 World Cup?",
+			description: "Spain vs France - who advances further?",
+			answers:     []string{"Spain", "France"},
+			tagSlug:     "uefa",
+			tagName:     "UEFA",
+			tagColorKey: "amber",
+		},
+		{
+			title:       "Who advances further, Colombia or Uruguay?",
+			description: "CONMEBOL showdown in the 2026 World Cup.",
+			answers:     []string{"Colombia", "Uruguay"},
+			tagSlug:     "conmebol",
+			tagName:     "CONMEBOL",
+			tagColorKey: "emerald",
+		},
+	}
+
+	// Determine starting sort order for new tags (after existing ones).
+	tagSortOffset := 10
+
+	for gi, group := range groups {
+		// Upsert tag (reuse bootstrapMarket adapter).
+		tagSeed := bootstrapMarket{
+			title:       group.title,
+			tagSlug:     group.tagSlug,
+			tagName:     group.tagName,
+			tagColorKey: group.tagColorKey,
+		}
+		tag, err := upsertBootstrapMarketTag(db, tagSeed, tagSortOffset+gi)
+		if err != nil {
+			return err
+		}
+
+		// Create child markets and collect their IDs.
+		childIDs := make([]int64, 0, len(group.answers))
+		for _, answer := range group.answers {
+			childTitle := fmt.Sprintf("%s - %s", group.title, answer)
+			childSeed := bootstrapMarket{
+				title:       childTitle,
+				description: group.description,
+				tagSlug:     group.tagSlug,
+				tagName:     group.tagName,
+				tagColorKey: group.tagColorKey,
+			}
+			marketID, err := upsertBootstrapMarket(db, childSeed, owner, initialProbability)
+			if err != nil {
+				return err
+			}
+			if err := upsertBootstrapMarketTagAssignment(db, marketID, tag.ID, owner); err != nil {
+				return err
+			}
+			childIDs = append(childIDs, marketID)
+		}
+
+		// Upsert the market group.
+		groupID, err := upsertBootstrapMarketGroup(db, group, owner)
+		if err != nil {
+			return err
+		}
+
+		// Upsert member records.
+		for i, answer := range group.answers {
+			if err := upsertBootstrapMarketGroupMember(db, groupID, childIDs[i], answer, i); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func upsertBootstrapMarketGroup(db *gorm.DB, seed bootstrapMarketGroup, owner string) (int64, error) {
+	now := time.Now().UTC()
+	approvedAt := now
+	group := models.MarketGroup{
+		QuestionTitle:     seed.title,
+		Description:       seed.description,
+		GroupType:         "MULTIPLE_CHOICE_BINARY",
+		ProbabilityPolicy: "INDEPENDENT_BINARY",
+		ResolutionPolicy:  "INDEPENDENT_CHILDREN",
+		LifecycleStatus:   "published",
+		CreatorUsername:    owner,
+		StewardUsername:    owner,
+		ApprovedBy:        "devbootstrap",
+		ApprovedAt:        &approvedAt,
+		ResolutionDateTime: now.AddDate(0, 0, 30),
+	}
+
+	var existing models.MarketGroup
+	err := db.Where("question_title = ? AND creator_username = ?", group.QuestionTitle, group.CreatorUsername).First(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := db.Create(&group).Error; err != nil {
+			return 0, fmt.Errorf("create market group %s: %w", group.QuestionTitle, err)
+		}
+		fmt.Printf("created market group %s\n", group.QuestionTitle)
+		return group.ID, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("load market group %s: %w", group.QuestionTitle, err)
+	}
+
+	updates := map[string]any{
+		"description":         group.Description,
+		"group_type":          group.GroupType,
+		"probability_policy":  group.ProbabilityPolicy,
+		"resolution_policy":   group.ResolutionPolicy,
+		"lifecycle_status":    group.LifecycleStatus,
+		"steward_username":    group.StewardUsername,
+		"approved_by":         group.ApprovedBy,
+		"approved_at":         group.ApprovedAt,
+		"resolution_date_time": group.ResolutionDateTime,
+	}
+	if err := db.Model(&models.MarketGroup{}).Where("id = ?", existing.ID).Updates(updates).Error; err != nil {
+		return 0, fmt.Errorf("update market group %s: %w", group.QuestionTitle, err)
+	}
+	fmt.Printf("updated market group %s\n", group.QuestionTitle)
+	return existing.ID, nil
+}
+
+func upsertBootstrapMarketGroupMember(db *gorm.DB, groupID, marketID int64, answerLabel string, displayOrder int) error {
+	member := models.MarketGroupMember{
+		GroupID:      groupID,
+		MarketID:     marketID,
+		AnswerLabel:  answerLabel,
+		DisplayOrder: displayOrder,
+	}
+
+	var existing models.MarketGroupMember
+	err := db.Where("group_id = ? AND market_id = ?", groupID, marketID).First(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := db.Create(&member).Error; err != nil {
+			return fmt.Errorf("create market group member (group=%d, market=%d): %w", groupID, marketID, err)
+		}
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("load market group member (group=%d, market=%d): %w", groupID, marketID, err)
+	}
+
+	updates := map[string]any{
+		"answer_label":  answerLabel,
+		"display_order": displayOrder,
+	}
+	if err := db.Model(&models.MarketGroupMember{}).Where("id = ?", existing.ID).Updates(updates).Error; err != nil {
+		return fmt.Errorf("update market group member (group=%d, market=%d): %w", groupID, marketID, err)
 	}
 	return nil
 }

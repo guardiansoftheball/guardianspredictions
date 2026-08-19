@@ -9,6 +9,7 @@ import {
 import { useMarketLabels } from '../../../hooks/useMarketLabels';
 import { fetchTradingFees } from '../../../api/tradeApi';
 import { USER_CREDIT_REFRESH_EVENT } from '../../utils/userFinanceTools/FetchUserCredit';
+import { useToast } from '../../../hooks/useToast';
 
 const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
     const [shares, setShares] = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
@@ -23,6 +24,7 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
     const [sharesNotice, setSharesNotice] = useState('');
     const [isQuoteLoading, setIsQuoteLoading] = useState(false);
     
+    const toast = useToast();
     // Get custom labels for this market
     const { yesLabel, noLabel } = useMarketLabels(market);
     const showFeeSection = !isLoading && Number(feeData?.sellSharesFee) > 0;
@@ -105,7 +107,7 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
     const requestSaleQuote = (outcomeOverride, amountOverride = sellAmount) => {
         const outcomeToUse = outcomeOverride || selectedOutcome;
         if (!outcomeToUse) {
-            alert('Please select which shares you would like to sell.');
+            toast.error('Please select which shares you would like to sell.');
             return Promise.resolve(null);
         }
 
@@ -137,7 +139,7 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
     const handleSaleSubmission = (outcomeOverride) => {
         const outcomeToUse = outcomeOverride || selectedOutcome;
         if (!outcomeToUse) {
-            alert('Please select which shares you would like to sell.');
+            toast.error('Please select which shares you would like to sell.');
             return;
         }
 
@@ -152,7 +154,7 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
             .then((quote) => {
                 setSaleQuote(quote);
                 if (!quote.allowed) {
-                    alert(quote.message || 'Sale preview is not allowed. Try a different Sale Order amount.');
+                    toast.error(quote.message || 'Sale preview is not allowed. Try a different Sale Order amount.');
                     setIsSubmitting(false);
                     return;
                 }
@@ -161,7 +163,7 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
                     saleData,
                     token,
                     (data) => {
-                        alert(buildSaleSuccessMessage(data));
+                        toast.success(buildSaleSuccessMessage(data));
                         setSelectedOutcome(null);
                         setSellAmount(1);
                         setIsSubmitting(false);
@@ -169,14 +171,14 @@ const SellSharesLayout = ({ marketId, market, token, onTransactionSuccess }) => 
                         onTransactionSuccess();
                     },
                     (error) => {
-                        alert(error.message);
+                        toast.error(error.message);
                         setQuoteError(error);
                         setIsSubmitting(false);
                     }
                 );
             })
             .catch((error) => {
-                alert(error.message);
+                toast.error(error.message);
                 setQuoteError(error);
                 setIsSubmitting(false);
             });

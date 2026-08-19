@@ -92,7 +92,7 @@ func DefaultRateLimitConfig() RateLimitConfig {
 		LoginRate:       rate.Every(10 * time.Second), // 1 login attempt per 10 seconds
 		LoginBurst:      3,                            // Allow burst of 3 attempts
 		GeneralRate:     rate.Every(time.Second),      // 1 request per second
-		GeneralBurst:    10,                           // Allow burst of 10 requests
+		GeneralBurst:    60,                           // Allow burst of 60 requests
 		CleanupInterval: 5 * time.Minute,              // Cleanup every 5 minutes
 	}
 }

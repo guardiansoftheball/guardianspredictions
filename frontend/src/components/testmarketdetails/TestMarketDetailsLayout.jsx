@@ -30,6 +30,9 @@ import {
 } from "../layouts/trade/TradeUtils";
 import { USER_CREDIT_REFRESH_EVENT } from "../utils/userFinanceTools/FetchUserCredit";
 import { API_URL } from "../../config";
+import { useToast } from "../../hooks/useToast";
+import ShareModal from "../modals/share/ShareModal";
+import { listMarketTags } from "../../api/marketTagsApi";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT_BODY = FONT;
@@ -479,7 +482,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
   const xOf = (t) => ((t - winStart) / windowMs) * W;
 
   const useDashing = answers.length <= 3;
-  const MC_OVERLAP_THRESH = 0.05;
+  const MC_OVERLAP_THRESH = 0.005;
 
   const mcPtsToD = (pts) => {
     if (pts.length < 2) return "";
@@ -526,7 +529,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
           .filter((_, j) => j !== i)
           .map((other) => Math.abs(nextC.p - getValAt(other, nextC.t))),
       );
-      return nextMinGap <= minGap + 0.03;
+      return nextMinGap <= minGap + 0.005;
     });
     const { solidD, dashD } = mcSplitPath(pts, closeFlags);
     return { d, pts, last: pts[pts.length - 1], solidD, dashD };
@@ -1273,6 +1276,7 @@ function MultiChoiceTradePanel({
   onSuccess,
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [tab, setTab] = useState("buy");
   const [buyOutcome, setBuyOutcome] = useState("YES");
   const [amount, setAmount] = useState(10);
@@ -1370,7 +1374,7 @@ function MultiChoiceTradePanel({
       .then((quote) => {
         setSaleQuote(quote);
         if (!quote.allowed) {
-          alert(quote.message || "Sale not allowed. Try a different amount.");
+          toast.error(quote.message || "Sale not allowed. Try a different amount.");
           setIsSellSubmitting(false);
           return;
         }
@@ -1378,7 +1382,7 @@ function MultiChoiceTradePanel({
           saleData,
           token,
           (data) => {
-            alert(buildMCSaleSuccessMessage(data));
+            toast.success(buildMCSaleSuccessMessage(data));
             setSellShares({ yesSharesOwned: 0, value: 0 });
             setSellAmount(1);
             setSaleQuote(null);
@@ -1387,13 +1391,13 @@ function MultiChoiceTradePanel({
             onSuccess?.();
           },
           (err) => {
-            alert(`Sale failed: ${err.message}`);
+            toast.error(`Sale failed: ${err.message}`);
             setIsSellSubmitting(false);
           },
         );
       })
       .catch((err) => {
-        alert(`Sale quote failed: ${err.message}`);
+        toast.error(`Sale quote failed: ${err.message}`);
         setIsSellSubmitting(false);
       });
   };
@@ -2141,8 +2145,23 @@ function MarketLayout({
   chartContent,
   tradePanelContent,
   loading,
+  answers,
+  currentProbability,
+  probabilityChanges,
 }) {
   const { t } = useTranslation();
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [allTags, setAllTags] = useState([]);
+
+  useEffect(() => {
+    listMarketTags().then((res) => {
+      const tags = res?.tags || res;
+      if (Array.isArray(tags)) setAllTags(tags);
+    }).catch(() => {});
+  }, []);
+
+  const marketTagSlugs = (market?.tags || []).map((t) => t.slug);
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -2213,29 +2232,37 @@ function MarketLayout({
             </h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "14px", flexShrink: 0 }}>
-            {[
-              /* Comment */
-              <svg key="comment" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            {/* Comment */}
+            <button
+              style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>,
-              /* Share */
-              <svg key="share" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              </svg>
+            </button>
+            {/* Share */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
-              </svg>,
-              /* Bookmark */
-              <svg key="bookmark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              </svg>
+            </button>
+            {/* Bookmark */}
+            <button
+              style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>,
-            ].map((icon) => (
-              <button
-                key={icon.key}
-                style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
-              >
-                {icon}
-              </button>
-            ))}
+              </svg>
+            </button>
             {canResolve && (
               <ResolveModalButton
                 marketId={marketId}
@@ -2293,16 +2320,88 @@ function MarketLayout({
         </div>
       </div>
 
-      {/* ── 2-col layout ── */}
+      {/* ── 3-col layout ── */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
+          gridTemplateColumns: isMobile ? "1fr" : (!isMobile && allTags.length > 0) ? "200px 1fr 340px" : "1fr 340px",
           gap: isMobile ? "16px" : "28px",
           alignItems: "start",
         }}
       >
-        {/* LEFT */}
+        {/* LEFT — tags sidebar (desktop) */}
+        {!isMobile && allTags.length > 0 && (
+          <div
+            style={{
+              position: "sticky",
+              top: "100px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* All Events link */}
+            <Link
+              to="/new-markets"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                font: `600 13.5px ${FONT_BODY}`,
+                color: TEXT,
+                textDecoration: "none",
+                borderRadius: "8px",
+                transition: "background .15s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {t('filters.allEvents', 'All Events')}
+              </span>
+            </Link>
+
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "6px 0" }} />
+
+            {/* Tag list */}
+            {allTags.map((tag) => {
+              const slug = tag.slug || tag.Slug;
+              const name = tag.displayName || tag.DisplayName || slug;
+              const isActive = marketTagSlugs.includes(slug);
+              return (
+                <Link
+                  key={slug}
+                  to={`/new-markets?league=${encodeURIComponent(name)}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "9px 12px",
+                    font: `${isActive ? "600" : "500"} 13px ${FONT_BODY}`,
+                    color: isActive ? TEXT : MUTED,
+                    textDecoration: "none",
+                    borderRadius: "8px",
+                    transition: "all .15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    if (!isActive) e.currentTarget.style.color = TEXT;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    if (!isActive) e.currentTarget.style.color = MUTED;
+                  }}
+                >
+                  {name}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* CENTER */}
         <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px" }}>
           {/* Trade panel on mobile */}
           {isMobile && (
@@ -2362,7 +2461,7 @@ function MarketLayout({
           </div>
         </div>
 
-        {/* RIGHT (desktop) */}
+        {/* MIDDLE — trade panel (desktop) */}
         {!isMobile && (
           <div
             style={{
@@ -2379,7 +2478,22 @@ function MarketLayout({
             ) : tradePanelContent}
           </div>
         )}
+
       </div>
+
+      <ShareModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={title}
+        answers={answers}
+        currentProbability={currentProbability}
+        probabilityChanges={probabilityChanges}
+        totalVolume={totalVolume}
+        numUsers={numUsers}
+        closesLabel={closesLabel}
+        creatorUsername={creatorUsername}
+        marketId={marketId}
+      />
     </div>
   );
 }
@@ -2497,6 +2611,7 @@ function MultiChoiceLayout({
       loading={groupLoading}
       chartContent={chartContent}
       tradePanelContent={tradePanelContent}
+      answers={answers.map((a) => ({ ...a, probability: getAnswerProb(a) }))}
     />
   );
 }
@@ -3250,6 +3365,8 @@ function BinaryLayout({
       loading={false}
       chartContent={chartContent}
       tradePanelContent={tradePanelContent}
+      currentProbability={currentProbability}
+      probabilityChanges={probabilityChanges}
     />
   );
 }
@@ -3601,7 +3718,7 @@ function TestMarketDetailsLayout({
       <div
         style={{
           zIndex: 10,
-          maxWidth: "1180px",
+          maxWidth: "1400px",
           margin: "0 auto",
           padding: isMobile ? "16px 16px 60px" : "22px 40px 60px",
         }}

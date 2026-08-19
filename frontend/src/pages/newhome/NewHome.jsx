@@ -8,285 +8,7 @@ import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import GhostCard from "../../components/cards/GhostCard";
-import { useActiveMarketIds } from "../../hooks/useActiveMarketIds";
-
-// Flags of national teams competing in the 2026 FIFA World Cup
-const flag = (isoCode) => `https://flagcdn.com/w160/${isoCode}.png`;
-
-export const CARDS = [
-  {
-    type: "match",
-    home: { name: "Argentina", logo: flag("ar"), pct: 62 },
-    away: { name: "Brazil", logo: flag("br"), pct: 25 },
-    draw: { pct: 13 },
-    pool: "$48,200.00",
-    status: "active", event: "matches", league: "AFA",
-    teams: ["Argentina", "Brazil"],
-    popularity: 9800, createdAt: "2026-07-28",
-  },
-  {
-    type: "question",
-    question: "Will Argentina defend their 2026 World Cup title?",
-    pct: 71,
-    pool: "$12,400.00",
-    logo: flag("ar"),
-    status: "active", event: "standings", league: "AFA",
-    teams: ["Argentina"],
-    popularity: 7200, createdAt: "2026-07-15",
-  },
-  {
-    type: "prediction",
-    question: "Who will go further in the 2026 World Cup?",
-    options: [
-      { label: "Spain", pct: 38 },
-      { label: "France", pct: 62 },
-    ],
-    pool: "$31,900.00",
-    logo: flag("es"),
-    status: "active", event: "knockouts", league: "LPF",
-    teams: ["Spain", "France"],
-    popularity: 8500, createdAt: "2026-08-01",
-  },
-  {
-    type: "match",
-    home: { name: "Mexico", logo: flag("mx"), pct: 55 },
-    away: { name: "United States", logo: flag("us"), pct: 33 },
-    draw: { pct: 12 },
-    pool: "$19,500.00",
-    status: "active", event: "matches", league: "LPF",
-    teams: ["Mexico", "United States"],
-    popularity: 6100, createdAt: "2026-08-02",
-  },
-  {
-    type: "question",
-    question: "Will the United States reach the semifinals as hosts?",
-    pct: 58,
-    pool: "$9,800.00",
-    status: "active", event: "knockouts", league: "LPF",
-    teams: ["United States"],
-    popularity: 5400, createdAt: "2026-07-20",
-  },
-  {
-    type: "prediction",
-    question: "Who advances further, Colombia or Uruguay?",
-    options: [
-      { label: "Colombia", pct: 45 },
-      { label: "Uruguay", pct: 55 },
-    ],
-    pool: "$7,300.00",
-    status: "active", event: "knockouts", league: "AFA",
-    teams: ["Colombia", "Uruguay"],
-    popularity: 3200, createdAt: "2026-07-25",
-  },
-  {
-    type: "match",
-    home: { name: "Germany", logo: flag("de"), pct: 48 },
-    away: { name: "Netherlands", logo: flag("nl"), pct: 38 },
-    draw: { pct: 14 },
-    pool: "$22,100.00",
-    status: "active", event: "matches", league: "JDT",
-    teams: ["Germany", "Netherlands"],
-    popularity: 7800, createdAt: "2026-08-03",
-  },
-  {
-    type: "question",
-    question: "Will there be a goal-scoring record at the 2026 World Cup?",
-    pct: 44,
-    pool: "$5,600.00",
-    logo: flag("us"),
-    status: "active", event: "standings", league: "JDT",
-    teams: [],
-    popularity: 2100, createdAt: "2026-06-10",
-  },
-  {
-    type: "prediction",
-    question: "Who will have the tournament's top scorer?",
-    options: [
-      { label: "Portugal", pct: 61 },
-      { label: "Morocco", pct: 39 },
-    ],
-    pool: "$14,750.00",
-    logo: flag("pt"),
-    status: "active", event: "standings", league: "LPF",
-    teams: ["Portugal", "Morocco"],
-    popularity: 4900, createdAt: "2026-07-30",
-  },
-  {
-    type: "match",
-    home: { name: "Morocco", logo: flag("ma"), pct: 52 },
-    away: { name: "Croatia", logo: flag("hr"), pct: 29 },
-    draw: { pct: 19 },
-    pool: "$11,300.00",
-    status: "resolved", event: "matches", league: "AFA",
-    teams: ["Morocco", "Croatia"],
-    popularity: 3800, createdAt: "2026-06-20",
-  },
-  {
-    type: "question",
-    question:
-      "Will Cape Verde make it past the group stage in their World Cup debut?",
-    pct: 33,
-    pool: "$3,200.00",
-    status: "resolved", event: "standings", league: "JDT",
-    teams: ["Cape Verde"],
-    popularity: 900, createdAt: "2026-05-15",
-  },
-  {
-    type: "match",
-    home: { name: "Boca Juniors", logo: flag("ar"), pct: 67 },
-    away: { name: "Independiente", logo: flag("ar"), pct: 21 },
-    draw: { pct: 12 },
-    pool: "$27,600.00",
-    status: "active", event: "matches", league: "Boca Juniors",
-    teams: ["Boca Juniors", "Independiente"],
-    popularity: 9200, createdAt: "2026-08-01",
-  },
-  {
-    type: "prediction",
-    question: "Who wins the anticipated final between these powerhouses?",
-    options: [
-      { label: "Portugal", pct: 53 },
-      { label: "Germany", pct: 47 },
-    ],
-    pool: "$8,400.00",
-    status: "active", event: "knockouts", league: "LPF",
-    teams: ["Portugal", "Germany"],
-    popularity: 4100, createdAt: "2026-07-29",
-  },
-  {
-    type: "question",
-    question:
-      "Will Huracan finish in the top 4 this season?",
-    pct: 27,
-    pool: "$2,900.00",
-    logo: flag("ar"),
-    status: "active", event: "standings", league: "Huracan",
-    teams: ["Huracan"],
-    popularity: 1800, createdAt: "2026-07-10",
-  },
-  {
-    type: "match",
-    home: { name: "Belgrano Cordoba", logo: flag("ar"), pct: 41 },
-    away: { name: "Central Cordoba", logo: flag("ar"), pct: 42 },
-    draw: { pct: 17 },
-    pool: "$16,800.00",
-    status: "active", event: "matches", league: "Belgrano Cordoba",
-    teams: ["Belgrano Cordoba", "Central Cordoba"],
-    popularity: 2600, createdAt: "2026-08-02",
-  },
-  {
-    type: "prediction",
-    question: "Who advances further, Newell's or Aldosivi?",
-    options: [
-      { label: "Newell's", pct: 65 },
-      { label: "Aldosivi", pct: 35 },
-    ],
-    pool: "$10,200.00",
-    logo: flag("ar"),
-    status: "active", event: "knockouts", league: "Newell's",
-    teams: ["Newell's", "Aldosivi"],
-    popularity: 2200, createdAt: "2026-07-22",
-  },
-  {
-    type: "match",
-    home: { name: "Barrancas Central", logo: flag("ar"), pct: 55 },
-    away: { name: "Argentino Juniors", logo: flag("ar"), pct: 28 },
-    draw: { pct: 17 },
-    pool: "$9,100.00",
-    status: "resolved", event: "matches", league: "Barrancas Central",
-    teams: ["Barrancas Central", "Argentino Juniors"],
-    popularity: 1500, createdAt: "2026-06-15",
-  },
-  {
-    type: "question",
-    question:
-      "Will Boca Juniors win the Copa Argentina this year?",
-    pct: 61,
-    pool: "$6,500.00",
-    logo: flag("ar"),
-    status: "active", event: "knockouts", league: "Boca Juniors",
-    teams: ["Boca Juniors"],
-    popularity: 8100, createdAt: "2026-07-18",
-  },
-  {
-    type: "prediction",
-    question: "Who wins the clasico, Independiente or Huracan?",
-    options: [
-      { label: "Independiente", pct: 55 },
-      { label: "Huracan", pct: 45 },
-    ],
-    pool: "$5,100.00",
-    status: "active", event: "matches", league: "Independiente",
-    teams: ["Independiente", "Huracan"],
-    popularity: 3400, createdAt: "2026-08-03",
-  },
-  {
-    type: "match",
-    home: { name: "Canada", logo: flag("ca"), pct: 45 },
-    away: { name: "New Zealand", logo: flag("nz"), pct: 35 },
-    draw: { pct: 20 },
-    pool: "$21,500.00",
-    status: "active", event: "matches", league: "JDT",
-    teams: ["Canada", "New Zealand"],
-    popularity: 3000, createdAt: "2026-07-31",
-  },
-  {
-    type: "question",
-    question:
-      "Will the 2026 World Cup take place without major organizational incidents?",
-    pct: 80,
-    pool: "$4,300.00",
-    status: "active", event: "press", league: "LPF",
-    teams: [],
-    popularity: 5800, createdAt: "2026-06-01",
-  },
-  {
-    type: "prediction",
-    question: "Who advances further, Ecuador or Paraguay?",
-    options: [
-      { label: "Ecuador", pct: 48 },
-      { label: "Paraguay", pct: 52 },
-    ],
-    pool: "$18,000.00",
-    logo: flag("ec"),
-    status: "resolved", event: "knockouts", league: "AFA",
-    teams: ["Ecuador", "Paraguay"],
-    popularity: 2700, createdAt: "2026-06-25",
-  },
-  {
-    type: "match",
-    home: { name: "Iran", logo: flag("ir"), pct: 50 },
-    away: { name: "Jordan", logo: flag("jo"), pct: 32 },
-    draw: { pct: 18 },
-    pool: "$13,700.00",
-    status: "resolved", event: "matches", league: "JDT",
-    teams: ["Iran", "Jordan"],
-    popularity: 1200, createdAt: "2026-06-18",
-  },
-  {
-    type: "question",
-    question:
-      "Will Aldosivi avoid relegation this season?",
-    pct: 55,
-    pool: "$7,800.00",
-    logo: flag("ar"),
-    status: "active", event: "standings", league: "Aldosivi",
-    teams: ["Aldosivi"],
-    popularity: 1600, createdAt: "2026-07-05",
-  },
-  {
-    type: "prediction",
-    question: "Who wins the Caribbean showdown?",
-    options: [
-      { label: "Haiti", pct: 82 },
-      { label: "Curaçao", pct: 18 },
-    ],
-    pool: "$3,900.00",
-    status: "resolved", event: "matches", league: "JDT",
-    teams: ["Haiti", "Curaçao"],
-    popularity: 700, createdAt: "2026-05-20",
-  },
-];
+import { useMarkets } from "../../hooks/useMarkets";
 
 // Number of cards to show per row-count at each breakpoint:
 // mobile 1 col × 3 rows = 3, tablet 2 col × 3 rows = 6, desktop 3+ col × 3 rows = 9
@@ -297,8 +19,8 @@ function getHomeCardLimit() {
 const NewHome = () => {
   const { t } = useTranslation();
   const [cardLimit] = useState(getHomeCardLimit);
-  const homeCards = CARDS.slice(0, cardLimit);
-  const { marketIds } = useActiveMarketIds(homeCards.length);
+  const { cards: apiCards } = useMarkets();
+  const homeCards = apiCards.slice(0, cardLimit);
   const [scrollY, setScrollY] = useState(0);
   const [cols, setCols] = useState(5);
   const gridRef = useRef(null);
@@ -413,8 +135,7 @@ const NewHome = () => {
             {homeCards.map((card, i) => {
               const lastRowStart = homeCards.length - (homeCards.length % cols || cols);
               const isFaded = i >= lastRowStart;
-              const marketId =
-                marketIds.length > 0 ? marketIds[i % marketIds.length] : i + 1;
+              const linkTarget = `/markets/${card.id || i + 1}`;
               const cardEl =
                 card.type === "match" ? (
                   <MatchCard
@@ -447,7 +168,7 @@ const NewHome = () => {
               const link = (
                 <Link
                   key={i}
-                  to={`/markets/${marketId}`}
+                  to={linkTarget}
                   style={{ textDecoration: "none", display: "contents" }}
                 >
                   {cardEl}

@@ -3,7 +3,7 @@ import { API_URL } from '../../../config';
 export const submitBet = (betData, token, onSuccess, onError) => {
 
     if (!token) {
-        alert('Please log in to place a bet.');
+        onError(new Error('Please log in to place a bet.'));
         return;
     }
 
@@ -28,7 +28,6 @@ export const submitBet = (betData, token, onSuccess, onError) => {
         onSuccess(data);  // Handle success outside this utility function
     })
     .catch(error => {
-        alert(error.message);  // Use error.message to display the custom error message
-        onError(error);  // Handle error outside this utility function
+        onError(error);
     });
 };

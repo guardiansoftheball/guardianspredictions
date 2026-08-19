@@ -5,6 +5,7 @@ import { submitBet } from './TradeUtils';
 import { useMarketLabels } from '../../../hooks/useMarketLabels';
 import { fetchTradingFees } from '../../../api/tradeApi';
 import { USER_CREDIT_REFRESH_EVENT } from '../../utils/userFinanceTools/FetchUserCredit';
+import { useToast } from '../../../hooks/useToast';
 
 
 const BuySharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
@@ -14,6 +15,7 @@ const BuySharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [showTerms, setShowTerms] = useState(false);
     
+    const toast = useToast();
     // Get custom labels for this market
     const { yesLabel, noLabel } = useMarketLabels(market);
     const showFeeSection = !isLoading && feeData;
@@ -51,7 +53,7 @@ const BuySharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
 
     const handleBetSubmission = () => {
         if (!token) {
-            alert('Please log in to place a bet.');
+            toast.error('Please log in to place a bet.');
             return;
         }
 
@@ -62,11 +64,11 @@ const BuySharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
         };
 
         submitBet(betData, token, (data) => {
-            alert(`Bet placed successfully! ${data.amount} on ${data.outcome}`);
+            toast.success(`Bet placed successfully! ${data.amount} on ${data.outcome}`);
             window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
             onTransactionSuccess();
         }, (error) => {
-            alert(`Error placing bet: ${error.message}`);
+            toast.error(`Error placing bet: ${error.message}`);
         });
     };
 
