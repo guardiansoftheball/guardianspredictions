@@ -248,7 +248,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
     ))}
 
     {/* Markets (chips) */}
-    <div className="py-4 border-t border-white/10">
+    <div className="py-4 border-t border-white/10" style={{ paddingBottom: 150 }}>
       <button
         type="button"
         onClick={() => toggleSection("markets")}
@@ -387,6 +387,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
             filters={filters}
             onFilterChange={onFilterChange}
             resultCount={resultCount}
+            marketChips={marketChips}
           />
         </div>
       </aside>

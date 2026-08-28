@@ -32,6 +32,8 @@ import { USER_CREDIT_REFRESH_EVENT } from "../utils/userFinanceTools/FetchUserCr
 import { API_URL } from "../../config";
 import { useToast } from "../../hooks/useToast";
 import ShareModal from "../modals/share/ShareModal";
+import LoginModal from "../modals/login/LoginModal";
+import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
@@ -266,6 +268,7 @@ const LivePulse = () => (
       @keyframes gp-pulse { 0%,100%{opacity:.7;transform:scale(.9)} 50%{opacity:1;transform:scale(1)} }
       @keyframes gp-pulse-ring { 0%{opacity:.6;transform:scale(.8)} 100%{opacity:0;transform:scale(2)} }
       @keyframes gp-mcBrandPulse { 0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)} }
+      @keyframes mcPulse { 0%,100%{width:10px;height:10px;opacity:0.55} 50%{width:30px;height:30px;opacity:0} }
     `}</style>
   </span>
 );
@@ -396,9 +399,11 @@ function mcAvoidCollisions(rawTops, minGap = 20, maxTop = 82) {
 
 function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [range, setRange] = useState("Live");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
+  const initializedMobileHover = useRef(false);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
@@ -412,6 +417,14 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     BOT = 360;
   const windowMs = MC_WINDOW_MS[range];
   const winStart = liveNow - windowMs;
+
+  // On mobile, default hover to the latest point
+  useEffect(() => {
+    if (isMobile && !initializedMobileHover.current) {
+      initializedMobileHover.current = true;
+      setHoverT(liveNow);
+    }
+  }, [isMobile, liveNow]);
 
   // Parse + anchor each answer's history so it always spans the full window
   const seriesData = useMemo(
@@ -576,9 +589,10 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     const el = chartRef.current;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     return Math.min(
       1,
-      Math.max(0, (e.clientX - rect.left) / ((rect.width * W) / 1000)),
+      Math.max(0, (clientX - rect.left) / ((rect.width * W) / 1000)),
     );
   };
 
@@ -589,6 +603,18 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
       setHoverT(null);
       return;
     }
+    if (!rangeSelect) setHoverT(winStart + frac * windowMs);
+  };
+
+  const onTouchStart = (e) => {
+    e.preventDefault();
+    const frac = getFrac(e);
+    if (!rangeSelect) setHoverT(winStart + frac * windowMs);
+  };
+
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    const frac = getFrac(e);
     if (!rangeSelect) setHoverT(winStart + frac * windowMs);
   };
 
@@ -666,7 +692,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
         })();
 
   return (
-    <div>
+    <div style={{ userSelect: "none", WebkitUserSelect: "none" }}>
       {/* Header: volume + range tabs */}
       <div
         style={{
@@ -710,13 +736,15 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
       <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
         {/* SVG plot area */}
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={onDown}
           onMouseLeave={() => {
             if (!dragStartRef.current) setHoverT(null);
           }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
         >
           <svg
             viewBox="0 0 1000 380"
@@ -728,6 +756,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               cursor: "crosshair",
               shapeRendering: "geometricPrecision",
               overflow: "visible",
+              touchAction: "none",
             }}
           >
             {/* Range selection highlight */}
@@ -835,70 +864,71 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               );
             })}
 
-            {/* Pulsing dot — hidden during hover or range select */}
-            {!hover.active && !rangeInfo &&
-              paths.map((p, i) => {
-                const t = getOptionTheme(i, answers.length);
-                if (!p.last) return null;
-                const ex = p.last[0].toFixed(1);
-                const ey = p.last[1].toFixed(1);
-                return (
-                  <g key={i}>
-                    <circle
-                      cx={ex}
-                      cy={ey}
-                      r="5"
-                      fill="none"
-                      stroke={t.color}
-                      strokeWidth="2"
-                      opacity="0.6"
-                    >
-                      <animate
-                        attributeName="r"
-                        values="5;15;5"
-                        dur="1.8s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0.55;0;0.55"
-                        dur="1.8s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    <circle cx={ex} cy={ey} r="5" fill={t.color} />
-                  </g>
-                );
-              })}
+            {/* Pulsing dots moved to HTML overlay below */}
 
-            {/* Hover crosshair + intercept dots */}
+            {/* Hover crosshair line — dots moved to HTML overlay */}
             {hover.active && (
-              <g>
-                <line
-                  x1={hover.x}
-                  y1="0"
-                  x2={hover.x}
-                  y2="380"
-                  stroke="rgba(255,255,255,0.35)"
-                  strokeDasharray="3 4"
-                />
-                {paths.map((p, i) => {
-                  const t = getOptionTheme(i, answers.length);
-                  return (
-                    <circle
-                      key={i}
-                      cx={hover.x}
-                      cy={hover.ys[i]}
-                      r={i === selectedIdx ? 5 : 4}
-                      fill="#0c1a2c"
-                      stroke={t.color}
-                      strokeWidth="2.5"
-                    />
-                  );
-                })}
-              </g>
+              <line
+                x1={hover.x}
+                y1="0"
+                x2={hover.x}
+                y2="380"
+                stroke="rgba(255,255,255,0.35)"
+                strokeDasharray="3 4"
+              />
             )}
           </svg>
+
+          {/* Pulsing dots — HTML overlay so they stay round */}
+          {!hover.active && !rangeInfo &&
+            paths.map((p, i) => {
+              const t = getOptionTheme(i, answers.length);
+              if (!p.last) return null;
+              const leftPct = (p.last[0] / 1000) * 100;
+              const topPx = (p.last[1] / 380) * 260;
+              return (
+                <div key={`mc-pulse-${i}`} style={{
+                  position: "absolute",
+                  left: `${leftPct}%`,
+                  top: topPx,
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: t.color,
+                  }} />
+                  <div style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 10, height: 10, borderRadius: "50%",
+                    border: `2px solid ${t.color}`,
+                    animation: "mcPulse 1.8s infinite",
+                  }} />
+                </div>
+              );
+            })}
+
+          {/* Hover intercept dots — HTML so they stay round */}
+          {hover.active &&
+            paths.map((p, i) => {
+              const t = getOptionTheme(i, answers.length);
+              const leftPct = (parseFloat(hover.x) / 1000) * 100;
+              const topPx = (parseFloat(hover.ys[i]) / 380) * 260;
+              const size = i === selectedIdx ? 10 : 8;
+              return (
+                <div key={`hover-dot-${i}`} style={{
+                  position: "absolute",
+                  left: `${leftPct}%`,
+                  top: topPx,
+                  transform: "translate(-50%, -50%)",
+                  width: size, height: size, borderRadius: "50%",
+                  background: "#0c1a2c",
+                  border: `2.5px solid ${t.color}`,
+                  pointerEvents: "none",
+                }} />
+              );
+            })}
 
           {/* Hover date label (HTML so it doesn't scale with SVG) */}
           {hover.active && (
@@ -1277,6 +1307,8 @@ function MultiChoiceTradePanel({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const { login } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [tab, setTab] = useState("buy");
   const [buyOutcome, setBuyOutcome] = useState("YES");
   const [amount, setAmount] = useState(10);
@@ -1458,6 +1490,7 @@ function MultiChoiceTradePanel({
           />
         ))}
         <div
+          onClick={() => setIsLoginModalOpen(true)}
           style={{
             marginTop: "8px",
             padding: "18px 16px",
@@ -1465,6 +1498,7 @@ function MultiChoiceTradePanel({
             background: "rgba(255,255,255,0.04)",
             border: "1px solid rgba(255,255,255,0.09)",
             textAlign: "center",
+            cursor: "pointer",
           }}
         >
           <div
@@ -1480,6 +1514,7 @@ function MultiChoiceTradePanel({
             You need an account to participate
           </div>
         </div>
+        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} />
       </div>
     );
   }
@@ -2641,10 +2676,12 @@ function BinaryChart({
   totalVolume = 0,
 }) {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const curP = Math.max(0.01, Math.min(0.99, Number(rawProb) || 0.5));
   const [range, setRange] = useState("Live");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
+  const initializedMobileHover = useRef(false);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
@@ -2658,6 +2695,14 @@ function BinaryChart({
     BOT = 360;
   const windowMs = BC_WINDOW_MS[range];
   const winStart = liveNow - windowMs;
+
+  // On mobile, default hover to the latest point
+  useEffect(() => {
+    if (isMobile && !initializedMobileHover.current) {
+      initializedMobileHover.current = true;
+      setHoverT(liveNow);
+    }
+  }, [isMobile, liveNow]);
 
   const allChanges = useMemo(() => {
     const arr = Array.isArray(probabilityChanges) ? probabilityChanges : [];
@@ -2823,7 +2868,8 @@ function BinaryChart({
     const el = chartRef.current;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (e.clientX - rect.left) / (rect.width * W / 1000)));
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    return Math.min(1, Math.max(0, (clientX - rect.left) / (rect.width * W / 1000)));
   };
 
   const onMove = (e) => {
@@ -2833,6 +2879,18 @@ function BinaryChart({
       setHoverT(null);
       return;
     }
+    if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
+  };
+
+  const bcOnTouchStart = (e) => {
+    e.preventDefault();
+    const frac = bcGetFrac(e);
+    if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
+  };
+
+  const bcOnTouchMove = (e) => {
+    e.preventDefault();
+    const frac = bcGetFrac(e);
     if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
   };
 
@@ -2900,7 +2958,7 @@ function BinaryChart({
         })();
 
   return (
-    <div>
+    <div style={{ userSelect: "none", WebkitUserSelect: "none" }}>
       {/* Header */}
       <div
         style={{
@@ -2946,11 +3004,13 @@ function BinaryChart({
       {/* Chart + Y-axis */}
       <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={bcOnDown}
           onMouseLeave={() => { if (!bcDragStartRef.current) setHoverT(null); }}
+          onTouchStart={bcOnTouchStart}
+          onTouchMove={bcOnTouchMove}
         >
           <svg
             viewBox="0 0 1000 380"
@@ -2962,6 +3022,7 @@ function BinaryChart({
               cursor: "crosshair",
               shapeRendering: "geometricPrecision",
               overflow: "visible",
+              touchAction: "none",
             }}
           >
             {/* Range highlight */}
@@ -3030,68 +3091,68 @@ function BinaryChart({
               );
             })}
 
-            {!hover.active &&
-              paths.map((p, i) => {
-                if (!p.last) return null;
-                const [ex, ey] = p.last;
-                return (
-                  <g key={i}>
-                    <circle
-                      cx={ex.toFixed(1)}
-                      cy={ey.toFixed(1)}
-                      r="5"
-                      fill="none"
-                      stroke={themes[i].color}
-                      strokeWidth="2"
-                      opacity="0.6"
-                    >
-                      <animate
-                        attributeName="r"
-                        values="5;15;5"
-                        dur="1.8s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0.55;0;0.55"
-                        dur="1.8s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    <circle
-                      cx={ex.toFixed(1)}
-                      cy={ey.toFixed(1)}
-                      r="5"
-                      fill={themes[i].color}
-                    />
-                  </g>
-                );
-              })}
+            {/* Pulsing dots moved to HTML overlay below */}
 
+            {/* Hover crosshair line — dots moved to HTML overlay */}
             {hover.active && (
-              <g>
-                <line
-                  x1={hover.x}
-                  y1="0"
-                  x2={hover.x}
-                  y2="380"
-                  stroke="rgba(255,255,255,0.35)"
-                  strokeDasharray="3 4"
-                />
-                {paths.map((p, i) => (
-                  <circle
-                    key={i}
-                    cx={hover.x}
-                    cy={hover.ys[i]}
-                    r="5"
-                    fill="#0c1a2c"
-                    stroke={themes[i].color}
-                    strokeWidth="2.5"
-                  />
-                ))}
-              </g>
+              <line
+                x1={hover.x}
+                y1="0"
+                x2={hover.x}
+                y2="380"
+                stroke="rgba(255,255,255,0.35)"
+                strokeDasharray="3 4"
+              />
             )}
           </svg>
+
+          {/* Hover intercept dots — HTML so they stay round */}
+          {hover.active &&
+            paths.map((p, i) => {
+              const leftPct = (parseFloat(hover.x) / 1000) * 100;
+              const topPx = (parseFloat(hover.ys[i]) / 380) * 260;
+              return (
+                <div key={`bc-hover-dot-${i}`} style={{
+                  position: "absolute",
+                  left: `${leftPct}%`,
+                  top: topPx,
+                  transform: "translate(-50%, -50%)",
+                  width: 10, height: 10, borderRadius: "50%",
+                  background: "#0c1a2c",
+                  border: `2.5px solid ${themes[i].color}`,
+                  pointerEvents: "none",
+                }} />
+              );
+            })}
+
+          {/* Pulsing dots — HTML overlay so they stay round */}
+          {!hover.active &&
+            paths.map((p, i) => {
+              if (!p.last) return null;
+              const leftPct = (p.last[0] / 1000) * 100;
+              const topPx = (p.last[1] / 380) * 260;
+              return (
+                <div key={`bc-pulse-${i}`} style={{
+                  position: "absolute",
+                  left: `${leftPct}%`,
+                  top: topPx,
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: themes[i].color,
+                  }} />
+                  <div style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 10, height: 10, borderRadius: "50%",
+                    border: `2px solid ${themes[i].color}`,
+                    animation: "mcPulse 1.8s infinite",
+                  }} />
+                </div>
+              );
+            })}
 
           {/* Hover date label (HTML so it doesn't scale with SVG) */}
           {hover.active && (
@@ -3386,6 +3447,9 @@ function BinaryTradePanelContent({
   username,
   onSuccess,
 }) {
+  const { login } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
   if (safeMarket.isResolved) {
     return (
       <ResolvedPanel
@@ -3626,12 +3690,14 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
         ))}
       </div>
       <div
+        onClick={() => setIsLoginModalOpen(true)}
         style={{
           borderRadius: "14px",
           padding: "20px 16px",
           background: "rgba(255,255,255,0.04)",
           border: "1px solid rgba(255,255,255,0.09)",
           textAlign: "center",
+          cursor: "pointer",
         }}
       >
         <div
@@ -3647,6 +3713,7 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
           You need an account to participate
         </div>
       </div>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} />
     </div>
   );
 }
