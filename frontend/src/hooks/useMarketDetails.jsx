@@ -310,8 +310,12 @@ export const useMarketDetails = () => {
     return () => { cancelled = true; };
   }, [marketId, triggerRefresh]);
 
-  const refetchData = () => {
-    setTriggerRefresh((prev) => prev + 1);
+  const refetchData = ({ delay = 0 } = {}) => {
+    if (delay > 0) {
+      setTimeout(() => setTriggerRefresh((prev) => prev + 1), delay);
+    } else {
+      setTriggerRefresh((prev) => prev + 1);
+    }
   };
 
   return { details, error, isLoggedIn, token, refetchData, currentProbability };

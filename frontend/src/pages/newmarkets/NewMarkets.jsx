@@ -12,7 +12,11 @@ import { useMarkets } from "../../hooks/useMarkets";
 import { usePaginatedCards } from "../../hooks/usePaginatedCards";
 import { listMarketTags } from "../../api/marketTagsApi";
 
-const normalize = (str) => (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const normalize = (str) =>
+  (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 function filterAndSortCards(cards, filters) {
   let result = cards;
@@ -54,11 +58,17 @@ function filterAndSortCards(cards, filters) {
 
   // Sort
   if (filters.sort === "popular") {
-    result = [...result].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+    result = [...result].sort(
+      (a, b) => (b.popularity || 0) - (a.popularity || 0),
+    );
   } else if (filters.sort === "newest") {
-    result = [...result].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    result = [...result].sort((a, b) =>
+      (b.createdAt || "").localeCompare(a.createdAt || ""),
+    );
   } else if (filters.sort === "oldest") {
-    result = [...result].sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+    result = [...result].sort((a, b) =>
+      (a.createdAt || "").localeCompare(b.createdAt || ""),
+    );
   }
 
   return result;
@@ -70,12 +80,16 @@ const NewMarkets = () => {
   const [marketTags, setMarketTags] = useState([]);
 
   useEffect(() => {
-    listMarketTags().then((res) => {
-      const tags = res?.tags || res;
-      if (Array.isArray(tags)) {
-        setMarketTags(tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug));
-      }
-    }).catch(() => {});
+    listMarketTags()
+      .then((res) => {
+        const tags = res?.tags || res;
+        if (Array.isArray(tags)) {
+          setMarketTags(
+            tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug),
+          );
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleFilterChange = useCallback((key, value) => {
@@ -86,7 +100,10 @@ const NewMarkets = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const filteredCards = useMemo(() => filterAndSortCards(apiCards, filters), [apiCards, filters]);
+  const filteredCards = useMemo(
+    () => filterAndSortCards(apiCards, filters),
+    [apiCards, filters],
+  );
 
   const { visibleCards, skeletonCount, sentinelRef } =
     usePaginatedCards(filteredCards);
@@ -98,7 +115,7 @@ const NewMarkets = () => {
 
   const nextCards = filteredCards.slice(
     visibleCards.length,
-    visibleCards.length + skeletonCount
+    visibleCards.length + skeletonCount,
   );
 
   return (
@@ -136,12 +153,25 @@ const NewMarkets = () => {
         <div className="flex-1 justify-items-center">
           {filteredCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-white/50">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-40">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mb-4 opacity-40"
+              >
                 <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
                 <path d="M21 21l-6 -6" />
               </svg>
               <p className="text-lg font-semibold mb-1">No markets found</p>
-              <p className="text-sm">Try adjusting your filters or search terms</p>
+              <p className="text-sm">
+                Try adjusting your filters or search terms
+              </p>
               <button
                 type="button"
                 onClick={() => handleFilterChange("clear")}
@@ -154,10 +184,11 @@ const NewMarkets = () => {
             <div className="relative w-full">
               {/* Layer 1 — Ghost cards */}
               <div
-                className="grid gap-6 w-full justify-center pointer-events-none"
+                className="grid gap-6  w-full justify-center pointer-events-none"
                 style={{
                   opacity: 0.35,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 344px))",
+                  gridTemplateColumns:
+                    "repeat(auto-fill, minmax(300px, 344px))",
                 }}
               >
                 {visibleCards.map((_, i) => (
@@ -170,10 +201,11 @@ const NewMarkets = () => {
 
               {/* Layer 2 — Real cards */}
               <div
-                className="grid gap-6 w-full justify-center absolute inset-0"
+                className="grid gap-6 gap-[0 1.5rem] w-full justify-center absolute inset-0"
                 style={{
                   zIndex: 2,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 344px))",
+                  gridTemplateColumns:
+                    "repeat(auto-fill, minmax(300px, 344px))",
                 }}
               >
                 {visibleCards.map((card, i) => {

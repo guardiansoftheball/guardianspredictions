@@ -66,11 +66,12 @@ function MarketDetailsTable({
   };
 
   const handleTransactionSuccess = () => {
-    setShowBetModal(false);  // Close modal
+    setShowBetModal(false);
+    setRefreshTrigger(prev => prev + 1);
     if (refetchData) {
-      refetchData();  // Trigger data refresh
+      refetchData();
+      refetchData({ delay: 1500 });
     }
-    setRefreshTrigger(prev => prev + 1); // Trigger positions refresh
   };
 
   const shouldShowTradeButtons =

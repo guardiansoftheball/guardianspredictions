@@ -2586,7 +2586,7 @@ function MultiChoiceLayout({
     return () => {
       cancelled = true;
     };
-  }, [groupId]);
+  }, [groupId, refreshTrigger]);
 
   const answers = [...(groupData?.answers || [])].sort(
     (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0),
@@ -2706,13 +2706,14 @@ function BinaryChart({
 
   const allChanges = useMemo(() => {
     const arr = Array.isArray(probabilityChanges) ? probabilityChanges : [];
-    return arr
+    const result = arr
       .map((c) => ({
         t: new Date(c.timestamp || c.Timestamp).getTime(),
         p: Number(c.probability ?? c.Probability),
       }))
       .filter((c) => Number.isFinite(c.t) && Number.isFinite(c.p))
       .sort((a, b) => a.t - b.t);
+    return result;
   }, [probabilityChanges]);
 
   // Build YES series — always anchor at winStart so line spans full width

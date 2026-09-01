@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import CanvasJSReact from '@canvasjs/react-charts';
 
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
@@ -16,6 +16,13 @@ const MarketChart = ({
   height,
 }) => {
   const [showInverseProbability, setShowInverseProbability] = useState(false);
+
+  // Force CanvasJS to re-mount when data changes, since it doesn't
+  // reliably detect deep changes in the options object.
+  const chartKey = useMemo(
+    () => `${data?.length ?? 0}-${currentProbability}-${showInverseProbability}`,
+    [data?.length, currentProbability, showInverseProbability],
+  );
 
   const generateDataPoints = (data, isInverse = false) => {
     let dataPoints = [];
@@ -128,7 +135,7 @@ const MarketChart = ({
           </button>
         </div>
       )}
-      <CanvasJSChart options={options} />
+      <CanvasJSChart key={chartKey} options={options} />
     </div>
   );
 };
