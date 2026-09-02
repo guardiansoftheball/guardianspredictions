@@ -17,7 +17,7 @@ const Bar = ({ className = "" }) => (
 
 const Pill = ({ className = "" }) => (
   <div
-    className={`${shimmer} rounded-xl bg-white/15 h-[34px] sm:h-[38px] ${className}`}
+    className={`${shimmer} rounded-full bg-white/15 h-[34px] sm:h-[38px] ${className}`}
   />
 );
 

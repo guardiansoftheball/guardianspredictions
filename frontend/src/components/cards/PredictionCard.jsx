@@ -104,6 +104,7 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
   const gradientId = React.useRef(`btn-grad-${_btnCounter++}`).current;
   const vbW = 65;
   const vbH = 38;
+  const r = vbH / 2;
   const gradientStops = isYes ? (
     <>
       <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
@@ -152,7 +153,7 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
           y="0.25"
           width={vbW - 0.5}
           height={vbH - 0.5}
-          rx="11.75"
+          rx={r}
           fill={hovered ? color : "white"}
           fillOpacity={hovered ? "0.9" : "0.16"}
           stroke={`url(#${gradientId})`}

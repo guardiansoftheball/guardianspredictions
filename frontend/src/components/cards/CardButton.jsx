@@ -40,7 +40,7 @@ const CardButton = ({ label, color, variant = "yes", pct, onClick }) => {
   const stops = variant === "yes" ? YES_STOPS : NO_STOPS;
   const vbW = 152;
   const vbH = 38;
-  const r = 11.75;
+  const r = vbH / 2;
 
   return (
     <button
