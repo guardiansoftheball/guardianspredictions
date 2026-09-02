@@ -5,7 +5,7 @@ const shimmer =
 
 const Shell = ({ children }) => (
   <div className="w-full max-w-[344px] min-w-0 mx-auto rounded-[41px] p-px box-border animate-skeleton-pulse">
-    <div className="w-full h-full min-h-[210px] sm:min-h-[250px] rounded-[41px] overflow-hidden box-border p-6 flex flex-col justify-between gap-4">
+    <div className="w-full h-full min-h-[250px] rounded-[41px] overflow-hidden box-border p-6 flex flex-col justify-between gap-4">
       {children}
     </div>
   </div>

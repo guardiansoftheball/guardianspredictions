@@ -20,7 +20,7 @@ const PredictionCard = ({
       className={`w-full max-w-[344px] min-w-0 mx-auto rounded-[41px] p-px box-border cursor-pointer ${transparent ? "" : "bg-[conic-gradient(from_0deg,#B4D1ED_0%,#B4D1ED_19%,#5A6B89_36%,#B4D1ED_45%,#B4D1ED_63%,#5A6B89_75%,#B4D1ED_88%,#B4D1ED_100%)]"}`}
     >
       <div
-        className={`w-full h-full min-h-[210px] sm:min-h-[250px] rounded-[41px] overflow-hidden box-border p-6 ${transparent ? "" : "sm:p-5"} flex flex-col justify-between gap-4`}
+        className={`w-full h-full min-h-[250px] rounded-[41px] overflow-hidden box-border p-6 ${transparent ? "" : "sm:p-5"} flex flex-col justify-between gap-4`}
         style={
           transparent
             ? {}
