@@ -62,6 +62,7 @@ const PredictionCard = ({
               pct={opt.pct}
               onYes={onYes}
               onNo={onNo}
+
             />
           ))}
         </div>
@@ -86,7 +87,7 @@ const PredictionRow = ({ label, pct, onYes, onNo }) => (
     >
       {label}
     </span>
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center shrink-0 gap-[6px]">
       <span className="w-[clamp(30px,8vw,42px)] shrink-0 text-white font-['Roboto',sans-serif] font-medium text-[clamp(14px,4vw,18px)] tracking-[0.4px]">
         {pct}%
       </span>
@@ -96,44 +97,47 @@ const PredictionRow = ({ label, pct, onYes, onNo }) => (
   </div>
 );
 
+function darkenHex(hex, amount = 0.2) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const r = Math.max(0, Math.round(((n >> 16) & 0xff) * (1 - amount)));
+  const g = Math.max(0, Math.round(((n >> 8) & 0xff) * (1 - amount)));
+  const b = Math.max(0, Math.round((n & 0xff) * (1 - amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+function buildStops(color) {
+  const dark = darkenHex(color, 0.15);
+  return (
+    <>
+      <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="20%"  stopColor={color} stopOpacity="1" />
+      <stop offset="37%"  stopColor={dark} stopOpacity="1" />
+      <stop offset="68%"  stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="96%"  stopColor={color} stopOpacity="1" />
+      <stop offset="100%" stopColor="#999999" stopOpacity="0.55" />
+    </>
+  );
+}
+
 let _btnCounter = 0;
 const YesNoButton = ({ label, color, pct, onClick }) => {
   const [hovered, setHovered] = React.useState(false);
   const isYes = label === "Yes";
   const displayPct = isYes ? pct : 100 - pct;
   const gradientId = React.useRef(`btn-grad-${_btnCounter++}`).current;
+  const stops = buildStops(color);
   const vbW = 65;
   const vbH = 38;
   const r = vbH / 2;
-  const gradientStops = isYes ? (
-    <>
-      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="28%" stopColor="#BAD659" stopOpacity="1" />
-      <stop offset="37%" stopColor="#AABA49" stopOpacity="1" />
-      <stop offset="68%" stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="96%" stopColor="#BAD659" stopOpacity="1" />
-      <stop offset="100%" stopColor="#999999" stopOpacity="0.55" />
-    </>
-  ) : (
-    <>
-      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="15%" stopColor="#F89182" stopOpacity="1" />
-      <stop offset="37%" stopColor="#AABA49" stopOpacity="1" />
-      <stop offset="68%" stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="96%" stopColor="#F89182" stopOpacity="1" />
-      <stop offset="100%" stopColor="#999999" stopOpacity="0.55" />
-    </>
-  );
 
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative w-[clamp(46px,14vw,65px)] h-[34px] sm:h-[38px] shrink-0 bg-transparent border-none p-0 cursor-pointer isolate flex items-center justify-center font-['Roboto',sans-serif] font-medium text-[clamp(12px,3.5vw,18px)] tracking-[0.4px] transition-[color,transform] duration-200 ease-out"
+      className="relative w-[clamp(46px,14vw,65px)] h-[34px] sm:h-[38px] shrink-0 bg-transparent border-none p-0 cursor-pointer isolate flex items-center justify-center font-['Roboto',sans-serif] font-medium text-[clamp(12px,3.5vw,18px)] tracking-[0.4px] transition-colors duration-200 ease-out"
       style={{
         color: hovered ? "#000000" : color,
-        transform: hovered ? "scale(1.06)" : "scale(1)",
       }}
     >
       <svg
@@ -145,19 +149,19 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-            {gradientStops}
+            {stops}
           </linearGradient>
         </defs>
         <rect
-          x="0.25"
-          y="0.25"
-          width={vbW - 0.5}
-          height={vbH - 0.5}
+          x="0.5"
+          y="0.5"
+          width={vbW - 1}
+          height={vbH - 1}
           rx={r}
           fill={hovered ? color : "white"}
           fillOpacity={hovered ? "0.9" : "0.16"}
           stroke={`url(#${gradientId})`}
-          strokeWidth="0.5"
+          strokeWidth="1.25"
         />
       </svg>
       <span className="relative z-[1]">
@@ -184,7 +188,7 @@ const BookmarkIcon = () => {
       <path
         d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"
         stroke="#F1EFEF"
-        strokeWidth="1"
+        strokeWidth="1.25"
         fill={hovered ? "#ffffff" : "none"}
         style={{ transition: "fill 0.2s ease" }}
       />

@@ -1295,6 +1295,36 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
   );
 }
 
+function MCYesNoButton({ label, active, onClick }) {
+  const isYes = label === "YES";
+  const accentText = isYes ? "#C6E06C" : "#fb8b96";
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        padding: "11px 16px",
+        cursor: "pointer",
+        font: `700 14px ${FONT_BODY}`,
+        transition: "all .15s",
+        border: "none",
+        borderRadius: "999px",
+        background: active
+          ? isYes
+            ? "linear-gradient(180deg,#BAD659,#AABA49)"
+            : "linear-gradient(180deg,#fb5b6b,#e11d48)"
+          : isYes
+            ? "rgba(186,214,89,0.08)"
+            : "rgba(244,63,94,0.08)",
+        color: active ? "#000" : accentText,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 // ─── Multi-choice trade panel ─────────────────────────────────────────────────
 function MultiChoiceTradePanel({
   answers,
@@ -1603,35 +1633,14 @@ function MultiChoiceTradePanel({
         <>
           {/* YES / NO toggle */}
           <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
-            {["YES", "NO"].map((o) => {
-              const isYes = o === "YES";
-              const active = buyOutcome === o;
-              return (
-                <button
-                  key={o}
-                  onClick={() => setBuyOutcome(o)}
-                  style={{
-                    flex: 1,
-                    padding: "11px 8px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    font: `700 14px ${FONT_BODY}`,
-                    transition: "all .15s",
-                    border: "none",
-                    background: active
-                      ? isYes
-                        ? "linear-gradient(180deg,#BAD659,#AABA49)"
-                        : "linear-gradient(180deg,#fb5b6b,#e11d48)"
-                      : isYes
-                        ? "rgba(186,214,89,0.08)"
-                        : "rgba(244,63,94,0.08)",
-                    color: active ? "#000" : isYes ? "#C6E06C" : "#fb8b96",
-                  }}
-                >
-                  {o}
-                </button>
-              );
-            })}
+            {["YES", "NO"].map((o) => (
+              <MCYesNoButton
+                key={o}
+                label={o}
+                active={buyOutcome === o}
+                onClick={() => setBuyOutcome(o)}
+              />
+            ))}
           </div>
 
           <div style={{ marginTop: "10px" }}>
@@ -1649,7 +1658,7 @@ function MultiChoiceTradePanel({
                 display: "flex",
                 alignItems: "center",
                 background: "rgba(0,0,0,0.28)",
-                borderRadius: "11px",
+                borderRadius: "999px",
                 padding: "4px 10px",
               }}
             >
@@ -1724,7 +1733,7 @@ function MultiChoiceTradePanel({
                   style={{
                     flex: 1,
                     padding: "7px 0",
-                    borderRadius: "8px",
+                    borderRadius: "999px",
                     border: "none",
                     background: "rgba(255,255,255,0.06)",
                     color: "#b7c6d6",
@@ -1803,7 +1812,7 @@ function MultiChoiceTradePanel({
               position: "relative",
               width: "100%",
               padding: "15px 20px",
-              borderRadius: "12px",
+              borderRadius: "999px",
               border: "none",
               font: `800 15px ${FONT_HEAD}`,
               letterSpacing: ".01em",
@@ -1928,7 +1937,7 @@ function MultiChoiceTradePanel({
                     display: "flex",
                     alignItems: "center",
                     background: "rgba(0,0,0,0.28)",
-                    borderRadius: "11px",
+                    borderRadius: "999px",
                     padding: "4px 10px",
                   }}
                 >
@@ -2025,7 +2034,7 @@ function MultiChoiceTradePanel({
                   display: "flex",
                   flexDirection: "column",
                   gap: "6px",
-                  borderRadius: "12px",
+                  borderRadius: "28px",
                   border: "1px solid rgba(255,255,255,0.08)",
                   background: "rgba(255,255,255,0.03)",
                   padding: "10px",
@@ -2037,7 +2046,7 @@ function MultiChoiceTradePanel({
                   style={{
                     width: "100%",
                     padding: "14px",
-                    borderRadius: "12px",
+                    borderRadius: "999px",
                     border: "none",
                     font: `800 16px ${FONT_HEAD}`,
                     cursor: isSellActionDisabled ? "not-allowed" : "pointer",
@@ -2062,7 +2071,7 @@ function MultiChoiceTradePanel({
                   style={{
                     width: "100%",
                     padding: "10px",
-                    borderRadius: "10px",
+                    borderRadius: "999px",
                     border: "1px solid rgba(186,214,89,0.40)",
                     background: "transparent",
                     color: isSellActionDisabled ? MUTED2 : YES_TEXT,
@@ -2096,13 +2105,12 @@ function OptionRow({ answer, index, total, selected, onClick }) {
         alignItems: "center",
         justifyContent: "space-between",
         width: "100%",
-        padding: "13px 16px",
-        borderRadius: "12px",
+        padding: "13px 20px",
+        borderRadius: "999px",
         border: selected
           ? `1px solid ${theme.activeBorder}`
           : `1px solid ${theme.border}`,
         background: selected ? theme.bg : "rgba(255,255,255,0.02)",
-        boxShadow: selected ? `0 0 16px ${theme.color}30, 0 2px 8px rgba(0,0,0,0.2)` : "none",
         cursor: "pointer",
         transition: "all .2s cubic-bezier(.4,0,.2,1)",
         textAlign: "left",
@@ -2116,8 +2124,6 @@ function OptionRow({ answer, index, total, selected, onClick }) {
             borderRadius: "50%",
             background: theme.color,
             flexShrink: 0,
-            boxShadow: selected ? `0 0 8px ${theme.color}` : "none",
-            transition: "box-shadow .2s",
           }}
         />
         <span

@@ -36,7 +36,7 @@ const MatchCard = ({
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-[6px]">
           <CardButton
             label={homeTeam.name}
             color="#bad659"

@@ -21,18 +21,61 @@ const PRESETS = [10, 50, 100];
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
+// ─── gradient helpers ─────────────────────────────────────────────────────────
+function darkenHex(hex, amount = 0.2) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, Math.round(((n >> 16) & 0xff) * (1 - amount)));
+  const g = Math.max(0, Math.round(((n >> 8) & 0xff) * (1 - amount)));
+  const b = Math.max(0, Math.round((n & 0xff) * (1 - amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function buildStops(color) {
+  const dark = darkenHex(color, 0.15);
+  return (
+    <>
+      <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="20%"  stopColor={color} stopOpacity="1" />
+      <stop offset="37%"  stopColor={dark} stopOpacity="1" />
+      <stop offset="68%"  stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="96%"  stopColor={color} stopOpacity="1" />
+      <stop offset="100%" stopColor="#999999" stopOpacity="0.55" />
+    </>
+  );
+}
+
+let _pillCounter = 0;
+
 // ─── sub-components ───────────────────────────────────────────────────────────
 const SidePill = ({ label, pct, variant, active, onClick }) => {
   const isYes = variant === 'yes';
   const accentColor = isYes ? YES_COLOR : NO_COLOR;
   const accentText  = isYes ? YES_TEXT  : NO_TEXT;
+  const btnRef = React.useRef(null);
+  const [dims, setDims] = React.useState({ w: 140, h: 56 });
+  const gradId = React.useRef(`sp-grad-${_pillCounter++}`).current;
+  const stops = buildStops(accentColor);
+
+  React.useEffect(() => {
+    if (!btnRef.current) return;
+    const obs = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setDims({ w: Math.round(width), h: Math.round(height) });
+    });
+    obs.observe(btnRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  const r = dims.h / 2;
+
   return (
     <button
+      ref={btnRef}
       onClick={onClick}
       style={{
+        position: 'relative',
         flex: 1,
         padding: '11px 8px',
-        borderRadius: '12px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -40,22 +83,52 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
         cursor: 'pointer',
         transition: 'all .15s',
         border: 'none',
+        borderRadius: '999px',
         background: active
           ? (isYes
               ? 'linear-gradient(180deg,#BAD659,#AABA49)'
               : 'linear-gradient(180deg,#fb5b6b,#e11d48)')
-          : (isYes ? 'rgba(186,214,89,0.08)' : 'rgba(244,63,94,0.08)'),
+          : 'transparent',
+        isolation: 'isolate',
       }}
     >
+      <svg
+          viewBox={`0 0 ${dims.w} ${dims.h}`}
+          preserveAspectRatio="none"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: -1 }}
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              {stops}
+            </linearGradient>
+          </defs>
+          <rect
+            x="0.5"
+            y="0.5"
+            width={dims.w - 1}
+            height={dims.h - 1}
+            rx={r}
+            fill="white"
+            fillOpacity="0.06"
+            stroke={`url(#${gradId})`}
+            strokeWidth="1.25"
+          />
+      </svg>
       <span style={{
         font: `700 14px ${FONT}`,
         color: active ? '#000' : accentText,
+        position: 'relative',
+        zIndex: 1,
       }}>
         {label}
       </span>
       <span style={{
         font: `800 17px ${FONT_HEAD}`,
         color: active ? '#000' : accentText,
+        position: 'relative',
+        zIndex: 1,
       }}>
         {pct}%
       </span>

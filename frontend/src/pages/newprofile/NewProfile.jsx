@@ -1075,20 +1075,20 @@ const NewProfile = () => {
 
   return (
     <div className="bg-primary-background min-h-screen pb-16">
-      {/* Blue glow blob */}
+      {/* Top glow */}
       <div
         style={{
-          position: "fixed",
-          width: "75vw",
-          height: "100vh",
+          position: "absolute",
+          width: "100%",
+          height: "70%",
           left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 30%) 0%)",
-          filter: "blur(250px)",
+          top: "-10%",
+          transform: "translateX(-50%)",
+          background:
+            "radial-gradient(ellipse at 30% 0%, rgba(30,144,255,0.12) 0%, transparent 70%), radial-gradient(ellipse at 70% 20%, rgba(186,214,89,0.07) 0%, transparent 60%)",
+          filter: "blur(80px)",
           pointerEvents: "none",
           zIndex: 0,
-          borderRadius: "50%",
         }}
       />
       <Navbar />
@@ -1099,7 +1099,7 @@ const NewProfile = () => {
           zIndex: 1,
           maxWidth: "1080px",
           margin: "0 auto",
-          padding: "32px 20px 48px",
+          padding: "32px 20px 120px",
           display: "flex",
           flexDirection: "column",
           gap: "16px",

@@ -77,7 +77,7 @@ export const PillTabs = ({ tabs, active, onChange }) => (
       display: "inline-flex",
       gap: "2px",
       background: "rgba(0,0,0,0.25)",
-      borderRadius: "11px",
+      borderRadius: "999px",
       padding: "3px",
       flexWrap: "wrap",
     }}
@@ -87,8 +87,8 @@ export const PillTabs = ({ tabs, active, onChange }) => (
         key={tab}
         onClick={() => onChange(tab)}
         style={{
-          padding: "7px 15px",
-          borderRadius: "9px",
+          padding: "7px 18px",
+          borderRadius: "999px",
           border: "none",
           font: `700 12.5px ${FONT}`,
           cursor: "pointer",
@@ -170,8 +170,8 @@ export const SuccessBanner = ({ message }) => (
 export const GhostButton = ({ children, onClick, disabled, tone = "sky", style, as, to }) => {
   const t = CHIP_TONES[tone] || CHIP_TONES.sky;
   const sharedStyle = {
-    padding: "7px 14px",
-    borderRadius: "9px",
+    padding: "7px 18px",
+    borderRadius: "999px",
     border: `1px solid ${t.border}`,
     background: t.bg,
     color: disabled ? MUTED2 : t.color,
@@ -286,8 +286,8 @@ export const LifecycleMarketCard = ({ market, profileUsername }) => {
           <Link
             to={`/markets/${viewMarketId}`}
             style={{
-              padding: "7px 14px",
-              borderRadius: "9px",
+              padding: "7px 18px",
+              borderRadius: "999px",
               border: "1px solid rgba(156,201,241,0.35)",
               background: "rgba(156,201,241,0.10)",
               color: COLOR.accent,
