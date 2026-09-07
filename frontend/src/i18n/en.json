@@ -72,7 +72,8 @@
     "press": "Press",
     "standings": "Standings",
     "knockouts": "Knockouts",
-    "filtersTitle": "Filters"
+    "filtersTitle": "Filters",
+    "all": "All Markets"
   },
   "nav": {
     "trending": "Trending",
@@ -556,5 +557,11 @@
       "previous": "Previous",
       "next": "Next"
     }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go Home",
+    "browseMarkets": "Browse Markets"
   }
 }

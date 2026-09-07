@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
 import Filtros, { INITIAL_FILTERS } from "../../components/filtros/Filtros";
@@ -75,9 +75,25 @@ function filterAndSortCards(cards, filters) {
 }
 
 const NewMarkets = () => {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const location = useLocation();
+  const [filters, setFilters] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    const league = params.get("league");
+    return league ? { ...INITIAL_FILTERS, league } : INITIAL_FILTERS;
+  });
   const { cards: apiCards, loading: marketsLoading } = useMarkets();
   const [marketTags, setMarketTags] = useState([]);
+
+  // Sync filter from URL query param when navigating
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const league = params.get("league");
+    if (league) {
+      setFilters((prev) => ({ ...prev, league }));
+    } else {
+      setFilters((prev) => ({ ...prev, league: null }));
+    }
+  }, [location.search]);
 
   useEffect(() => {
     listMarketTags()

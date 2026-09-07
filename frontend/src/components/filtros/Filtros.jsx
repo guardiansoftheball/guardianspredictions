@@ -113,7 +113,7 @@ const FilterSection = ({ label, Icon, options, selected, onSelect, open, onToggl
       <ChevronIcon open={open} />
     </button>
     {open && (
-      <ul className="mt-3 flex flex-col gap-2 pl-[26px]">
+      <ul className="mt-3 flex flex-col gap-2 ml-[8px] border-l border-white/15 pl-[18px]">
         {options.map(({ label: optLabel, value }) => {
           const isActive = selected === value;
           return (
@@ -121,7 +121,7 @@ const FilterSection = ({ label, Icon, options, selected, onSelect, open, onToggl
               <button
                 type="button"
                 onClick={() => onSelect(isActive ? null : value)}
-                className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
+                className={`text-[14px] whitespace-nowrap transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
               >
                 {optLabel}
                 {isActive && " ✕"}
@@ -214,7 +214,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
         <ChevronIcon open={!!openSections.sort} />
       </button>
       {openSections.sort && (
-        <ul className="mt-3 flex flex-col gap-2 pl-[26px]">
+        <ul className="mt-3 flex flex-col gap-2 ml-[8px] border-l border-white/15 pl-[18px]">
           {SORT_OPTIONS.map((opt) => {
             const isActive = filters.sort === opt.key;
             return (
@@ -222,7 +222,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
                 <button
                   type="button"
                   onClick={() => onFilterChange("sort", opt.key)}
-                  className={`text-[14px] transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
+                  className={`text-[14px] whitespace-nowrap transition-colors ${isActive ? "text-white font-semibold" : "text-white/60 hover:text-white"}`}
                 >
                   {t(opt.labelKey)}
                 </button>
@@ -261,7 +261,7 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
         <ChevronIcon open={!!openSections.markets} />
       </button>
       {openSections.markets && (
-        <div className="mt-3 flex flex-wrap gap-2 pl-[26px]">
+        <div className="mt-3 flex flex-wrap gap-2 ml-[8px] border-l border-white/15 pl-[18px]">
           {marketChips.map((chip) => {
             const isActive = filters.league === chip;
             return (

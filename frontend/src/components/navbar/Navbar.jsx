@@ -16,6 +16,7 @@ import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
+import { listMarketTags } from "../../api/marketTagsApi";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 const NAV_LINKS = [
   { labelKey: "nav.trending", to: "/", Icon: HomeSVG },
@@ -523,6 +524,21 @@ const Navbar = () => {
   const { userCredit } = useUserCredit(isLoggedIn ? username : null);
   const history = useHistory();
 
+  // ── market tags for dropdown ─────────────────────────────────────────────────
+  const [marketTags, setMarketTags] = useState([]);
+  useEffect(() => {
+    listMarketTags()
+      .then((res) => {
+        const tags = res?.tags || res;
+        if (Array.isArray(tags)) {
+          setMarketTags(
+            tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // ── scroll-aware desktop nav ────────────────────────────────────────────────
   const [navFixed, setNavFixed] = useState(false); // switched to fixed position
   const [navVisible, setNavVisible] = useState(true); // show or hide via transform
@@ -633,6 +649,124 @@ const Navbar = () => {
           {NAV_LINKS.map((link) => {
             const label = t(link.labelKey);
             const isActive = link.to !== "/" && link.to === pathname;
+            const isMarkets = link.labelKey === "nav.markets";
+
+            if (isMarkets && marketTags.length > 0) {
+              return (
+                <div
+                  key={link.labelKey}
+                  style={{ position: "relative" }}
+                  className="group"
+                >
+                  <Link
+                    to={link.to}
+                    style={{
+                      ...linkStyle,
+                      width: "138px",
+                      height: "25px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      ...(isActive
+                        ? { color: "#FFFFFF", textDecoration: "underline", textUnderlineOffset: "6px" }
+                        : {}),
+                    }}
+                  >
+                    {label}
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className="transition-transform duration-200 group-hover:rotate-180"
+                    >
+                      <path
+                        d="M2 4l4 4 4-4"
+                        stroke={COLOR.muted}
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Link>
+                  {/* Hover dropdown */}
+                  <div
+                    className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200"
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      paddingTop: "10px",
+                      zIndex: 100,
+                    }}
+                  >
+                    <div
+                      style={{
+                        minWidth: "200px",
+                        ...CARD_ELEVATED,
+                        background: "rgba(10,22,38,0.97)",
+                        boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+                        overflow: "hidden",
+                        padding: "6px",
+                      }}
+                    >
+                      {/* All Markets link */}
+                      <Link
+                        to="/new-markets"
+                        style={{
+                          display: "block",
+                          padding: "9px 16px",
+                          borderRadius: "9px",
+                          fontFamily: FONT,
+                          fontWeight: 700,
+                          fontSize: "13px",
+                          color: COLOR.text,
+                          textDecoration: "none",
+                          borderBottom: "1px solid rgba(255,255,255,0.07)",
+                          marginBottom: "4px",
+                          transition: "background .12s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      >
+                        {t('filters.all') || 'All Markets'}
+                      </Link>
+                      {marketTags.map((tag) => (
+                        <Link
+                          key={tag}
+                          to={`/new-markets?league=${encodeURIComponent(tag)}`}
+                          style={{
+                            display: "block",
+                            padding: "9px 16px",
+                            borderRadius: "9px",
+                            fontFamily: FONT,
+                            fontWeight: 600,
+                            fontSize: "13px",
+                            color: COLOR.muted,
+                            textDecoration: "none",
+                            whiteSpace: "nowrap",
+                            transition: "background .12s, color .12s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                            e.currentTarget.style.color = COLOR.text;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = COLOR.muted;
+                          }}
+                        >
+                          {tag}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={link.labelKey}

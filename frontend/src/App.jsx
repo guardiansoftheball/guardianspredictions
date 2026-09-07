@@ -11,6 +11,7 @@ import Sidebar from './components/sidebar/Sidebar';
 
 const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', '/create', '/stats'];
 const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/newprofile'];
+const KNOWN_NON_FULLSCREEN = ['/old', '/about', '/profile', '/changepassword', '/polls', '/notifications', '/admin', '/style'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {
   const { t } = useTranslation();
@@ -49,8 +50,10 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 const AppLayout = () => {
   const { pathname } = useLocation();
   const isFullscreen = FULLSCREEN_ROUTES.includes(pathname) || FULLSCREEN_PREFIXES.some(p => pathname.startsWith(p));
+  const isKnownNonFullscreen = KNOWN_NON_FULLSCREEN.some(r => pathname === r || pathname.startsWith(r + '/'));
 
-  if (isFullscreen) {
+  // Unknown routes (404) use fullscreen layout (new Navbar + Footer)
+  if (isFullscreen || !isKnownNonFullscreen) {
     return <AppRoutes />;
   }
 

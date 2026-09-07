@@ -72,7 +72,8 @@
     "press": "Prensa",
     "standings": "Posiciones",
     "knockouts": "Eliminatorias",
-    "filtersTitle": "Filtros"
+    "filtersTitle": "Filtros",
+    "all": "Todos los Mercados"
   },
   "nav": {
     "trending": "Tendencias",
@@ -556,5 +557,11 @@
       "previous": "Anterior",
       "next": "Siguiente"
     }
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscás no existe o fue movida.",
+    "goHome": "Ir al Inicio",
+    "browseMarkets": "Ver Mercados"
   }
 }
