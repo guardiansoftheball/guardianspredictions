@@ -14,23 +14,6 @@ const NotFound = () => {
 
   return (
     <div className="bg-primary-background min-h-screen pb-16">
-      {/* Background glow */}
-      <div
-        style={{
-          position: "fixed",
-          width: "75vw",
-          height: "100vh",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          background:
-            "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 30%) 0%)",
-          filter: "blur(250px)",
-          pointerEvents: "none",
-          zIndex: 0,
-          borderRadius: "50%",
-        }}
-      />
       <Navbar />
 
       <div className="relative z-10 flex flex-col items-center justify-center px-6 py-32 text-center min-h-[60vh]">

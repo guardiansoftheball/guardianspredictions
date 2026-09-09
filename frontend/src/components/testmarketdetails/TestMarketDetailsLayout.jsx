@@ -33,6 +33,7 @@ import { API_URL } from "../../config";
 import { useToast } from "../../hooks/useToast";
 import ShareModal from "../modals/share/ShareModal";
 import LoginModal from "../modals/login/LoginModal";
+import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
 
@@ -354,20 +355,22 @@ const MultiAllTooltip = ({ active, payload, label, answers, timeFilter }) => {
 };
 
 // ─── Multi-option chart (pure SVG, real data) ────────────────────────────────
-const MC_RANGES = ["Live", "1h", "1d", "1w", "1m"];
+const MC_RANGES = ["1H", "6H", "1D", "1W", "1M", "ALL"];
 const MC_WINDOW_MS = {
-  Live: 5 * 60_000,
-  "1h": 3600_000,
-  "1d": 86400_000,
-  "1w": 7 * 86400_000,
-  "1m": 30 * 86400_000,
+  "1H": 3600_000,
+  "6H": 6 * 3600_000,
+  "1D": 86400_000,
+  "1W": 7 * 86400_000,
+  "1M": 30 * 86400_000,
+  ALL: 0,
 };
 const MC_LABEL_STEP = {
-  Live: 60_000,
-  "1h": 10 * 60_000,
-  "1d": 3 * 3600_000,
-  "1w": 86400_000,
-  "1m": 5 * 86400_000,
+  "1H": 15 * 60_000,
+  "6H": 60 * 60_000,
+  "1D": 4 * 3600_000,
+  "1W": 86400_000,
+  "1M": 5 * 86400_000,
+  ALL: 7 * 86400_000,
 };
 
 function mcAvoidCollisions(rawTops, minGap = 20, maxTop = 82) {
@@ -400,72 +403,70 @@ function mcAvoidCollisions(rawTops, minGap = 20, maxTop = 82) {
 function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const [range, setRange] = useState("Live");
+  const [range, setRange] = useState("ALL");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
-  const initializedMobileHover = useRef(false);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setLiveNow(Date.now()), 1000);
+    const id = setInterval(() => setLiveNow(Date.now()), 5000);
     return () => clearInterval(id);
   }, []);
 
-  const W = 780,
-    SVG_H = 380,
-    TOP = 20,
-    BOT = 360;
-  const windowMs = MC_WINDOW_MS[range];
-  const winStart = liveNow - windowMs;
+  // Fixed Y-axis 0-100%
+  const CHART_H = 280;
+  const W = 1000;
+  const yOf = (p) => CHART_H - p * CHART_H;
+  const Y_TICKS = [1, 0.75, 0.5, 0.25, 0];
 
-  // On mobile, default hover to the latest point
-  useEffect(() => {
-    if (isMobile && !initializedMobileHover.current) {
-      initializedMobileHover.current = true;
-      setHoverT(liveNow);
-    }
-  }, [isMobile, liveNow]);
-
-  // Parse + anchor each answer's history so it always spans the full window
-  const seriesData = useMemo(
-    () =>
-      answers.map((a) => {
-        const raw = Array.isArray(a.probabilityChanges)
-          ? a.probabilityChanges
-          : Array.isArray(a.summary?.probabilityChanges)
-            ? a.summary.probabilityChanges
-            : [];
-        const changes = raw
-          .map((c) => ({
-            t: new Date(c.timestamp || c.Timestamp).getTime(),
-            p: Number(c.probability ?? c.Probability),
-          }))
-          .filter((c) => Number.isFinite(c.t) && Number.isFinite(c.p))
-          .sort((a, b) => a.t - b.t);
-        const curP = Math.max(0.01, Math.min(0.99, getAnswerProb(a)));
-        const before = changes.filter((c) => c.t < winStart);
-        const within = changes.filter((c) => c.t >= winStart && c.t < liveNow);
-        // Always anchor at winStart so the line fills left to right
-        const anchorP = before.length
-          ? before[before.length - 1].p
-          : within.length
-            ? within[0].p
-            : curP;
-        return [
-          { t: winStart, p: anchorP },
-          ...within,
-          { t: liveNow, p: curP },
-        ];
-      }),
-    [answers, winStart, liveNow],
+  // Parse all series
+  const allSeriesChanges = useMemo(() =>
+    answers.map((a) => {
+      const raw = Array.isArray(a.probabilityChanges)
+        ? a.probabilityChanges
+        : Array.isArray(a.summary?.probabilityChanges)
+          ? a.summary.probabilityChanges
+          : [];
+      return raw
+        .map((c) => ({
+          t: new Date(c.timestamp || c.Timestamp).getTime(),
+          p: Number(c.probability ?? c.Probability),
+        }))
+        .filter((c) => Number.isFinite(c.t) && Number.isFinite(c.p))
+        .sort((a, b) => a.t - b.t);
+    }),
+    [answers],
   );
 
-  // Union timestamps for snapping hover
-  const allTs = useMemo(() => {
-    const s = new Set();
-    seriesData.forEach((sd) => sd.forEach((c) => s.add(c.t)));
-    return [...s].sort((a, b) => a - b);
-  }, [seriesData]);
+  // Compute window
+  const allTimestamps = useMemo(() => {
+    const ts = [];
+    allSeriesChanges.forEach(s => s.forEach(c => ts.push(c.t)));
+    return ts.sort((a, b) => a - b);
+  }, [allSeriesChanges]);
+
+  const windowMs = range === "ALL"
+    ? (allTimestamps.length > 1 ? liveNow - allTimestamps[0] + 3600_000 : 7 * 86400_000)
+    : MC_WINDOW_MS[range];
+  const winStart = liveNow - windowMs;
+
+  const seriesData = useMemo(() =>
+    answers.map((a, i) => {
+      const changes = allSeriesChanges[i];
+      const curP = Math.max(0.001, Math.min(0.999, getAnswerProb(a)));
+      const before = changes.filter((c) => c.t < winStart);
+      const within = changes.filter((c) => c.t >= winStart && c.t < liveNow);
+      const anchorP = before.length
+        ? before[before.length - 1].p
+        : within.length ? within[0].p : curP;
+      return [{ t: winStart, p: anchorP }, ...within, { t: liveNow, p: curP }];
+    }),
+    [answers, allSeriesChanges, winStart, liveNow],
+  );
+
+  const lastProbs = seriesData.map((s) => s[s.length - 1]?.p ?? 0.5);
+
+  const xOf = (t) => Math.min(W, Math.max(0, ((t - winStart) / windowMs) * W));
 
   const getValAt = (series, t) => {
     let v = series[0]?.p ?? 0.5;
@@ -476,28 +477,8 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     return v;
   };
 
-  // Dynamic Y range
-  const allProbs = seriesData
-    .flat()
-    .map((c) => c.p)
-    .filter(Number.isFinite);
-  const dataMin = allProbs.length ? Math.min(...allProbs) : 0;
-  const dataMax = allProbs.length ? Math.max(...allProbs) : 1;
-  const pad5 = Math.max(0.05, (dataMax - dataMin) * 0.25);
-  const yMin = Math.max(0, dataMin - pad5);
-  const yMax = Math.min(1, dataMax + pad5);
-  const yrng = yMax - yMin || 1;
-  const yOf = (p) => BOT - ((p - yMin) / yrng) * (BOT - TOP);
-  const yTicks = [yMax, yMin + yrng * 0.667, yMin + yrng * 0.333, yMin].map(
-    (v) => Math.round(v * 100) + "%",
-  );
-
-  const xOf = (t) => ((t - winStart) / windowMs) * W;
-
-  const useDashing = answers.length <= 3;
-  const MC_OVERLAP_THRESH = 0.005;
-
-  const mcPtsToD = (pts) => {
+  // Step path builder
+  const ptsToD = (pts) => {
     if (pts.length < 2) return "";
     let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
     for (let i = 1; i < pts.length; i++)
@@ -505,95 +486,24 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     return d;
   };
 
-  const mcSplitPath = (pts, closeFlags) => {
-    let solidSegs = [], dashSegs = [], cur = [], curClose = closeFlags[0];
-    for (let i = 0; i < pts.length; i++) {
-      const c = closeFlags[i];
-      if (c !== curClose) {
-        cur.push(pts[i]);
-        (curClose ? dashSegs : solidSegs).push([...cur]);
-        cur = [pts[i]];
-        curClose = c;
-      }
-      cur.push(pts[i]);
-    }
-    (curClose ? dashSegs : solidSegs).push(cur);
-    return {
-      solidD: solidSegs.map(mcPtsToD).join(" "),
-      dashD: dashSegs.map(mcPtsToD).join(" "),
-    };
-  };
-
-  const paths = seriesData.map((series, i) => {
+  const paths = seriesData.map((series) => {
     const pts = series.map((c) => [xOf(c.t), yOf(c.p)]);
-    const d = mcPtsToD(pts);
-    if (!useDashing) return { d, pts, last: pts[pts.length - 1], solidD: d, dashD: "" };
-    const closeFlags = series.map((c, idx) => {
-      const minGap = Math.min(
-        ...seriesData
-          .filter((_, j) => j !== i)
-          .map((other) => Math.abs(c.p - getValAt(other, c.t))),
-      );
-      if (minGap >= MC_OVERLAP_THRESH) return false;
-      const nextC = series[idx + 1];
-      if (!nextC) return false;
-      const nextMinGap = Math.min(
-        ...seriesData
-          .filter((_, j) => j !== i)
-          .map((other) => Math.abs(nextC.p - getValAt(other, nextC.t))),
-      );
-      return nextMinGap <= minGap + 0.005;
-    });
-    const { solidD, dashD } = mcSplitPath(pts, closeFlags);
-    return { d, pts, last: pts[pts.length - 1], solidD, dashD };
+    return { d: ptsToD(pts), last: pts[pts.length - 1] };
   });
 
-  const lastProbs = seriesData.map((s) => s[s.length - 1]?.p ?? 0.5);
-
-  // X-axis
-  const pad = (v) => String(v).padStart(2, "0");
-  const fmtX = (d) => {
-    if (range === "Live" || range === "1h" || range === "1d")
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  };
-  const fmtTip = (d) => {
-    if (range === "Live" || range === "1h" || range === "1d")
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
-
-  const labelStepMs = MC_LABEL_STEP[range];
-  const firstT = Math.ceil(winStart / labelStepMs) * labelStepMs;
-  const slideLabels = [];
-  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
-    const frac = (t - winStart) / windowMs;
-    if (frac >= -0.02 && frac <= 1.02)
-      slideLabels.push({ t, leftPct: frac * 100 });
-  }
-
-  const labelLeft = `${(W / 1000) * 100 + 1}%`;
-
-  // ── Range drag-select ────────────────────────────────────────────────────────
+  // Hover + drag-select
   const [dragState, setDragState] = useState(null);
   const [rangeSelect, setRangeSelect] = useState(null);
   const dragStartRef = useRef(null);
 
-  // Clear range when time range changes
-  useEffect(() => {
-    setRangeSelect(null);
-    setDragState(null);
-  }, [range]);
+  useEffect(() => { setRangeSelect(null); setDragState(null); }, [range]);
 
   const getFrac = (e) => {
     const el = chartRef.current;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    return Math.min(
-      1,
-      Math.max(0, (clientX - rect.left) / ((rect.width * W) / 1000)),
-    );
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
   const onMove = (e) => {
@@ -605,18 +515,9 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     }
     if (!rangeSelect) setHoverT(winStart + frac * windowMs);
   };
-
-  const onTouchStart = (e) => {
-    e.preventDefault();
-    const frac = getFrac(e);
-    if (!rangeSelect) setHoverT(winStart + frac * windowMs);
-  };
-
-  const onTouchMove = (e) => {
-    e.preventDefault();
-    const frac = getFrac(e);
-    if (!rangeSelect) setHoverT(winStart + frac * windowMs);
-  };
+  const onTouchStart = (e) => { e.preventDefault(); if (!rangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const onTouchMove = (e) => { e.preventDefault(); if (!rangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const onLeave = () => { if (!dragStartRef.current) setHoverT(null); };
 
   const onDown = (e) => {
     if (e.button !== 0) return;
@@ -626,23 +527,14 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     setRangeSelect(null);
     setHoverT(null);
     e.preventDefault();
-    const moveG = (ev) => {
-      const f = getFrac(ev);
-      setDragState({ f1: dragStartRef.current, f2: f });
-    };
+    const moveG = (ev) => setDragState({ f1: dragStartRef.current, f2: getFrac(ev) });
     const upG = (ev) => {
       const f = getFrac(ev);
       const s = dragStartRef.current;
       dragStartRef.current = null;
-      const lo = Math.min(s, f),
-        hi = Math.max(s, f);
-      if (hi - lo < 0.01) {
-        setDragState(null);
-        setRangeSelect(null);
-      } else {
-        setDragState(null);
-        setRangeSelect({ f1: lo, f2: hi });
-      }
+      const lo = Math.min(s, f), hi = Math.max(s, f);
+      if (hi - lo < 0.01) { setDragState(null); setRangeSelect(null); }
+      else { setDragState(null); setRangeSelect({ f1: lo, f2: hi }); }
       window.removeEventListener("mousemove", moveG);
       window.removeEventListener("mouseup", upG);
     };
@@ -651,77 +543,100 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
   };
 
   const activeRange = dragState || rangeSelect;
-  const rangeInfo = activeRange
-    ? (() => {
-        const lo = Math.min(activeRange.f1, activeRange.f2);
-        const hi = Math.max(activeRange.f1, activeRange.f2);
-        const t1 = winStart + lo * windowMs;
-        const t2 = winStart + hi * windowMs;
-        return {
-          t1,
-          t2,
-          x1: lo * W,
-          x2: hi * W,
-          deltas: seriesData.map((s) => {
-            const p1 = getValAt(s, t1),
-              p2 = getValAt(s, t2);
-            return { pEnd: p2, delta: p2 - p1 };
-          }),
-        };
-      })()
-    : null;
+  const rangeInfo = activeRange ? (() => {
+    const lo = Math.min(activeRange.f1, activeRange.f2);
+    const hi = Math.max(activeRange.f1, activeRange.f2);
+    const t1 = winStart + lo * windowMs;
+    const t2 = winStart + hi * windowMs;
+    return {
+      t1, t2, x1: lo * W, x2: hi * W,
+      deltas: seriesData.map((s) => {
+        const p1 = getValAt(s, t1), p2 = getValAt(s, t2);
+        return { pEnd: p2, delta: p2 - p1 };
+      }),
+    };
+  })() : null;
 
-  const hover =
-    hoverT == null
-      ? { active: false }
-      : (() => {
-          let bt = allTs[0] ?? liveNow;
-          for (const t of allTs) {
-            if (Math.abs(t - hoverT) < Math.abs(bt - hoverT)) bt = t;
-          }
-          const hx = xOf(bt);
-          const hProbs = seriesData.map((s) => getValAt(s, bt));
-          return {
-            active: true,
-            x: hx.toFixed(1),
-            ys: hProbs.map((p) => yOf(p).toFixed(1)),
-            tipLeft: `${((hx / 1000) * 100).toFixed(1)}%`,
-            time: fmtTip(new Date(bt)),
-            probs: hProbs.map((p) => Math.round(p * 100)),
-          };
-        })();
+  const hover = hoverT == null ? null : (() => {
+    const hx = xOf(hoverT);
+    const hProbs = seriesData.map((s) => getValAt(s, hoverT));
+    return { x: hx, frac: hx / W, probs: hProbs, ys: hProbs.map(yOf), time: hoverT };
+  })();
+
+  // Time labels
+  const pad2 = (v) => String(v).padStart(2, "0");
+  const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const fmtX = (d) => {
+    if (range === "1H" || range === "6H" || range === "1D")
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+  };
+  const fmtTip = (d) => {
+    const mon = MONTHS_SHORT[d.getMonth()];
+    const day = d.getDate();
+    const h = d.getHours(), m = pad2(d.getMinutes());
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
+  };
+
+  const labelStepMs = range === "ALL"
+    ? (windowMs > 60 * 86400_000 ? 30 * 86400_000 : windowMs > 14 * 86400_000 ? 7 * 86400_000 : 86400_000)
+    : MC_LABEL_STEP[range];
+  const firstT = Math.ceil(winStart / labelStepMs) * labelStepMs;
+  const rawXLabels = [];
+  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
+    const frac = (t - winStart) / windowMs;
+    if (frac >= 0 && frac <= 1) rawXLabels.push({ t, leftPct: frac * 100 });
+  }
+  // Thin out X labels so they don't overlap — keep every Nth label on mobile
+  const xLabels = (() => {
+    if (rawXLabels.length <= 1) return rawXLabels;
+    const avgGap = rawXLabels.length > 1 ? (rawXLabels[rawXLabels.length - 1].leftPct - rawXLabels[0].leftPct) / (rawXLabels.length - 1) : 100;
+    const minGap = isMobile ? 14 : 8;
+    if (avgGap >= minGap) return rawXLabels;
+    const step = Math.ceil(minGap / avgGap);
+    return rawXLabels.filter((_, i) => i % step === 0);
+  })();
+
+  // End label collision avoidance — big enough gap so 24px number doesn't cover neighbor's name
+  const labelH = 52;
+  const endItems = answers.map((a, i) => ({
+    idx: i,
+    label: a.answerLabel.length > 16 ? a.answerLabel.slice(0, 15) + "…" : a.answerLabel,
+    prob: lastProbs[i],
+    y: yOf(lastProbs[i]),
+    theme: getOptionTheme(i, answers.length),
+  }));
+  const sortedEnd = [...endItems].sort((a, b) => a.y - b.y);
+  for (let i = 1; i < sortedEnd.length; i++) {
+    if (sortedEnd[i].y - sortedEnd[i - 1].y < labelH) {
+      sortedEnd[i].y = sortedEnd[i - 1].y + labelH;
+    }
+  }
+  sortedEnd.forEach(s => { s.y = Math.max(0, Math.min(CHART_H - labelH, s.y - labelH / 2)); });
 
   return (
     <div style={{ userSelect: "none", WebkitUserSelect: "none" }}>
-      {/* Header: volume + range tabs */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "16px",
-        }}
-      >
-        <span style={{ font: `600 13px ${FONT_BODY}`, color: "#93a7bd" }}>
-          {t('marketDetails.volume')}: <b style={{ color: TEXT, fontWeight: 800 }}>—</b>
-        </span>
-        <div style={{ display: "flex", gap: "2px" }}>
+      <style>{`
+        @keyframes mcPulse2{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.7}50%{transform:translate(-50%,-50%) scale(2.2);opacity:0}}
+      `}</style>
+
+      {/* Range selector */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "flex-end",
+        marginBottom: "12px",
+      }}>
+        <div style={{ display: "flex", gap: "0" }}>
           {MC_RANGES.map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setRange(r);
-                setHoverT(null);
-              }}
+            <button key={r}
+              onClick={() => { setRange(r); setHoverT(null); }}
               style={{
-                padding: "5px 11px",
-                borderRadius: "7px",
-                border: "none",
-                cursor: "pointer",
-                font: `700 12px ${FONT_BODY}`,
-                background:
-                  r === range ? "rgba(255,255,255,0.14)" : "transparent",
-                color: r === range ? "#ffffff" : "#8397ad",
+                padding: "5px 10px", border: "none", cursor: "pointer",
+                font: `700 11px ${FONT_BODY}`, letterSpacing: ".02em",
+                background: "transparent",
+                color: r === range ? "#ffffff" : "rgba(255,255,255,0.3)",
+                transition: "color .15s",
               }}
             >
               {r}
@@ -730,332 +645,211 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
         </div>
       </div>
 
-      {/* Range selection date header is rendered as overlay inside the chart area */}
-
-      {/* Chart + Y-axis column */}
-      <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
-        {/* SVG plot area */}
+      {/* Chart area */}
+      <div style={{ display: "flex", position: "relative" }}>
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "none", cursor: "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={onDown}
-          onMouseLeave={() => {
-            if (!dragStartRef.current) setHoverT(null);
-          }}
+          onMouseLeave={onLeave}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
         >
           <svg
-            viewBox="0 0 1000 380"
+            viewBox={`0 0 ${W} ${CHART_H}`}
             preserveAspectRatio="none"
-            style={{
-              width: "100%",
-              height: "260px",
-              display: "block",
-              cursor: "crosshair",
-              shapeRendering: "geometricPrecision",
-              overflow: "visible",
-              touchAction: "none",
-            }}
+            style={{ width: "100%", height: isMobile ? "200px" : "260px", display: "block", overflow: "visible" }}
           >
-            {/* Range selection highlight */}
+            {/* Range highlight */}
             {rangeInfo && (
-              <rect
-                x={rangeInfo.x1}
-                y={TOP}
-                width={rangeInfo.x2 - rangeInfo.x1}
-                height={BOT - TOP}
-                fill="rgba(255,255,255,0.06)"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="1"
-              />
+              <rect x={rangeInfo.x1} y="0" width={rangeInfo.x2 - rangeInfo.x1} height={CHART_H}
+                fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
             )}
 
-            {/* Dashed grid lines */}
-            {[20, 110, 200, 290, 360].map((y) => (
-              <line
-                key={y}
-                x1="0"
-                y1={y}
-                x2="1000"
-                y2={y}
-                stroke="rgba(255,255,255,0.22)"
-                strokeDasharray="4 4"
-              />
+            {/* Grid */}
+            {Y_TICKS.map((tick) => (
+              <line key={tick} x1="0" y1={yOf(tick)} x2={W} y2={yOf(tick)}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
             ))}
 
             <defs>
-              {hover.active && (
+              {hover && (
                 <clipPath id="mc-left-clip">
-                  <rect x="0" y="0" width={hover.x} height="380" />
+                  <rect x="0" y="0" width={hover.x} height={CHART_H} />
                 </clipPath>
               )}
               {rangeInfo && (
                 <clipPath id="mc-range-clip">
-                  <rect x={rangeInfo.x1} y="0" width={rangeInfo.x2 - rangeInfo.x1} height="380" />
+                  <rect x={rangeInfo.x1} y="0" width={rangeInfo.x2 - rangeInfo.x1} height={CHART_H} />
                 </clipPath>
               )}
             </defs>
 
             {/* Lines */}
             {paths.map((p, i) => {
-              const t = getOptionTheme(i, answers.length);
+              const theme = getOptionTheme(i, answers.length);
               const isSel = i === selectedIdx;
-              const sw = isSel ? 3 : 2.5;
-              const seg = 16;
-              const off = -(i * seg);
-              const greyColor = "rgba(255,255,255,0.15)";
-              const useGrey = hover.active || !!rangeInfo;
-              const clipId = hover.active ? "url(#mc-left-clip)" : rangeInfo ? "url(#mc-range-clip)" : undefined;
+              const sw = isSel ? 2.8 : 2;
+              const isGreyed = hover || !!rangeInfo;
+              const clipId = hover ? "url(#mc-left-clip)" : rangeInfo ? "url(#mc-range-clip)" : undefined;
               return (
-                <g
-                  key={i}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => onSelectIdx(i)}
-                >
-                  {/* Solid segments (or full path when no dashing) */}
-                  <path
-                    d={p.solidD}
-                    fill="none"
-                    strokeLinejoin="round"
-                    stroke={useGrey ? greyColor : t.color}
-                    strokeWidth={sw}
-                    strokeOpacity={useGrey ? 1 : isSel ? 1 : 0.85}
-                  />
+                <g key={i} style={{ cursor: "pointer" }} onClick={() => onSelectIdx(i)}>
+                  <path d={p.d} fill="none" strokeLinejoin="round"
+                    stroke={isGreyed ? "rgba(255,255,255,0.12)" : theme.color}
+                    strokeWidth={sw} strokeOpacity={isGreyed ? 1 : isSel ? 1 : 0.7} />
                   {clipId && (
-                    <path
-                      d={p.solidD}
-                      fill="none"
-                      strokeLinejoin="round"
-                      stroke={t.color}
-                      strokeWidth={sw + 0.5}
-                      clipPath={clipId}
-                    />
-                  )}
-                  {/* Dashed overlap segments (only for ≤3 options) */}
-                  {useDashing && p.dashD && (
-                    <>
-                      <path
-                        d={p.dashD}
-                        fill="none"
-                        strokeLinejoin="round"
-                        stroke={useGrey ? greyColor : t.color}
-                        strokeWidth={sw}
-                        strokeDasharray={`${seg} ${seg}`}
-                        strokeDashoffset={off}
-                        strokeOpacity={useGrey ? 1 : isSel ? 1 : 0.85}
-                      />
-                      {clipId && (
-                        <path
-                          d={p.dashD}
-                          fill="none"
-                          strokeLinejoin="round"
-                          stroke={t.color}
-                          strokeWidth={sw + 0.5}
-                          strokeDasharray={`${seg} ${seg}`}
-                          strokeDashoffset={off}
-                          clipPath={clipId}
-                        />
-                      )}
-                    </>
+                    <path d={p.d} fill="none" strokeLinejoin="round"
+                      stroke={theme.color} strokeWidth={sw + 0.5}
+                      strokeOpacity={isSel ? 1 : 0.85} clipPath={clipId} />
                   )}
                 </g>
               );
             })}
 
-            {/* Pulsing dots moved to HTML overlay below */}
-
-            {/* Hover crosshair line — dots moved to HTML overlay */}
-            {hover.active && (
-              <line
-                x1={hover.x}
-                y1="0"
-                x2={hover.x}
-                y2="380"
-                stroke="rgba(255,255,255,0.35)"
-                strokeDasharray="3 4"
-              />
+            {/* Hover crosshair */}
+            {hover && (
+              <line x1={hover.x} y1="0" x2={hover.x} y2={CHART_H}
+                stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="4 4" />
             )}
           </svg>
 
-          {/* Pulsing dots — HTML overlay so they stay round */}
-          {!hover.active && !rangeInfo &&
-            paths.map((p, i) => {
-              const t = getOptionTheme(i, answers.length);
-              if (!p.last) return null;
-              const leftPct = (p.last[0] / 1000) * 100;
-              const topPx = (p.last[1] / 380) * 260;
-              return (
-                <div key={`mc-pulse-${i}`} style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  top: topPx,
-                  transform: "translate(-50%, -50%)",
-                  pointerEvents: "none",
-                }}>
-                  <div style={{
-                    width: 10, height: 10, borderRadius: "50%",
-                    background: t.color,
-                  }} />
-                  <div style={{
-                    position: "absolute", top: "50%", left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 10, height: 10, borderRadius: "50%",
-                    border: `2px solid ${t.color}`,
-                    animation: "mcPulse 1.8s infinite",
-                  }} />
-                </div>
-              );
-            })}
-
-          {/* Hover intercept dots — HTML so they stay round */}
-          {hover.active &&
-            paths.map((p, i) => {
-              const t = getOptionTheme(i, answers.length);
-              const leftPct = (parseFloat(hover.x) / 1000) * 100;
-              const topPx = (parseFloat(hover.ys[i]) / 380) * 260;
-              const size = i === selectedIdx ? 10 : 8;
-              return (
-                <div key={`hover-dot-${i}`} style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  top: topPx,
-                  transform: "translate(-50%, -50%)",
-                  width: size, height: size, borderRadius: "50%",
-                  background: "#0c1a2c",
-                  border: `2.5px solid ${t.color}`,
-                  pointerEvents: "none",
+          {/* Pulsing end dots */}
+          {!hover && !rangeInfo && paths.map((p, i) => {
+            const theme = getOptionTheme(i, answers.length);
+            if (!p.last) return null;
+            const leftPct = (p.last[0] / W) * 100;
+            const topPct = (p.last[1] / CHART_H) * 100;
+            return (
+              <div key={`mc-pulse-${i}`} style={{
+                position: "absolute", left: `${leftPct}%`, top: `${topPct}%`,
+                transform: "translate(-50%, -50%)", pointerEvents: "none",
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: theme.color }} />
+                <div style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: 8, height: 8, borderRadius: "50%",
+                  border: `2px solid ${theme.color}`,
+                  animation: "mcPulse2 2s infinite",
                 }} />
-              );
-            })}
+              </div>
+            );
+          })}
 
-          {/* Hover date label (HTML so it doesn't scale with SVG) */}
-          {hover.active && (
-            <div
-              style={{
+          {/* Hover dots */}
+          {hover && hover.probs.map((prob, i) => {
+            const theme = getOptionTheme(i, answers.length);
+            return (
+              <div key={`hdot-${i}`} style={{
                 position: "absolute",
-                top: 0,
-                left: parseFloat(hover.x) > 700 ? "auto" : hover.tipLeft,
-                right:
-                  parseFloat(hover.x) > 700
-                    ? `${100 - parseFloat(hover.tipLeft)}%`
-                    : "auto",
-                font: `600 11px ${FONT_BODY}`,
-                color: "#5d7189",
-                whiteSpace: "nowrap",
+                left: `${(hover.x / W) * 100}%`,
+                top: `${(hover.ys[i] / CHART_H) * 100}%`,
+                transform: "translate(-50%, -50%)",
+                width: i === selectedIdx ? 10 : 8,
+                height: i === selectedIdx ? 10 : 8,
+                borderRadius: "50%",
+                background: "#0e121d",
+                border: `2.5px solid ${theme.color}`,
                 pointerEvents: "none",
-                userSelect: "none",
-                padding: "2px 4px",
-              }}
-            >
-              {hover.time}
+              }} />
+            );
+          })}
+
+          {/* Hover tooltip */}
+          {hover && (
+            <div style={{
+              position: "absolute", top: -24,
+              left: hover.frac > 0.6 ? "auto" : `${(hover.x / W) * 100}%`,
+              right: hover.frac > 0.6 ? `${(1 - hover.x / W) * 100}%` : "auto",
+              transform: hover.frac > 0.6 ? "none" : "translateX(-50%)",
+              font: `600 12px ${FONT_BODY}`, color: "#8ca0b6",
+              whiteSpace: "nowrap", pointerEvents: "none",
+              background: "rgba(14,18,29,0.85)", padding: "3px 8px",
+              borderRadius: "6px", zIndex: 20,
+            }}>
+              {fmtTip(new Date(hover.time))}
             </div>
           )}
 
-          {/* Range date + close overlay — centered above selection */}
+          {/* Range date + close button */}
           {rangeInfo && !dragState && (() => {
-            const leftPct = (rangeInfo.x1 / 1000) * 100;
-            const widthPct = ((rangeInfo.x2 - rangeInfo.x1) / 1000) * 100;
+            const midPct = ((rangeInfo.x1 + rangeInfo.x2) / 2 / W) * 100;
             return (
               <div style={{
-                position: "absolute",
-                left: `${leftPct}%`,
-                width: `${widthPct}%`,
-                top: "-4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                pointerEvents: "auto",
-                zIndex: 10,
+                position: "absolute", top: "-24px",
+                left: `${midPct}%`, transform: "translateX(-50%)",
+                display: "flex", alignItems: "center", gap: "6px",
+                pointerEvents: "auto", zIndex: 20,
+                background: "rgba(14,18,29,0.85)", padding: "3px 8px",
+                borderRadius: "6px", whiteSpace: "nowrap",
               }}>
-                <span style={{
-                  font: `600 11px ${FONT_BODY}`,
-                  color: "#8ca0b6",
-                  whiteSpace: "nowrap",
-                }}>
+                <span style={{ font: `600 12px ${FONT_BODY}`, color: "#8ca0b6" }}>
                   {new Date(rangeInfo.t1).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   {" – "}
                   {new Date(rangeInfo.t2).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
-                <button
-                  onClick={() => { setRangeSelect(null); setDragState(null); }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#5d7189",
-                    font: `700 11px ${FONT_BODY}`,
-                    cursor: "pointer",
-                    padding: "0 4px",
-                    lineHeight: 1,
-                  }}
-                >
+                <button onClick={() => { setRangeSelect(null); setDragState(null); }}
+                  style={{ background: "none", border: "none", color: "#5d7189",
+                    font: `700 12px ${FONT_BODY}`, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}>
                   ✕
                 </button>
               </div>
             );
           })()}
 
-          {/* Unified labels — exact position when static, collision-avoided when hovering/range */}
+          {/* Labels — follow hover/range or stick to end */}
           {(() => {
-            const SVG_H = 380;
-            // For range selection, show labels at the right edge of the range
-            const useRange = rangeInfo && !hover.active;
-            const rangeProbs = useRange
-              ? rangeInfo.deltas.map((d) => d.pEnd)
-              : null;
-            const rawTops = paths.map((p, i) => {
-              const svgY = hover.active
-                ? parseFloat(hover.ys[i])
-                : useRange
-                  ? yOf(rangeProbs[i])
-                  : yOf(lastProbs[i]);
-              return (svgY / SVG_H) * 100 - 4;
-            });
-            // Always apply collision avoidance to prevent label overlap
-            const tops = mcAvoidCollisions(rawTops);
-            const probs = hover.active
+            const useRange = rangeInfo && !hover;
+            // Compute probs and position
+            const probs = hover
               ? hover.probs
               : useRange
-                ? rangeProbs.map((p) => Math.round(p * 100))
-                : answers.map((a, i) => Math.round(lastProbs[i] * 100));
-            const leftPos = hover.active
-              ? `calc(${hover.tipLeft} + 12px)`
+                ? rangeInfo.deltas.map(d => d.pEnd)
+                : lastProbs;
+            const yPositions = probs.map(p => yOf(p));
+
+            // Collision avoidance
+            const items = answers.map((a, i) => ({
+              idx: i, y: yPositions[i],
+              label: a.answerLabel.length > 16 ? a.answerLabel.slice(0, 15) + "…" : a.answerLabel,
+              theme: getOptionTheme(i, answers.length),
+            }));
+            const sorted = [...items].sort((a, b) => a.y - b.y);
+            const lblH = 56;
+            for (let i = 1; i < sorted.length; i++) {
+              if (sorted[i].y - sorted[i - 1].y < lblH) sorted[i].y = sorted[i - 1].y + lblH;
+            }
+            sorted.forEach(s => { s.y = Math.max(0, Math.min(CHART_H - lblH, s.y - lblH / 2)); });
+
+            // Left position
+            const leftPos = hover
+              ? `calc(${(hover.x / W) * 100}% + 14px)`
               : useRange
-                ? `${((rangeInfo.x2 / 1000) * 100 + 1)}%`
-                : labelLeft;
-            return answers.map((a, i) => {
-              const t = getOptionTheme(i, answers.length);
-              const name =
-                a.answerLabel.length > 14
-                  ? a.answerLabel.slice(0, 13) + "…"
-                  : a.answerLabel;
-              const deltaPct = useRange
-                ? Math.round(rangeInfo.deltas[i].delta * 1000) / 10
-                : null;
+                ? `calc(${(rangeInfo.x2 / W) * 100}% + 14px)`
+                : undefined; // right-aligned
+
+            return items.map((item) => {
+              const adj = sorted.find(s => s.idx === item.idx);
+              const yPos = adj ? adj.y : item.y;
+              const prob = probs[item.idx];
+              const pctStr = prob >= 0.01 ? `${Math.round(prob * 100)}%` : `${(prob * 100).toFixed(1)}%`;
+              const delta = useRange ? rangeInfo.deltas[item.idx].delta : null;
+              const deltaPct = delta != null ? Math.round(delta * 1000) / 10 : null;
               return (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    left: leftPos,
-                    top: `${tops[i]}%`,
-                    whiteSpace: "nowrap",
-                    pointerEvents: "none",
-                    zIndex: 5,
-                    transition: "top 0.35s ease, left 0.35s ease",
-                  }}
-                >
-                  <div
-                    style={{ font: `700 12px ${FONT_BODY}`, color: t.color }}
-                  >
-                    {name}
+                <div key={item.idx} style={{
+                  position: "absolute",
+                  ...(leftPos
+                    ? { left: leftPos }
+                    : { right: 0, transform: "translateX(calc(100% + 14px))" }),
+                  top: `${(yPos / CHART_H) * 100}%`,
+                  whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
+                  transition: hover ? "none" : "top 0.3s ease, left 0.3s ease",
+                }}>
+                  <div style={{ font: `600 12px ${FONT_BODY}`, color: item.theme.color, lineHeight: 1.2 }}>
+                    {item.label}
                   </div>
-                  <div
-                    style={{ font: `800 14px ${FONT_HEAD}`, color: t.color }}
-                  >
-                    {probs[i]}%
+                  <div style={{ font: `800 24px ${FONT_HEAD}`, color: item.theme.color, lineHeight: 1.1 }}>
+                    {pctStr}
                   </div>
                   {deltaPct != null && (
                     <div style={{
@@ -1069,55 +863,45 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               );
             });
           })()}
-
-          {/* X-axis — sliding timeline, labels drift left as liveNow advances */}
-          <div
-            style={{
-              position: "relative",
-              height: "18px",
-              marginTop: "8px",
-              overflow: "hidden",
-            }}
-          >
-            {slideLabels.map(({ t, leftPct }) => (
-              <span
-                key={Math.round(t / labelStepMs)}
-                style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  transform: "translateX(-50%)",
-                  transition: "left 1s linear",
-                  font: `600 11px ${FONT_BODY}`,
-                  color: "#5d7189",
-                  whiteSpace: "nowrap",
-                  userSelect: "none",
-                }}
-              >
-                {fmtX(new Date(t))}
-              </span>
-            ))}
-          </div>
         </div>
 
-        {/* Right Y-axis column */}
-        <div
-          style={{
-            flexShrink: 0,
-            width: "38px",
-            height: "260px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            font: `600 11px ${FONT_BODY}`,
-            color: "#5d7189",
-            textAlign: "right",
-          }}
-        >
-          {yTicks.map((t, i) => (
-            <span key={i}>{t}</span>
+        {/* Y-axis */}
+        <div style={{
+          flexShrink: 0, width: "44px",
+          height: isMobile ? "200px" : "260px",
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
+          paddingLeft: "10px",
+          marginLeft: isMobile ? "60px" : "80px",
+        }}>
+          {Y_TICKS.map((tick) => (
+            <span key={tick} style={{
+              font: `500 11px ${FONT_BODY}`,
+              color: "rgba(255,255,255,0.28)",
+              lineHeight: 1,
+            }}>
+              {Math.round(tick * 100)}%
+            </span>
           ))}
         </div>
       </div>
+
+      {/* X-axis */}
+      <div style={{
+        position: "relative", height: "22px", marginTop: "8px",
+        marginRight: isMobile ? "104px" : "124px",
+      }}>
+        {xLabels.map(({ t, leftPct }) => (
+          <span key={t} style={{
+            position: "absolute", left: `${leftPct}%`,
+            transform: "translateX(-50%)",
+            font: `500 11px ${FONT_BODY}`, color: "rgba(255,255,255,0.3)",
+            whiteSpace: "nowrap",
+          }}>
+            {fmtX(new Date(t))}
+          </span>
+        ))}
+      </div>
+
     </div>
   );
 }
@@ -1339,6 +1123,7 @@ function MultiChoiceTradePanel({
   const toast = useToast();
   const { login } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [tab, setTab] = useState("buy");
   const [buyOutcome, setBuyOutcome] = useState("YES");
   const [amount, setAmount] = useState(10);
@@ -1544,7 +1329,8 @@ function MultiChoiceTradePanel({
             You need an account to participate
           </div>
         </div>
-        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} />
+        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} onForgotPassword={() => { setIsLoginModalOpen(false); setIsForgotPasswordOpen(true); }} />
+        <ForgotPasswordModal isOpen={isForgotPasswordOpen} onClose={() => setIsForgotPasswordOpen(false)} onSwitchToLogin={() => { setIsForgotPasswordOpen(false); setIsLoginModalOpen(true); }} />
       </div>
     );
   }
@@ -2152,6 +1938,173 @@ function OptionRow({ answer, index, total, selected, onClick }) {
   );
 }
 
+// ─── Country code mapping for team flags ────────────────────────────────────
+const TEAM_COUNTRY_CODE = {
+  argentina: "ar", brazil: "br", mexico: "mx", "united states": "us", usa: "us",
+  germany: "de", netherlands: "nl", spain: "es", france: "fr", colombia: "co",
+  uruguay: "uy", england: "gb-eng", portugal: "pt", italy: "it", japan: "jp",
+  "south korea": "kr", australia: "au", canada: "ca", croatia: "hr", belgium: "be",
+  morocco: "ma", senegal: "sn", switzerland: "ch", denmark: "dk", poland: "pl",
+  sweden: "se", norway: "no", chile: "cl", peru: "pe", ecuador: "ec",
+  paraguay: "py", bolivia: "bo", venezuela: "ve", "costa rica": "cr",
+  panama: "pa", honduras: "hn", jamaica: "jm", qatar: "qa", "saudi arabia": "sa",
+  iran: "ir", "czech republic": "cz", czechia: "cz", austria: "at", turkey: "tr",
+  wales: "gb-wls", scotland: "gb-sct", ireland: "ie", iceland: "is",
+  serbia: "rs", ukraine: "ua", romania: "ro", ghana: "gh", nigeria: "ng",
+  cameroon: "cm", egypt: "eg", tunisia: "tn", algeria: "dz",
+  "new zealand": "nz", china: "cn", india: "in", russia: "ru",
+  hungary: "hu", greece: "gr", slovakia: "sk", slovenia: "si",
+  "bosnia and herzegovina": "ba", albania: "al", montenegro: "me",
+  "north macedonia": "mk", finland: "fi", draw: null,
+};
+
+function getCountryCode(teamName) {
+  if (!teamName) return null;
+  return TEAM_COUNTRY_CODE[teamName.toLowerCase().trim()] || null;
+}
+
+function getFlagUrl(code) {
+  if (!code) return null;
+  return `https://flagcdn.com/w160/${code}.png`;
+}
+
+// ─── Seeded random for stable "match day" per market ─────────────────────────
+function seededRandom(seed) {
+  let x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function getMatchDay(marketId) {
+  const base = new Date();
+  const offset = Math.floor(seededRandom(marketId || 1) * 14) + 1;
+  const d = new Date(base.getTime() + offset * 86400000);
+  return d;
+}
+
+// ─── Match Banner ────────────────────────────────────────────────────────────
+function parseMatchTeams(title, answers) {
+  // Try "X vs Y" pattern from title
+  const vsMatch = title?.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
+  if (vsMatch) return [vsMatch[1].trim(), vsMatch[2].trim()];
+
+  // Fallback: use first two non-Draw answers
+  if (Array.isArray(answers)) {
+    const teams = answers
+      .map((a) => a.answerLabel || a.market?.yesLabel || a.label)
+      .filter((l) => l && l.toLowerCase() !== "draw");
+    if (teams.length >= 2) return [teams[0], teams[1]];
+  }
+  return null;
+}
+
+function MatchBanner({ title, answers, marketId, isMobile }) {
+  const teams = parseMatchTeams(title, answers);
+  if (!teams) return null;
+
+  const [teamA, teamB] = teams;
+  const codeA = getCountryCode(teamA);
+  const codeB = getCountryCode(teamB);
+
+  // Only show banner if at least one team has a flag
+  if (!codeA && !codeB) return null;
+
+  const matchDay = getMatchDay(marketId);
+  const dayNames = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+  const monthNames = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+  const dayLabel = `${dayNames[matchDay.getDay()]} ${matchDay.getDate()} ${monthNames[matchDay.getMonth()]}`;
+
+  const flagSize = isMobile ? 40 : 48;
+
+  const TeamBadge = ({ name, code, align }) => (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? "8px" : "12px",
+      flexDirection: align === "left" ? "row" : "row-reverse",
+      flex: "1 1 0px",
+      minWidth: 0,
+      justifyContent: "center",
+    }}>
+      {code ? (
+        <img
+          src={getFlagUrl(code)}
+          alt={name}
+          style={{
+            width: flagSize,
+            height: flagSize,
+            borderRadius: "50%",
+            objectFit: "cover",
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <div style={{
+          width: flagSize,
+          height: flagSize,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.06)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <span style={{ font: `700 ${flagSize * 0.35}px ${FONT_HEAD}`, color: "rgba(255,255,255,0.3)" }}>
+            {name.charAt(0)}
+          </span>
+        </div>
+      )}
+      <span style={{
+        font: `700 ${isMobile ? "13px" : "15px"} ${FONT_BODY}`,
+        color: TEXT,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}>
+        {name}
+      </span>
+    </div>
+  );
+
+  return (
+    <div style={{
+      ...MARKET_CARD,
+      padding: isMobile ? "14px" : "20px 22px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: isMobile ? "16px" : "32px",
+    }}>
+      <TeamBadge name={teamA} code={codeA} align="left" />
+
+      {/* Date + time */}
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "2px",
+        flexShrink: 0,
+      }}>
+        <span style={{
+          font: `600 ${isMobile ? "10px" : "11px"} ${FONT_BODY}`,
+          color: MUTED,
+          letterSpacing: ".06em",
+          textTransform: "uppercase",
+        }}>
+          {dayLabel}
+        </span>
+        <span style={{
+          font: `600 ${isMobile ? "13px" : "15px"} ${FONT_BODY}`,
+          color: TEXT,
+        }}>
+          16:00
+        </span>
+      </div>
+
+      <TeamBadge name={teamB} code={codeB} align="right" />
+    </div>
+  );
+}
+
 function StatRow({ label, value, valueColor }) {
   return (
     <div
@@ -2455,6 +2408,14 @@ function MarketLayout({
             </div>
           )}
 
+          {/* Match banner (shows for "X vs Y" markets) */}
+          <MatchBanner
+            title={title}
+            answers={answers}
+            marketId={market?.id}
+            isMobile={isMobile}
+          />
+
           {/* Chart card */}
           <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             {loading ? (
@@ -2658,20 +2619,22 @@ function MultiChoiceLayout({
 }
 
 // ─── Binary chart (real data, always full-width) ──────────────────────────────
-const BC_RANGES = ["Live", "1h", "1d", "1w", "1m"];
+const BC_RANGES = ["1H", "6H", "1D", "1W", "1M", "ALL"];
 const BC_WINDOW_MS = {
-  Live: 5 * 60_000,
-  "1h": 3600_000,
-  "1d": 86400_000,
-  "1w": 7 * 86400_000,
-  "1m": 30 * 86400_000,
+  "1H": 3600_000,
+  "6H": 6 * 3600_000,
+  "1D": 86400_000,
+  "1W": 7 * 86400_000,
+  "1M": 30 * 86400_000,
+  ALL: 0,
 };
 const BC_LABEL_STEP = {
-  Live: 60_000,
-  "1h": 15 * 60_000,
-  "1d": 4 * 3600_000,
-  "1w": 86400_000,
-  "1m": 5 * 86400_000,
+  "1H": 15 * 60_000,
+  "6H": 60 * 60_000,
+  "1D": 4 * 3600_000,
+  "1W": 86400_000,
+  "1M": 5 * 86400_000,
+  ALL: 7 * 86400_000,
 };
 
 function BinaryChart({
@@ -2683,54 +2646,47 @@ function BinaryChart({
 }) {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const curP = Math.max(0.01, Math.min(0.99, Number(rawProb) || 0.5));
-  const [range, setRange] = useState("Live");
+  const curP = Math.max(0.001, Math.min(0.999, Number(rawProb) || 0.5));
+  const [range, setRange] = useState("ALL");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
-  const initializedMobileHover = useRef(false);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setLiveNow(Date.now()), 1000);
+    const id = setInterval(() => setLiveNow(Date.now()), 5000);
     return () => clearInterval(id);
   }, []);
 
-  const W = 780,
-    SVG_H = 380,
-    TOP = 20,
-    BOT = 360;
-  const windowMs = BC_WINDOW_MS[range];
-  const winStart = liveNow - windowMs;
-
-  // On mobile, default hover to the latest point
-  useEffect(() => {
-    if (isMobile && !initializedMobileHover.current) {
-      initializedMobileHover.current = true;
-      setHoverT(liveNow);
-    }
-  }, [isMobile, liveNow]);
+  // Fixed Y-axis: always 0-100%
+  const CHART_H = 280;
+  const W = 1000;
+  const TOP = 0;
+  const BOT = CHART_H;
+  const yOf = (p) => BOT - p * (BOT - TOP);
+  const Y_TICKS = [1, 0.75, 0.5, 0.25, 0];
 
   const allChanges = useMemo(() => {
     const arr = Array.isArray(probabilityChanges) ? probabilityChanges : [];
-    const result = arr
+    return arr
       .map((c) => ({
         t: new Date(c.timestamp || c.Timestamp).getTime(),
         p: Number(c.probability ?? c.Probability),
       }))
       .filter((c) => Number.isFinite(c.t) && Number.isFinite(c.p))
       .sort((a, b) => a.t - b.t);
-    return result;
   }, [probabilityChanges]);
 
-  // Build YES series — always anchor at winStart so line spans full width
+  const windowMs = range === "ALL"
+    ? (allChanges.length > 1 ? liveNow - allChanges[0].t + 3600_000 : 7 * 86400_000)
+    : BC_WINDOW_MS[range];
+  const winStart = liveNow - windowMs;
+
   const yesData = useMemo(() => {
     const before = allChanges.filter((c) => c.t < winStart);
     const within = allChanges.filter((c) => c.t >= winStart && c.t < liveNow);
     const anchorP = before.length
       ? before[before.length - 1].p
-      : within.length
-        ? within[0].p
-        : curP;
+      : within.length ? within[0].p : curP;
     return [{ t: winStart, p: anchorP }, ...within, { t: liveNow, p: curP }];
   }, [allChanges, winStart, liveNow, curP]);
 
@@ -2739,25 +2695,9 @@ function BinaryChart({
     [yesData],
   );
 
-  const allProbs = [
-    ...yesData.map((c) => c.p),
-    ...noData.map((c) => c.p),
-  ].filter(Number.isFinite);
-  const dataMin = allProbs.length ? Math.min(...allProbs) : 0;
-  const dataMax = allProbs.length ? Math.max(...allProbs) : 1;
-  const pad5 = Math.max(0.05, (dataMax - dataMin) * 0.25);
-  const yMin = Math.max(0, dataMin - pad5);
-  const yMax = Math.min(1, dataMax + pad5);
-  const yrng = yMax - yMin || 1;
-  const yOf = (p) => BOT - ((p - yMin) / yrng) * (BOT - TOP);
-  const yTicks = [yMax, yMin + yrng * 0.667, yMin + yrng * 0.333, yMin].map(
-    (v) => Math.round(v * 100) + "%",
-  );
+  const xOf = (t) => Math.min(W, Math.max(0, ((t - winStart) / windowMs) * W));
 
-  const xOf = (t) => ((t - winStart) / windowMs) * W;
-
-  const CROSS_THRESH = 0.005; // only dash when lines are essentially equal (50/50)
-
+  // Step path builder
   const ptsToD = (pts) => {
     if (pts.length < 2) return "";
     let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
@@ -2766,95 +2706,14 @@ function BinaryChart({
     return d;
   };
 
-  const splitPath = (pts, closeFlags) => {
-    let solidSegs = [],
-      dashSegs = [],
-      cur = [],
-      curClose = closeFlags[0];
-    for (let i = 0; i < pts.length; i++) {
-      const c = closeFlags[i];
-      if (c !== curClose) {
-        cur.push(pts[i]); // include transition point in both
-        (curClose ? dashSegs : solidSegs).push([...cur]);
-        cur = [pts[i]];
-        curClose = c;
-      }
-      cur.push(pts[i]);
-    }
-    (curClose ? dashSegs : solidSegs).push(cur);
-    return {
-      solidD: solidSegs.map(ptsToD).join(" "),
-      dashD: dashSegs.map(ptsToD).join(" "),
-    };
-  };
+  const yesPath = ptsToD(yesData.map((c) => [xOf(c.t), yOf(c.p)]));
+  const noPath = ptsToD(noData.map((c) => [xOf(c.t), yOf(c.p)]));
+  const yesLast = [xOf(liveNow), yOf(curP)];
+  const noLast = [xOf(liveNow), yOf(1 - curP)];
 
-  const buildPath = (data) => {
-    const pts = data.map((c) => [xOf(c.t), yOf(c.p)]);
-    return { pts, last: pts[pts.length - 1] };
-  };
-  const yesPts = yesData.map((c) => [xOf(c.t), yOf(c.p)]);
-  const noPts = noData.map((c) => [xOf(c.t), yOf(c.p)]);
-  const closeFlags = yesData.map((c, i) => {
-    const gap = Math.abs(c.p - 0.5);
-    if (gap >= CROSS_THRESH) return false;
-    // If next point is already diverging further, end dash zone immediately
-    const nextGap =
-      i + 1 < yesData.length ? Math.abs(yesData[i + 1].p - 0.5) : gap;
-    return nextGap <= gap + 0.03; // allow tiny overshoot, but if clearly separating → solid
-  });
-  const yesSplit = splitPath(yesPts, closeFlags);
-  const noSplit = splitPath(noPts, closeFlags);
-  const paths = [
-    { ...buildPath(yesData), solidD: yesSplit.solidD, dashD: yesSplit.dashD },
-    { ...buildPath(noData), solidD: noSplit.solidD, dashD: noSplit.dashD },
-  ];
   const themes = [OPTION_THEMES[0], OPTION_THEMES[1]];
 
-  const pad2 = (v) => String(v).padStart(2, "0");
-  const fmtX = (d) => {
-    if (range === "Live" || range === "1h" || range === "1d")
-      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  };
-  const MONTHS = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const fmtTip = (d) => {
-    const mon = MONTHS[d.getMonth()];
-    const day = d.getDate();
-    const h = d.getHours(),
-      m = pad2(d.getMinutes());
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
-  };
-
-  const labelStepMs = BC_LABEL_STEP[range];
-  const firstT = Math.ceil(winStart / labelStepMs) * labelStepMs;
-  const slideLabels = [];
-  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
-    const frac = (t - winStart) / windowMs;
-    if (frac >= -0.02 && frac <= 1.02)
-      slideLabels.push({ t, leftPct: frac * 100 });
-  }
-
-  const lastYesP = curP;
-  const lastNoP = 1 - curP;
-  const rawTops = [lastYesP, lastNoP].map((p) => (yOf(p) / SVG_H) * 100 - 4);
-  const labelTops = mcAvoidCollisions(rawTops);
-  const labelLeft = `${(W / 1000) * 100 + 1}%`;
-
+  // Hover + drag-select
   const getValAt = (series, t) => {
     let v = series[0]?.p ?? 0.5;
     for (const c of series) {
@@ -2864,23 +2723,22 @@ function BinaryChart({
     return v;
   };
 
-  // ── Range drag-select ────────────────────────────────────────────────────────
   const [bcDragState, setBcDragState] = useState(null);
   const [bcRangeSelect, setBcRangeSelect] = useState(null);
   const bcDragStartRef = useRef(null);
 
   useEffect(() => { setBcRangeSelect(null); setBcDragState(null); }, [range]);
 
-  const bcGetFrac = e => {
+  const getFrac = (e) => {
     const el = chartRef.current;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    return Math.min(1, Math.max(0, (clientX - rect.left) / (rect.width * W / 1000)));
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
   const onMove = (e) => {
-    const frac = bcGetFrac(e);
+    const frac = getFrac(e);
     if (bcDragStartRef.current != null) {
       setBcDragState({ f1: bcDragStartRef.current, f2: frac });
       setHoverT(null);
@@ -2888,43 +2746,31 @@ function BinaryChart({
     }
     if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
   };
+  const bcOnTouchStart = (e) => { e.preventDefault(); if (!bcRangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const bcOnTouchMove = (e) => { e.preventDefault(); if (!bcRangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const onLeave = () => { if (!bcDragStartRef.current) setHoverT(null); };
 
-  const bcOnTouchStart = (e) => {
-    e.preventDefault();
-    const frac = bcGetFrac(e);
-    if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
-  };
-
-  const bcOnTouchMove = (e) => {
-    e.preventDefault();
-    const frac = bcGetFrac(e);
-    if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
-  };
-
-  const bcOnDown = e => {
+  const bcOnDown = (e) => {
     if (e.button !== 0) return;
-    const frac = bcGetFrac(e);
+    const frac = getFrac(e);
     bcDragStartRef.current = frac;
     setBcDragState({ f1: frac, f2: frac });
     setBcRangeSelect(null);
     setHoverT(null);
     e.preventDefault();
-    const moveG = ev => {
-      const f = bcGetFrac(ev);
-      setBcDragState({ f1: bcDragStartRef.current, f2: f });
-    };
-    const upG = ev => {
-      const f = bcGetFrac(ev);
+    const moveG = (ev) => setBcDragState({ f1: bcDragStartRef.current, f2: getFrac(ev) });
+    const upG = (ev) => {
+      const f = getFrac(ev);
       const s = bcDragStartRef.current;
       bcDragStartRef.current = null;
       const lo = Math.min(s, f), hi = Math.max(s, f);
       if (hi - lo < 0.01) { setBcDragState(null); setBcRangeSelect(null); }
       else { setBcDragState(null); setBcRangeSelect({ f1: lo, f2: hi }); }
-      window.removeEventListener('mousemove', moveG);
-      window.removeEventListener('mouseup', upG);
+      window.removeEventListener("mousemove", moveG);
+      window.removeEventListener("mouseup", upG);
     };
-    window.addEventListener('mousemove', moveG);
-    window.addEventListener('mouseup', upG);
+    window.addEventListener("mousemove", moveG);
+    window.addEventListener("mouseup", upG);
   };
 
   const bcActiveRange = bcDragState || bcRangeSelect;
@@ -2941,63 +2787,91 @@ function BinaryChart({
     };
   })() : null;
 
-  const hover =
-    hoverT == null
-      ? { active: false }
-      : (() => {
-          const allTs = [...new Set([...yesData.map((c) => c.t)])].sort(
-            (a, b) => a - b,
-          );
-          let bt = allTs[0] ?? liveNow;
-          for (const t of allTs) {
-            if (Math.abs(t - hoverT) < Math.abs(bt - hoverT)) bt = t;
-          }
-          const hx = xOf(bt);
-          const yp = getValAt(yesData, bt);
-          return {
-            active: true,
-            x: hx.toFixed(1),
-            ys: [yOf(yp).toFixed(1), yOf(1 - yp).toFixed(1)],
-            tipLeft: `${((hx / 1000) * 100).toFixed(1)}%`,
-            time: fmtTip(new Date(bt)),
-            probs: [Math.round(yp * 100), Math.round((1 - yp) * 100)],
-          };
-        })();
+  const hover = hoverT == null ? null : (() => {
+    const yp = getValAt(yesData, hoverT);
+    const hx = xOf(hoverT);
+    const frac = hx / W;
+    return {
+      x: hx, frac,
+      yesP: yp, noP: 1 - yp,
+      yesY: yOf(yp), noY: yOf(1 - yp),
+      time: hoverT,
+    };
+  })();
+
+  // Time axis labels
+  const pad2 = (v) => String(v).padStart(2, "0");
+  const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const fmtX = (d) => {
+    if (range === "1H" || range === "6H" || range === "1D")
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+  };
+  const fmtTip = (d) => {
+    const mon = MONTHS_SHORT[d.getMonth()];
+    const day = d.getDate();
+    const h = d.getHours(), m = pad2(d.getMinutes());
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
+  };
+
+  const labelStepMs = range === "ALL"
+    ? (windowMs > 60 * 86400_000 ? 30 * 86400_000 : windowMs > 14 * 86400_000 ? 7 * 86400_000 : 86400_000)
+    : BC_LABEL_STEP[range];
+  const firstT = Math.ceil(winStart / labelStepMs) * labelStepMs;
+  const rawXLabels = [];
+  for (let t = firstT; t <= liveNow + labelStepMs * 0.1; t += labelStepMs) {
+    const frac = (t - winStart) / windowMs;
+    if (frac >= 0 && frac <= 1) rawXLabels.push({ t, leftPct: frac * 100 });
+  }
+  const minXGap = isMobile ? 18 : 10;
+  const xLabels = rawXLabels.filter((lbl, i) => {
+    if (i === 0) return true;
+    return lbl.leftPct - rawXLabels[i - 1].leftPct >= minXGap;
+  });
+
+  // End labels positioning
+  const lastYesP = curP;
+  const lastNoP = 1 - curP;
+  const endLabels = [
+    { label: yesLabel, prob: lastYesP, theme: themes[0], y: yOf(lastYesP) },
+    { label: noLabel, prob: lastNoP, theme: themes[1], y: yOf(lastNoP) },
+  ];
+  // Collision avoidance for end labels — 56px gap so 26px number doesn't cover neighbor's name
+  const labelH = 56;
+  const sortedLabels = [...endLabels].sort((a, b) => a.y - b.y);
+  if (sortedLabels.length === 2 && Math.abs(sortedLabels[0].y - sortedLabels[1].y) < labelH) {
+    const mid = (sortedLabels[0].y + sortedLabels[1].y) / 2;
+    sortedLabels[0].y = mid - labelH / 2;
+    sortedLabels[1].y = mid + labelH / 2;
+  }
+  sortedLabels.forEach(s => { s.y = Math.max(0, Math.min(CHART_H - labelH, s.y - labelH / 2)); });
 
   return (
     <div style={{ userSelect: "none", WebkitUserSelect: "none" }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "16px",
-        }}
-      >
+      <style>{`
+        @keyframes bcPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.7}50%{transform:translate(-50%,-50%) scale(2.2);opacity:0}}
+      `}</style>
+
+      {/* Range selector + volume */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: "12px",
+      }}>
         <span style={{ font: `600 13px ${FONT_BODY}`, color: "#5d7189" }}>
-          {t('marketDetails.volume')}:{" "}
-          <b style={{ color: "#c3d1e0", fontWeight: 700 }}>
-            ${Number(totalVolume || 0).toLocaleString()}
-          </b>
+          + ${Number(totalVolume || 0).toLocaleString()}
         </span>
-        <div style={{ display: "flex", gap: "2px" }}>
+        <div style={{ display: "flex", gap: "0" }}>
           {BC_RANGES.map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setRange(r);
-                setHoverT(null);
-              }}
+            <button key={r}
+              onClick={() => { setRange(r); setHoverT(null); }}
               style={{
-                padding: "5px 11px",
-                borderRadius: "7px",
-                border: "none",
-                cursor: "pointer",
-                font: `700 12px ${FONT_BODY}`,
-                background:
-                  r === range ? "rgba(255,255,255,0.14)" : "transparent",
-                color: r === range ? "#ffffff" : "#8397ad",
+                padding: "5px 10px", border: "none", cursor: "pointer",
+                font: `700 11px ${FONT_BODY}`, letterSpacing: ".02em",
+                background: "transparent",
+                color: r === range ? "#ffffff" : "rgba(255,255,255,0.3)",
+                transition: "color .15s",
               }}
             >
               {r}
@@ -3006,343 +2880,266 @@ function BinaryChart({
         </div>
       </div>
 
-      {/* Range date overlay is rendered inside chart area */}
-
-      {/* Chart + Y-axis */}
-      <div style={{ display: "flex", gap: "40px", paddingRight: "16px" }}>
+      {/* Chart area */}
+      <div style={{ display: "flex", position: "relative" }}>
+        {/* Main chart */}
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "none", cursor: "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={bcOnDown}
-          onMouseLeave={() => { if (!bcDragStartRef.current) setHoverT(null); }}
+          onMouseLeave={onLeave}
           onTouchStart={bcOnTouchStart}
           onTouchMove={bcOnTouchMove}
         >
           <svg
-            viewBox="0 0 1000 380"
+            viewBox={`0 0 ${W} ${CHART_H}`}
             preserveAspectRatio="none"
-            style={{
-              width: "100%",
-              height: "260px",
-              display: "block",
-              cursor: "crosshair",
-              shapeRendering: "geometricPrecision",
-              overflow: "visible",
-              touchAction: "none",
-            }}
+            style={{ width: "100%", height: isMobile ? "200px" : "260px", display: "block", overflow: "visible" }}
           >
             {/* Range highlight */}
             {bcRangeInfo && (
-              <rect x={bcRangeInfo.x1} y={TOP} width={bcRangeInfo.x2 - bcRangeInfo.x1} height={BOT - TOP}
-                fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+              <rect x={bcRangeInfo.x1} y="0" width={bcRangeInfo.x2 - bcRangeInfo.x1} height={CHART_H}
+                fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
             )}
-            {[20, 110, 200, 290, 360].map((y) => (
-              <line
-                key={y}
-                x1="0"
-                y1={y}
-                x2="1000"
-                y2={y}
-                stroke="rgba(255,255,255,0.22)"
-                strokeDasharray="4 4"
-              />
+
+            {/* Grid lines */}
+            {Y_TICKS.map((tick) => (
+              <line key={tick} x1="0" y1={yOf(tick)} x2={W} y2={yOf(tick)}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
             ))}
 
             <defs>
-              {hover.active && (
+              {hover && (
                 <clipPath id="bc-left-clip">
-                  <rect x="0" y="0" width={hover.x} height="380" />
+                  <rect x="0" y="0" width={hover.x} height={CHART_H} />
                 </clipPath>
               )}
               {bcRangeInfo && (
                 <clipPath id="bc-range-clip">
-                  <rect x={bcRangeInfo.x1} y="0" width={bcRangeInfo.x2 - bcRangeInfo.x1} height="380" />
+                  <rect x={bcRangeInfo.x1} y="0" width={bcRangeInfo.x2 - bcRangeInfo.x1} height={CHART_H} />
                 </clipPath>
               )}
             </defs>
 
-            {/* Lines — grey when range selected or hovering, colored inside selection */}
-            {paths.map((p, i) => {
-              const isGreyed = hover.active || !!bcRangeInfo;
+            {/* Lines — grey when hovering/range, colored inside clip */}
+            {[
+              { path: yesPath, theme: themes[0] },
+              { path: noPath, theme: themes[1] },
+            ].map(({ path, theme }, i) => {
+              const isGreyed = hover || !!bcRangeInfo;
+              const clipId = hover ? "url(#bc-left-clip)" : bcRangeInfo ? "url(#bc-range-clip)" : undefined;
               return (
                 <g key={i}>
-                  {/* Full line — grey when selection/hover, colored otherwise */}
-                  <path d={p.solidD} fill="none" strokeLinejoin="round"
-                    stroke={isGreyed ? "rgba(255,255,255,0.15)" : themes[i].color}
-                    strokeWidth="2.5" />
-                  <path d={p.dashD} fill="none" strokeLinejoin="round"
-                    stroke={isGreyed ? "rgba(255,255,255,0.15)" : themes[i].color}
-                    strokeWidth="2.5" strokeDasharray="16 16" strokeDashoffset={-(i * 16)} />
-                  {/* Colored overlay clipped to hover crosshair */}
-                  {hover.active && (
-                    <>
-                      <path d={p.solidD} fill="none" strokeLinejoin="round"
-                        stroke={themes[i].color} strokeWidth="2.5" clipPath="url(#bc-left-clip)" />
-                      <path d={p.dashD} fill="none" strokeLinejoin="round"
-                        stroke={themes[i].color} strokeWidth="2.5"
-                        strokeDasharray="16 16" strokeDashoffset={-(i * 16)} clipPath="url(#bc-left-clip)" />
-                    </>
-                  )}
-                  {/* Colored overlay clipped to selected range */}
-                  {bcRangeInfo && !hover.active && (
-                    <>
-                      <path d={p.solidD} fill="none" strokeLinejoin="round"
-                        stroke={themes[i].color} strokeWidth="3" clipPath="url(#bc-range-clip)" />
-                      <path d={p.dashD} fill="none" strokeLinejoin="round"
-                        stroke={themes[i].color} strokeWidth="3"
-                        strokeDasharray="16 16" strokeDashoffset={-(i * 16)} clipPath="url(#bc-range-clip)" />
-                    </>
+                  <path d={path} fill="none" strokeLinejoin="round"
+                    stroke={isGreyed ? "rgba(255,255,255,0.12)" : theme.color} strokeWidth="2.5" />
+                  {clipId && (
+                    <path d={path} fill="none" strokeLinejoin="round"
+                      stroke={theme.color} strokeWidth="3" clipPath={clipId} />
                   )}
                 </g>
               );
             })}
 
-            {/* Pulsing dots moved to HTML overlay below */}
-
-            {/* Hover crosshair line — dots moved to HTML overlay */}
-            {hover.active && (
-              <line
-                x1={hover.x}
-                y1="0"
-                x2={hover.x}
-                y2="380"
-                stroke="rgba(255,255,255,0.35)"
-                strokeDasharray="3 4"
-              />
+            {/* Hover crosshair */}
+            {hover && (
+              <line x1={hover.x} y1="0" x2={hover.x} y2={CHART_H}
+                stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="4 4" />
             )}
           </svg>
 
-          {/* Hover intercept dots — HTML so they stay round */}
-          {hover.active &&
-            paths.map((p, i) => {
-              const leftPct = (parseFloat(hover.x) / 1000) * 100;
-              const topPx = (parseFloat(hover.ys[i]) / 380) * 260;
-              return (
-                <div key={`bc-hover-dot-${i}`} style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  top: topPx,
-                  transform: "translate(-50%, -50%)",
-                  width: 10, height: 10, borderRadius: "50%",
-                  background: "#0c1a2c",
-                  border: `2.5px solid ${themes[i].color}`,
-                  pointerEvents: "none",
+          {/* Pulsing end dots */}
+          {!hover && !bcRangeInfo && [
+            { pos: yesLast, theme: themes[0] },
+            { pos: noLast, theme: themes[1] },
+          ].map(({ pos, theme }, i) => {
+            const leftPct = (pos[0] / W) * 100;
+            const topPct = (pos[1] / CHART_H) * 100;
+            return (
+              <div key={`pulse-${i}`} style={{
+                position: "absolute", left: `${leftPct}%`, top: `${topPct}%`,
+                transform: "translate(-50%, -50%)", pointerEvents: "none",
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: theme.color }} />
+                <div style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: 8, height: 8, borderRadius: "50%",
+                  border: `2px solid ${theme.color}`,
+                  animation: "bcPulse 2s infinite",
                 }} />
-              );
-            })}
+              </div>
+            );
+          })}
 
-          {/* Pulsing dots — HTML overlay so they stay round */}
-          {!hover.active &&
-            paths.map((p, i) => {
-              if (!p.last) return null;
-              const leftPct = (p.last[0] / 1000) * 100;
-              const topPx = (p.last[1] / 380) * 260;
-              return (
-                <div key={`bc-pulse-${i}`} style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  top: topPx,
-                  transform: "translate(-50%, -50%)",
-                  pointerEvents: "none",
-                }}>
-                  <div style={{
-                    width: 10, height: 10, borderRadius: "50%",
-                    background: themes[i].color,
-                  }} />
-                  <div style={{
-                    position: "absolute", top: "50%", left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 10, height: 10, borderRadius: "50%",
-                    border: `2px solid ${themes[i].color}`,
-                    animation: "mcPulse 1.8s infinite",
-                  }} />
-                </div>
-              );
-            })}
+          {/* Hover dots */}
+          {hover && [
+            { y: hover.yesY, theme: themes[0] },
+            { y: hover.noY, theme: themes[1] },
+          ].map(({ y, theme }, i) => (
+            <div key={`hdot-${i}`} style={{
+              position: "absolute",
+              left: `${(hover.x / W) * 100}%`,
+              top: `${(y / CHART_H) * 100}%`,
+              transform: "translate(-50%, -50%)",
+              width: 10, height: 10, borderRadius: "50%",
+              background: "#0e121d", border: `2.5px solid ${theme.color}`,
+              pointerEvents: "none",
+            }} />
+          ))}
 
-          {/* Hover date label (HTML so it doesn't scale with SVG) */}
-          {hover.active && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: parseFloat(hover.x) > 700 ? "auto" : hover.tipLeft,
-                right:
-                  parseFloat(hover.x) > 700
-                    ? `${100 - parseFloat(hover.tipLeft)}%`
-                    : "auto",
-                font: `600 11px ${FONT_BODY}`,
-                color: "#5d7189",
-                whiteSpace: "nowrap",
-                pointerEvents: "none",
-                userSelect: "none",
-                padding: "2px 4px",
-              }}
-            >
-              {hover.time}
+          {/* Hover tooltip */}
+          {hover && (
+            <div style={{
+              position: "absolute", top: -24,
+              left: hover.frac > 0.6 ? "auto" : `${(hover.x / W) * 100}%`,
+              right: hover.frac > 0.6 ? `${(1 - hover.x / W) * 100}%` : "auto",
+              transform: hover.frac > 0.6 ? "none" : "translateX(-50%)",
+              font: `600 12px ${FONT_BODY}`, color: "#8ca0b6",
+              whiteSpace: "nowrap", pointerEvents: "none",
+              background: "rgba(14,18,29,0.85)", padding: "3px 8px",
+              borderRadius: "6px", zIndex: 20,
+            }}>
+              {fmtTip(new Date(hover.time))}
             </div>
           )}
 
-          {/* Range date + close overlay — centered above selection */}
+          {/* Range date + close */}
           {bcRangeInfo && !bcDragState && (() => {
-            const leftPct = (bcRangeInfo.x1 / 1000) * 100;
-            const widthPct = ((bcRangeInfo.x2 - bcRangeInfo.x1) / 1000) * 100;
+            const midPct = ((bcRangeInfo.x1 + bcRangeInfo.x2) / 2 / W) * 100;
             return (
               <div style={{
-                position: "absolute",
-                left: `${leftPct}%`,
-                width: `${widthPct}%`,
-                top: "-4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                pointerEvents: "auto",
-                zIndex: 10,
+                position: "absolute", top: "-24px",
+                left: `${midPct}%`, transform: "translateX(-50%)",
+                display: "flex", alignItems: "center", gap: "6px",
+                pointerEvents: "auto", zIndex: 20,
+                background: "rgba(14,18,29,0.85)", padding: "3px 8px",
+                borderRadius: "6px", whiteSpace: "nowrap",
               }}>
-                <span style={{
-                  font: `600 11px ${FONT_BODY}`,
-                  color: "#8ca0b6",
-                  whiteSpace: "nowrap",
-                }}>
+                <span style={{ font: `600 12px ${FONT_BODY}`, color: "#8ca0b6" }}>
                   {new Date(bcRangeInfo.t1).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   {" – "}
                   {new Date(bcRangeInfo.t2).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
-                <button
-                  onClick={() => { setBcRangeSelect(null); setBcDragState(null); }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#5d7189",
-                    font: `700 11px ${FONT_BODY}`,
-                    cursor: "pointer",
-                    padding: "0 4px",
-                    lineHeight: 1,
-                  }}
-                >
+                <button onClick={() => { setBcRangeSelect(null); setBcDragState(null); }}
+                  style={{ background: "none", border: "none", color: "#5d7189",
+                    font: `700 12px ${FONT_BODY}`, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}>
                   ✕
                 </button>
               </div>
             );
           })()}
 
-          {/* Unified labels — follow dot, or show at range edge with delta */}
+          {/* Labels — follow hover/range or stick to end */}
           {(() => {
-            const SVG_H = 380;
+            const useRange = bcRangeInfo && !hover;
+            const probs = hover
+              ? [hover.yesP, hover.noP]
+              : useRange
+                ? [bcRangeInfo.yesEnd, bcRangeInfo.noEnd]
+                : [lastYesP, lastNoP];
+            const deltas = useRange ? [bcRangeInfo.yesDelta, bcRangeInfo.noDelta] : null;
+            const yPositions = probs.map(p => yOf(p));
 
-            if (bcRangeInfo && !hover.active) {
-              // Range selected — show labels at right edge of selection with delta
-              const endProbs = [bcRangeInfo.yesEnd, bcRangeInfo.noEnd];
-              const deltas = [bcRangeInfo.yesDelta, bcRangeInfo.noDelta];
-              const rawTops = endProbs.map(p => (yOf(p) / SVG_H) * 100 - 4);
-              const tops = mcAvoidCollisions(rawTops);
-              const rightPct = (bcRangeInfo.x2 / 1000) * 100;
-              const leftPos = `calc(${rightPct}% + 12px)`;
-              return [yesLabel, noLabel].map((lb, i) => {
-                const deltaPct = Math.round(deltas[i] * 1000) / 10;
-                return (
-                  <div key={i} style={{
-                    position: "absolute", left: leftPos, top: `${tops[i]}%`,
-                    whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
-                    transition: "top 0.25s ease, left 0.25s ease",
-                  }}>
-                    <div style={{ font: `700 12px ${FONT_BODY}`, color: themes[i].color }}>
-                      {lb} {Math.round(endProbs[i] * 100)}%
-                    </div>
-                    <div style={{
-                      font: `700 11px ${FONT_BODY}`,
-                      color: deltaPct >= 0 ? 'rgba(255,255,255,0.9)' : '#ff6b7a',
-                    }}>
-                      {deltaPct >= 0 ? '▲' : '▼'} {Math.abs(deltaPct)}%
-                    </div>
-                  </div>
-                );
-              });
+            // Collision avoidance
+            const lblH = 60;
+            const items = [
+              { idx: 0, label: yesLabel, y: yPositions[0], theme: themes[0] },
+              { idx: 1, label: noLabel, y: yPositions[1], theme: themes[1] },
+            ];
+            const sorted = [...items].sort((a, b) => a.y - b.y);
+            if (Math.abs(sorted[0].y - sorted[1].y) < lblH) {
+              const mid = (sorted[0].y + sorted[1].y) / 2;
+              sorted[0].y = mid - lblH / 2;
+              sorted[1].y = mid + lblH / 2;
             }
+            sorted.forEach(s => { s.y = Math.max(0, Math.min(CHART_H - lblH, s.y - lblH / 2)); });
 
-            // Normal: hover or static
-            const rawTops = hover.active
-              ? paths.map((p, i) => (parseFloat(hover.ys[i]) / SVG_H) * 100 - 4)
-              : [lastYesP, lastNoP].map((p) => (yOf(p) / SVG_H) * 100 - 4);
-            const tops = mcAvoidCollisions(rawTops);
-            const probs = hover.active
-              ? hover.probs
-              : [Math.round(lastYesP * 100), Math.round(lastNoP * 100)];
-            const leftPos = hover.active
-              ? `calc(${hover.tipLeft} + 12px)`
-              : labelLeft;
-            return [yesLabel, noLabel].map((lb, i) => (
-              <div
-                key={i}
-                style={{
+            const leftPos = hover
+              ? `calc(${(hover.x / W) * 100}% + 14px)`
+              : useRange
+                ? `calc(${(bcRangeInfo.x2 / W) * 100}% + 14px)`
+                : undefined;
+
+            return items.map((item) => {
+              const adj = sorted.find(s => s.idx === item.idx);
+              const yPos = adj ? adj.y : item.y;
+              const prob = probs[item.idx];
+              const pctStr = prob >= 0.01 ? `${Math.round(prob * 100)}%` : `${(prob * 100).toFixed(1)}%`;
+              const deltaPct = deltas ? Math.round(deltas[item.idx] * 1000) / 10 : null;
+              return (
+                <div key={item.idx} style={{
                   position: "absolute",
-                  left: leftPos,
-                  top: `${tops[i]}%`,
-                  whiteSpace: "nowrap",
-                  pointerEvents: "none",
-                  zIndex: 5,
-                  transition: "top 0.35s ease, left 0.35s ease",
-                }}
-              >
-                <div style={{ font: `700 12px ${FONT_BODY}`, color: themes[i].color }}>
-                  {lb}
+                  ...(leftPos
+                    ? { left: leftPos }
+                    : { right: 0, transform: "translateX(calc(100% + 14px))" }),
+                  top: `${(yPos / CHART_H) * 100}%`,
+                  whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
+                  transition: hover ? "none" : "top 0.3s ease, left 0.3s ease",
+                }}>
+                  <div style={{ font: `600 12px ${FONT_BODY}`, color: item.theme.color, lineHeight: 1.2 }}>
+                    {item.label}
+                  </div>
+                  <div style={{ font: `800 26px ${FONT_HEAD}`, color: item.theme.color, lineHeight: 1.1 }}>
+                    {pctStr}
+                  </div>
+                  {deltaPct != null && (
+                    <div style={{
+                      font: `700 12px ${FONT_BODY}`,
+                      color: deltaPct >= 0 ? "rgba(255,255,255,0.9)" : "#ff6b7a",
+                    }}>
+                      {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct)}%
+                    </div>
+                  )}
                 </div>
-                <div style={{ font: `800 14px ${FONT_HEAD}`, color: themes[i].color }}>
-                  {probs[i]}%
-                </div>
-              </div>
-            ));
+              );
+            });
           })()}
-
-          {/* Sliding X-axis */}
-          <div
-            style={{
-              position: "relative",
-              height: "18px",
-              marginTop: "8px",
-              overflow: "hidden",
-            }}
-          >
-            {slideLabels.map(({ t, leftPct }) => (
-              <span
-                key={Math.round(t / labelStepMs)}
-                style={{
-                  position: "absolute",
-                  left: `${leftPct}%`,
-                  transform: "translateX(-50%)",
-                  font: `600 11px ${FONT_BODY}`,
-                  color: "#5d7189",
-                  whiteSpace: "nowrap",
-                  userSelect: "none",
-                }}
-              >
-                {fmtX(new Date(t))}
-              </span>
-            ))}
-          </div>
         </div>
 
-        {/* Y-axis */}
-        <div
-          style={{
-            flexShrink: 0,
-            width: "38px",
-            height: "260px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            font: `600 11px ${FONT_BODY}`,
-            color: "#5d7189",
-            textAlign: "right",
-          }}
-        >
-          {yTicks.map((t, i) => (
-            <span key={i}>{t}</span>
+        {/* Y-axis — fixed right */}
+        <div style={{
+          flexShrink: 0,
+          width: "44px",
+          height: isMobile ? "200px" : "260px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          paddingLeft: "10px",
+          marginLeft: isMobile ? "60px" : "80px",
+        }}>
+          {Y_TICKS.map((tick) => (
+            <span key={tick} style={{
+              font: `500 11px ${FONT_BODY}`,
+              color: "rgba(255,255,255,0.28)",
+              lineHeight: 1,
+            }}>
+              {Math.round(tick * 100)}%
+            </span>
           ))}
         </div>
       </div>
+
+      {/* X-axis labels */}
+      <div style={{
+        position: "relative",
+        height: "22px",
+        marginTop: "8px",
+        marginRight: isMobile ? "104px" : "124px",
+      }}>
+        {xLabels.map(({ t, leftPct }) => (
+          <span key={t} style={{
+            position: "absolute",
+            left: `${leftPct}%`,
+            transform: "translateX(-50%)",
+            font: `500 11px ${FONT_BODY}`,
+            color: "rgba(255,255,255,0.3)",
+            whiteSpace: "nowrap",
+          }}>
+            {fmtX(new Date(t))}
+          </span>
+        ))}
+      </div>
+
     </div>
   );
 }
@@ -3661,6 +3458,10 @@ function ClosedPanel({ yesLabel, noLabel, yesPct, noPct }) {
 
 // ─── Not logged in panel ──────────────────────────────────────────────────────
 function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
+  const { login } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", gap: "9px" }}>
@@ -3720,7 +3521,8 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
           You need an account to participate
         </div>
       </div>
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} />
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} onForgotPassword={() => { setIsLoginModalOpen(false); setIsForgotPasswordOpen(true); }} />
+      <ForgotPasswordModal isOpen={isForgotPasswordOpen} onClose={() => setIsForgotPasswordOpen(false)} onSwitchToLogin={() => { setIsForgotPasswordOpen(false); setIsLoginModalOpen(true); }} />
     </div>
   );
 }

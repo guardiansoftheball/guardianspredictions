@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import LoginModal from './LoginModal';
+import ForgotPasswordModal from '../forgotpassword/ForgotPasswordModal';
 import { useAuth } from '../../../helpers/AuthContent';
 import { useHistory } from 'react-router-dom';
 import { LoginSVG } from '../../../assets/components/SvgIcons';
@@ -8,6 +9,7 @@ import { LoginSVG } from '../../../assets/components/SvgIcons';
 const LoginModalButton = ({ iconOnly = false }) => {
   const { t } = useTranslation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const { login } = useAuth();
   const [redirectAfterLogin, setRedirectAfterLogin] = useState('/');
   const history = useHistory();
@@ -38,6 +40,14 @@ const LoginModalButton = ({ iconOnly = false }) => {
           onClose={() => setIsLoginModalOpen(false)}
           onLogin={login}
           redirectAfterLogin={redirectAfterLogin}
+          onForgotPassword={() => { setIsLoginModalOpen(false); setIsForgotPasswordOpen(true); }}
+        />
+      )}
+      {isForgotPasswordOpen && (
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordOpen}
+          onClose={() => setIsForgotPasswordOpen(false)}
+          onSwitchToLogin={() => { setIsForgotPasswordOpen(false); setIsLoginModalOpen(true); }}
         />
       )}
     </>
