@@ -2396,7 +2396,7 @@ function MarketLayout({
         )}
 
         {/* CENTER */}
-        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "22px" : "30px" }}>
           {/* Trade panel on mobile */}
           {isMobile && (
             <div style={{ ...MARKET_CARD, padding: "16px" }}>
@@ -2468,7 +2468,9 @@ function MarketLayout({
           <div
             style={{
               ...MARKET_CARD,
+              border: "none",
               padding: "20px",
+              paddingTop: "0",
               position: "sticky",
               top: "100px",
             }}

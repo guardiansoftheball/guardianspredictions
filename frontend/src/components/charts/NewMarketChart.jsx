@@ -195,7 +195,7 @@ const NewMarketChart = ({
             dataKey="t" type="number" domain={['dataMin', 'dataMax']} scale="time"
             tickFormatter={formatTick}
             tick={{ fill: '#5d7189', fontSize: 11, fontFamily: FONT, fontWeight: 600 }}
-            axisLine={false} tickLine={false} minTickGap={55}
+            axisLine={false} tickLine={false} minTickGap={80}
           />
           <YAxis
             domain={[0, 100]} tickFormatter={v => `${v}%`}

@@ -40,7 +40,7 @@ function getAnswerProb(answer) {
 
 // ─── Static mini chart (no interactivity) ─────────────────────────────────────
 function MiniChart({ answers }) {
-  const W = 400, H = 140, TOP = 8, BOT = 125;
+  const W = 400, H = 140, TOP = 8, BOT = 125, PAD_R = 5;
 
   const now = Date.now();
   const windowMs = 60 * 60_000; // 1 hour window
@@ -79,7 +79,7 @@ function MiniChart({ answers }) {
   const yMax = Math.min(1, dataMax + pad5);
   const yrng = yMax - yMin || 1;
   const yOf = (p) => BOT - ((p - yMin) / yrng) * (BOT - TOP);
-  const xOf = (t) => ((t - winStart) / windowMs) * W;
+  const xOf = (t) => ((t - winStart) / windowMs) * (W - PAD_R);
 
   const ptsToD = (pts) => {
     if (pts.length < 2) return "";
@@ -117,20 +117,26 @@ function MiniChart({ answers }) {
   }
   sorted.forEach(({ t, i }) => { labelTops[i] = t; });
 
-  const CHART_H = 100; // px height of the SVG
+  const CHART_H = 140; // px height of the SVG
   const labelPx = lastProbs.map((p) => {
     const svgY = yOf(p);
     return (svgY / H) * CHART_H;
   });
   // Collision avoidance in px — each label is ~14px tall
-  const LBL_H_PX = 24;
+  const LBL_H_PX = 32;
   const sortedLbl = labelPx.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y);
-  for (let k = 1; k < sortedLbl.length; k++) {
-    if (sortedLbl[k].y - sortedLbl[k - 1].y < LBL_H_PX) {
-      const mid = (sortedLbl[k].y + sortedLbl[k - 1].y) / 2;
-      sortedLbl[k - 1].y = mid - LBL_H_PX / 2;
-      sortedLbl[k].y = mid + LBL_H_PX / 2;
+  // Multiple passes to resolve all overlaps (handles 3+ labels at similar Y)
+  for (let pass = 0; pass < 5; pass++) {
+    let moved = false;
+    for (let k = 1; k < sortedLbl.length; k++) {
+      if (sortedLbl[k].y - sortedLbl[k - 1].y < LBL_H_PX) {
+        const mid = (sortedLbl[k].y + sortedLbl[k - 1].y) / 2;
+        sortedLbl[k - 1].y = mid - LBL_H_PX / 2;
+        sortedLbl[k].y = mid + LBL_H_PX / 2;
+        moved = true;
+      }
     }
+    if (!moved) break;
   }
   const resolvedY = new Array(answers.length);
   sortedLbl.forEach(({ y, i }) => { resolvedY[i] = Math.max(0, Math.min(CHART_H - 12, y - 18)); });
@@ -189,7 +195,7 @@ function MiniChart({ answers }) {
 
 // ─── Static mini chart for binary (Yes/No) markets ───────────────────────────
 function BinaryMiniChart({ probabilityChanges, currentProbability }) {
-  const W = 400, H = 140, TOP = 8, BOT = 125;
+  const W = 400, H = 140, TOP = 8, BOT = 125, PAD_R = 5;
   const now = Date.now();
   const windowMs = 60 * 60_000; // 1 hour window
   const winStart = now - windowMs;
@@ -218,7 +224,7 @@ function BinaryMiniChart({ probabilityChanges, currentProbability }) {
   const yMax = Math.min(1, dataMax + pad5);
   const yrng = yMax - yMin || 1;
   const yOf = (p) => BOT - ((p - yMin) / yrng) * (BOT - TOP);
-  const xOf = (t) => ((t - winStart) / windowMs) * W;
+  const xOf = (t) => ((t - winStart) / windowMs) * (W - PAD_R);
 
   const pts = series.map((c) => [xOf(c.t), yOf(c.p)]);
   let d = "";
@@ -231,12 +237,12 @@ function BinaryMiniChart({ probabilityChanges, currentProbability }) {
   const yesPct = Math.round(curP * 100);
   const noPct = 100 - yesPct;
 
-  const CHART_H = 100;
+  const CHART_H = 140;
   const yesY = (yOf(curP) / H) * CHART_H;
   const noY = (yOf(1 - curP) / H) * CHART_H;
 
   // Collision avoidance for Yes/No labels
-  const LBL_H_PX = 24;
+  const LBL_H_PX = 32;
   let yesLblY = yesY - 18;
   let noLblY = noY - 18;
   if (Math.abs(yesLblY - noLblY) < LBL_H_PX) {
@@ -417,9 +423,10 @@ export default function ShareModal({
         </div>
 
         {/* Preview card */}
-        <div style={{ padding: "20px 24px" }}>
+        <div style={{ padding: "20px 24px" }} className="share-modal-body">
           <div
             ref={cardRef}
+            className="share-card"
             style={{
               display: "flex",
               borderRadius: "16px",
@@ -438,7 +445,7 @@ export default function ShareModal({
               minWidth: 0,
             }}>
               {/* Logo */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <div className="share-card-logo" style={{ display: "none", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <img
                   src={logoSrc}
                   alt="GP"
@@ -455,7 +462,7 @@ export default function ShareModal({
               </div>
 
               {/* Title */}
-              <h3 style={{
+              <h3 className="share-card-title" style={{
                 margin: "0 0 12px",
                 font: `700 ${answers.length > 3 ? "13px" : "15px"}/1.35 ${FONT_HEAD}`,
                 color: COLOR.text,
@@ -466,12 +473,12 @@ export default function ShareModal({
 
               {/* Probabilities */}
               {isBinary ? (
-                <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <div className="share-card-options" style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                   <ProbBadge label="Yes" pct={pct} color={OPTION_COLORS[0]} />
                   <ProbBadge label="No" pct={100 - pct} color={OPTION_COLORS[1]} />
                 </div>
               ) : answers.length > 0 ? (
-                <div style={{
+                <div className="share-card-options" style={{
                   display: "flex", flexWrap: "wrap", gap: "6px",
                   marginBottom: "12px",
                 }}>
@@ -499,7 +506,7 @@ export default function ShareModal({
               )}
 
               {/* Stats row */}
-              <div style={{
+              <div className="share-card-stats" style={{
                 display: "flex", gap: "12px", flexWrap: "wrap",
                 font: `500 10.5px ${FONT}`,
                 color: COLOR.muted2,
@@ -520,22 +527,22 @@ export default function ShareModal({
             </div>
 
             {/* Right side — branding panel */}
-            <div style={{
-              width: "180px",
+            <div className="share-branding" style={{
+              width: "220px",
               flexShrink: 0,
               background: "linear-gradient(160deg, #1a2744 0%, #0f1c33 40%, #192847 100%)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              padding: "20px 14px",
+              padding: "24px 18px",
               position: "relative",
               overflow: "hidden",
             }}>
               {/* Glow */}
-              <div style={{
+              <div className="share-branding-glow" style={{
                 position: "absolute",
-                width: "160px", height: "160px",
+                width: "200px", height: "200px",
                 background: "radial-gradient(circle, rgba(30,144,255,0.25) 0%, transparent 70%)",
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%)",
@@ -544,45 +551,15 @@ export default function ShareModal({
               <img
                 src={logoSrc}
                 alt="Guardians Predictions"
-                style={{ width: "70px", height: "70px", borderRadius: "14px", marginBottom: "14px", position: "relative", objectFit: "contain" }}
+                style={{ width: "85%", height: "auto", borderRadius: "0", marginBottom: "0", position: "relative", objectFit: "contain" }}
                 crossOrigin="anonymous"
               />
-              <span style={{
-                font: `800 15px ${FONT_HEAD}`,
-                color: COLOR.text,
-                textAlign: "center",
-                position: "relative",
-                lineHeight: "1.3",
-              }}>
-                Guardians
-              </span>
-              <span style={{
-                font: `800 15px ${FONT_HEAD}`,
-                color: COLOR.text,
-                textAlign: "center",
-                position: "relative",
-                lineHeight: "1.3",
-                marginBottom: "6px",
-              }}>
-                Predictions
-              </span>
-              <span style={{
-                font: `500 9px ${FONT}`,
-                color: COLOR.muted,
-                textAlign: "center",
-                position: "relative",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                lineHeight: "1.5",
-              }}>
-                Prediction Markets
-              </span>
             </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div style={{
+        <div className="share-actions" style={{
           display: "flex", gap: "10px",
           padding: "0 24px 22px",
           justifyContent: "center",
@@ -614,6 +591,79 @@ export default function ShareModal({
         @keyframes shareModalIn {
           from { opacity: 0; transform: scale(0.95) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @media (max-width: 520px) {
+          .share-modal-body {
+            padding: 14px !important;
+          }
+          .share-card {
+            flex-direction: column-reverse !important;
+          }
+          .share-card-logo img {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 7px !important;
+          }
+          .share-card-logo span {
+            font-size: 14px !important;
+          }
+          .share-card-title {
+            font-size: 18px !important;
+            line-height: 1.3 !important;
+            text-align: center !important;
+          }
+          .share-card-stats {
+            font-size: 12px !important;
+            justify-content: center !important;
+            gap: 18px !important;
+          }
+          .share-card-stats svg {
+            width: 13px !important;
+            height: 13px !important;
+          }
+          .share-card-options {
+            gap: 10px !important;
+            justify-content: center !important;
+          }
+          .share-card-options > div {
+            padding: 6px 12px !important;
+          }
+          .share-card-options span:first-child {
+            font-size: 13px !important;
+          }
+          .share-card-options span:last-child {
+            font-size: 14px !important;
+          }
+          .share-branding {
+            width: 100% !important;
+            padding: 16px !important;
+            background: transparent !important;
+          }
+          .share-branding img {
+            width: 50% !important;
+            height: auto !important;
+            margin-bottom: 0 !important;
+            border-radius: 16px !important;
+          }
+          .share-branding-text,
+          .share-branding-glow,
+          .share-card-logo {
+            display: none !important;
+          }
+          .share-branding > div {
+            width: auto !important;
+            height: auto !important;
+          }
+          .share-actions {
+            flex-wrap: wrap !important;
+            padding: 0 14px 16px !important;
+          }
+          .share-actions button {
+            flex: 1 1 auto !important;
+            justify-content: center !important;
+            padding: 10px 14px !important;
+            font-size: 13px !important;
+          }
         }
       `}</style>
     </div>,
