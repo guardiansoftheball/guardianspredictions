@@ -33,6 +33,9 @@ export const placeBet = ({ token, marketId, outcome, amount }) => {
     headers: jsonHeaders,
     authToken: token,
     body: JSON.stringify({ marketId, outcome, amount }),
+    reasonMessages: {
+      INSUFFICIENT_BALANCE: 'Insufficient balance. You don\'t have enough credits for this bet.',
+    },
     fallbackMessage: 'Bet failed. Please try again.',
   });
 };

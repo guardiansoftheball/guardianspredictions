@@ -66,7 +66,8 @@ const BuySharesLayout = ({ marketId, market, token, onTransactionSuccess }) => {
         submitBet(betData, token, (data) => {
             toast.success(`Bet placed successfully! ${data.amount} on ${data.outcome}`);
             window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
-            onTransactionSuccess();
+            // Delay closing so the confirm button's success animation plays
+            setTimeout(() => onTransactionSuccess(), 1800);
         }, (error) => {
             toast.error(`Error placing bet: ${error.message}`);
         });

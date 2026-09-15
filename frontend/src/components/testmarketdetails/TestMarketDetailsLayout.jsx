@@ -270,6 +270,13 @@ const LivePulse = () => (
       @keyframes gp-pulse-ring { 0%{opacity:.6;transform:scale(.8)} 100%{opacity:0;transform:scale(2)} }
       @keyframes gp-mcBrandPulse { 0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)} }
       @keyframes mcPulse { 0%,100%{width:10px;height:10px;opacity:0.55} 50%{width:30px;height:30px;opacity:0} }
+      @keyframes btn-shine{0%{transform:translateX(-160%) skewX(-18deg)}100%{transform:translateX(220%) skewX(-18deg)}}
+      @keyframes btn-ripple{0%{transform:scale(0);opacity:.55}100%{transform:scale(1);opacity:0}}
+      @keyframes btn-bounce{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+      @keyframes btn-check-draw{0%{stroke-dashoffset:26}100%{stroke-dashoffset:0}}
+      @keyframes btn-check-ring{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+      @keyframes btn-label-in{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+      @keyframes btn-success-pop{0%{transform:scale(.97)}45%{transform:scale(1.03)}100%{transform:scale(1)}}
     `}</style>
   </span>
 );
@@ -1133,6 +1140,11 @@ function MultiChoiceTradePanel({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const debounceRef = useRef(null);
+  const [buyPhase, setBuyPhase] = useState("idle"); // 'idle' | 'success'
+  const [buyRipple, setBuyRipple] = useState(null);
+  const [buyBouncing, setBuyBouncing] = useState(false);
+  const [buyHover, setBuyHover] = useState(false);
+  const buyTimers = useRef({});
 
   // sell state
   const [sellShares, setSellShares] = useState({ yesSharesOwned: 0, value: 0 });
@@ -1258,8 +1270,19 @@ function MultiChoiceTradePanel({
     setQuoteError("");
   };
 
-  const handleBuy = () => {
+  const handleBuy = (e) => {
     if (!selectedAnswer) return;
+    // Ripple + bounce
+    if (e?.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      setBuyRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top, size });
+      setBuyBouncing(true);
+      clearTimeout(buyTimers.current.ripple);
+      clearTimeout(buyTimers.current.bounce);
+      buyTimers.current.ripple = setTimeout(() => setBuyRipple(null), 500);
+      buyTimers.current.bounce = setTimeout(() => setBuyBouncing(false), 320);
+    }
     setError("");
     setSuccess("");
     setSubmitting(true);
@@ -1268,15 +1291,19 @@ function MultiChoiceTradePanel({
       token,
       (data) => {
         setSubmitting(false);
-        setSuccess(
-          `Bet placed! $${data.amount || amount} on ${selectedAnswer.answerLabel}.`,
-        );
+        // Success animation
+        setBuyPhase("success");
+        clearTimeout(buyTimers.current.reset);
+        buyTimers.current.reset = setTimeout(() => setBuyPhase("idle"), 2800);
         window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
         onSuccess?.();
       },
       (err) => {
         setSubmitting(false);
-        setError(err.message || "Error placing bet.");
+        const msg = err.reason === "INSUFFICIENT_BALANCE"
+          ? t("marketDetails.insufficientBalance", "Not enough credits for this bet.")
+          : err.message || "Error placing bet.";
+        setError(msg);
       },
     );
   };
@@ -1593,7 +1620,9 @@ function MultiChoiceTradePanel({
 
           <button
             onClick={handleBuy}
-            disabled={submitting || !amount || amount < 1}
+            disabled={(submitting || !amount || amount < 1) && buyPhase !== "success"}
+            onMouseEnter={() => setBuyHover(true)}
+            onMouseLeave={() => setBuyHover(false)}
             style={{
               position: "relative",
               width: "100%",
@@ -1604,27 +1633,93 @@ function MultiChoiceTradePanel({
               letterSpacing: ".01em",
               cursor: submitting || !amount ? "not-allowed" : "pointer",
               background:
-                submitting || !amount
-                  ? "rgba(255,255,255,0.06)"
-                  : "linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)",
+                buyPhase === "success"
+                  ? buyOutcome === "NO"
+                    ? "linear-gradient(135deg, #fb5b6b 0%, #e11d48 100%)"
+                    : "linear-gradient(135deg, #BAD659 0%, #a3c24a 100%)"
+                  : submitting || !amount
+                    ? "rgba(255,255,255,0.06)"
+                    : "linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)",
               color:
-                submitting || !amount
-                  ? MUTED2
-                  : "#0a1628",
+                buyPhase === "success"
+                  ? buyOutcome === "NO" ? "#fff" : "#1a2e05"
+                  : submitting || !amount
+                    ? MUTED2
+                    : "#0a1628",
               marginTop: "4px",
               opacity: submitting ? 0.7 : 1,
               overflow: "hidden",
-              textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              animation: submitting || !amount ? "none" : "gp-mcBrandPulse 3s ease-in-out infinite",
+              transition: "transform 0.18s ease, box-shadow 0.25s ease, background 0.3s ease",
+              transform: buyPhase === "success" ? "none" : buyHover && !(submitting || !amount) ? "translateY(-1px) scale(1.01)" : "none",
+              boxShadow: buyPhase === "success"
+                ? buyOutcome === "NO"
+                  ? "0 6px 20px -6px rgba(251,91,107,0.5)"
+                  : "0 6px 20px -6px rgba(186,214,89,0.5)"
+                : buyHover && !(submitting || !amount)
+                  ? "0 8px 20px -6px rgba(156,201,241,0.5)"
+                  : "0 3px 10px -4px rgba(156,201,241,0.3)",
+              animation: buyPhase === "success"
+                ? "btn-success-pop 0.4s cubic-bezier(0.34,1.4,0.64,1)"
+                : buyBouncing
+                  ? "btn-bounce 0.32s ease"
+                  : submitting || !amount ? "none" : "gp-mcBrandPulse 3s ease-in-out infinite",
+              filter: buyHover && !(submitting || !amount) && buyPhase !== "success" ? "brightness(0.93)" : "",
             }}
             title={submitting ? undefined : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
-            onMouseEnter={(e) => { if (!(submitting || !amount)) e.currentTarget.style.filter = "brightness(0.9)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.filter = ""; }}
           >
-            {submitting
-              ? t('marketDetails.processing')
-              : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+            {/* Shine sweep */}
+            <span style={{
+              position: "absolute", top: 0, left: 0, width: "35%", height: "100%",
+              background: "linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 100%)",
+              transform: "translateX(-160%) skewX(-18deg)",
+              opacity: buyHover && !(submitting || !amount) && buyPhase !== "success" ? 1 : 0,
+              animation: buyHover && !(submitting || !amount) && buyPhase !== "success" ? "btn-shine 0.9s ease forwards" : "none",
+              pointerEvents: "none",
+            }} />
+            {/* Ripple */}
+            {buyRipple && (
+              <span style={{
+                position: "absolute",
+                left: buyRipple.x - buyRipple.size / 2,
+                top: buyRipple.y - buyRipple.size / 2,
+                width: buyRipple.size, height: buyRipple.size,
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%)",
+                animation: "btn-ripple 0.5s ease-out",
+                pointerEvents: "none",
+              }} />
+            )}
+            {/* Content */}
+            {buyPhase === "success" ? (
+              <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", maxWidth: "100%", overflow: "hidden" }}>
+                <span style={{
+                  width: 22, height: 22, minWidth: 22, borderRadius: "50%",
+                  background: buyOutcome === "NO" ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  animation: "btn-check-ring 0.42s cubic-bezier(0.34,1.5,0.64,1) both",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12.5L10 17.5L19 7" stroke={buyOutcome === "NO" ? "#e11d48" : "#BAD659"} strokeWidth="3.2"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      strokeDasharray="26"
+                      style={{ animation: "btn-check-draw 0.34s ease-out 0.16s both" }} />
+                  </svg>
+                </span>
+                <span style={{
+                  animation: "btn-label-in 0.3s ease-out 0.1s both",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {t('marketDetails.purchased')} {buyOutcome} — {selectedAnswer?.answerLabel || "Option"}
+                </span>
+              </span>
+            ) : (
+              <span style={{ position: "relative", zIndex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                {submitting
+                  ? t('marketDetails.processing')
+                  : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+              </span>
+            )}
           </button>
         </>
       ) : (
@@ -2562,8 +2657,10 @@ function MultiChoiceLayout({
   );
 
   const handleSuccess = () => {
-    if (refetchData) refetchData();
-    setRefreshTrigger((p) => p + 1);
+    setTimeout(() => {
+      if (refetchData) refetchData();
+      setRefreshTrigger((p) => p + 1);
+    }, 2000);
   };
 
   const creatorUsername =
@@ -3183,8 +3280,11 @@ function BinaryLayout({
     : formatResolutionDate(safeMarket.resolutionDateTime);
 
   const handleSuccess = () => {
-    if (refetchData) refetchData();
-    setRefreshTrigger((p) => p + 1);
+    // Delay refresh so the buy-button success animation plays (~2s)
+    setTimeout(() => {
+      if (refetchData) refetchData();
+      setRefreshTrigger((p) => p + 1);
+    }, 2000);
   };
 
   const tradePanelContent = (

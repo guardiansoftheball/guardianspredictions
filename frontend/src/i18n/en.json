@@ -24,6 +24,8 @@
     "terms": "Terms",
     "selectSide": "Select a side",
     "buyOutcome": "Buy {{outcome}}",
+    "purchased": "Purchased",
+    "insufficientBalance": "Not enough credits for this bet.",
     "byTrading": "By trading you accept the market rules",
     "max": "Max",
     "sharesSold": "Shares sold",

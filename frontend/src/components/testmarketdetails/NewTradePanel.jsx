@@ -161,12 +161,50 @@ const Row = ({ label, value, valueColor, valueFont }) => (
 
 const BRAND = '#9cc9f1';
 
-const ActionBtn = ({ onClick, disabled, loading, label, processingLabel }) => {
+const ActionBtn = ({ onClick, disabled, loading, label, processingLabel, successLabel }) => {
   const off = disabled || loading;
+  const [phase, setPhase] = useState('idle'); // 'idle' | 'success'
+  const [hover, setHover] = useState(false);
+  const [ripple, setRipple] = useState(null);
+  const [bouncing, setBouncing] = useState(false);
+  const timers = useRef({});
+
+  const isSuccess = phase === 'success';
+
+  const handleClick = useCallback((e) => {
+    if (off || isSuccess) return;
+    // Ripple
+    const rect = e.currentTarget.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.6;
+    setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top, size });
+    setBouncing(true);
+    clearTimeout(timers.current.ripple);
+    clearTimeout(timers.current.bounce);
+    timers.current.ripple = setTimeout(() => setRipple(null), 500);
+    timers.current.bounce = setTimeout(() => setBouncing(false), 320);
+
+    if (onClick) onClick(e);
+  }, [off, isSuccess, onClick]);
+
+  // Trigger success animation externally: set successLabel to flip it
+  useEffect(() => {
+    if (successLabel && phase === 'idle') {
+      clearTimeout(timers.current.success);
+      clearTimeout(timers.current.reset);
+      timers.current.success = setTimeout(() => setPhase('success'), 120);
+      timers.current.reset = setTimeout(() => setPhase('idle'), 2800);
+    }
+  }, [successLabel]);
+
+  const activeGradient = 'linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)';
+  const successGradient = 'linear-gradient(135deg, #BAD659 0%, #a3c24a 100%)';
+
   return (
     <button
-      onClick={onClick}
-      disabled={off}
+      onClick={handleClick}
+      disabled={off && !isSuccess}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative',
         width: '100%', padding: '15px 20px',
@@ -174,18 +212,76 @@ const ActionBtn = ({ onClick, disabled, loading, label, processingLabel }) => {
         cursor: off ? 'not-allowed' : 'pointer',
         font: `800 15px ${FONT_HEAD}`,
         letterSpacing: '.01em',
-        background: off ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)',
-        color: off ? MUTED2 : '#0a1628',
+        background: isSuccess ? successGradient : off ? 'rgba(255,255,255,0.06)' : activeGradient,
+        color: isSuccess ? '#1a2e05' : off ? MUTED2 : '#0a1628',
         marginTop: '4px',
         opacity: loading ? 0.7 : 1,
         overflow: 'hidden',
-        textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
+        transition: 'transform 0.18s ease, box-shadow 0.25s ease, background 0.3s ease',
+        transform: isSuccess ? 'none' : hover && !off ? 'translateY(-1px) scale(1.01)' : 'none',
+        boxShadow: isSuccess
+          ? '0 6px 20px -6px rgba(186,214,89,0.5)'
+          : hover && !off
+            ? '0 8px 20px -6px rgba(156,201,241,0.5)'
+            : '0 3px 10px -4px rgba(156,201,241,0.3)',
+        animation: isSuccess
+          ? 'btn-success-pop 0.4s cubic-bezier(0.34,1.4,0.64,1)'
+          : bouncing
+            ? 'btn-bounce 0.32s ease'
+            : 'none',
+        filter: hover && !off && !isSuccess ? 'brightness(0.93)' : '',
       }}
-      onMouseEnter={e => { if (!off) e.currentTarget.style.filter = 'brightness(0.9)'; }}
-      onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
     >
-      {loading ? (processingLabel || 'Processing...') : label}
+      {/* Shine sweep */}
+      <span style={{
+        position: 'absolute', top: 0, left: 0, width: '35%', height: '100%',
+        background: 'linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 100%)',
+        transform: 'translateX(-160%) skewX(-18deg)',
+        opacity: hover && !off && !isSuccess ? 1 : 0,
+        animation: hover && !off && !isSuccess ? 'btn-shine 0.9s ease forwards' : 'none',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Ripple */}
+      {ripple && (
+        <span style={{
+          position: 'absolute',
+          left: ripple.x - ripple.size / 2,
+          top: ripple.y - ripple.size / 2,
+          width: ripple.size, height: ripple.size,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%)',
+          animation: 'btn-ripple 0.5s ease-out',
+          pointerEvents: 'none',
+        }} />
+      )}
+
+      {/* Content */}
+      {isSuccess ? (
+        <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          <span style={{
+            width: 24, height: 24, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'btn-check-ring 0.42s cubic-bezier(0.34,1.5,0.64,1) both',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12.5L10 17.5L19 7" stroke="#BAD659" strokeWidth="3.2"
+                strokeLinecap="round" strokeLinejoin="round"
+                strokeDasharray="26"
+                style={{ animation: 'btn-check-draw 0.34s ease-out 0.16s both' }} />
+            </svg>
+          </span>
+          <span style={{ animation: 'btn-label-in 0.3s ease-out 0.1s both' }}>
+            {successLabel || 'Done!'}
+          </span>
+        </span>
+      ) : (
+        <span style={{ position: 'relative', zIndex: 1 }}>
+          {loading ? (processingLabel || 'Processing...') : label}
+        </span>
+      )}
     </button>
   );
 };
@@ -249,6 +345,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState('');
+  const [successBtnLabel, setSuccessBtnLabel] = useState('');
   const [fees, setFees]           = useState(null);
   const [hasBetBefore, setHasBetBefore] = useState(false);
   const debounceRef = useRef(null);
@@ -315,6 +412,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
       (data) => {
         setSubmitting(false);
         setSuccess(`Bet placed! $${data.amount} on ${side === 'YES' ? yesLabel : noLabel}.`);
+        setSuccessBtnLabel(`Purchased ${side === 'YES' ? yesLabel : noLabel}!`);
         window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
         onSuccess?.();
       },
@@ -400,6 +498,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
         loading={submitting}
         processingLabel={t('marketDetails.processing')}
         label={side === 'YES' ? t('marketDetails.buyOutcome', { outcome: yesLabel }) : side === 'NO' ? t('marketDetails.buyOutcome', { outcome: noLabel }) : t('marketDetails.selectSide')}
+        successLabel={successBtnLabel}
       />
 
       <div style={{ textAlign: 'center', font: `500 11px ${FONT}`, color: MUTED2 }}>
@@ -764,6 +863,37 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
         @keyframes gp-brandPulse {
           0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)}
           50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)}
+        }
+        @keyframes btn-shine {
+          0%{transform:translateX(-160%) skewX(-18deg)}
+          100%{transform:translateX(220%) skewX(-18deg)}
+        }
+        @keyframes btn-ripple {
+          0%{transform:scale(0);opacity:.55}
+          100%{transform:scale(1);opacity:0}
+        }
+        @keyframes btn-bounce {
+          0%{transform:scale(.96)}
+          60%{transform:scale(1.03)}
+          100%{transform:scale(1)}
+        }
+        @keyframes btn-check-draw {
+          0%{stroke-dashoffset:26}
+          100%{stroke-dashoffset:0}
+        }
+        @keyframes btn-check-ring {
+          0%{transform:scale(.4);opacity:0}
+          55%{transform:scale(1.1);opacity:1}
+          100%{transform:scale(1);opacity:1}
+        }
+        @keyframes btn-label-in {
+          0%{transform:translateY(8px);opacity:0}
+          100%{transform:translateY(0);opacity:1}
+        }
+        @keyframes btn-success-pop {
+          0%{transform:scale(.97)}
+          45%{transform:scale(1.03)}
+          100%{transform:scale(1)}
         }
       `}</style>
       {/* Tab bar */}
