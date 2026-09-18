@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
@@ -52,7 +52,7 @@ const YES_TEXT = COLOR.yesText;
 const NO_TEXT = COLOR.noText;
 
 // ─── identity / user info ─────────────────────────────────────────────────────
-const IdentityCard = ({ userData, t }) => {
+const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
   const [personalEmoji, setPersonalEmoji] = useState(userData?.personalEmoji || "");
@@ -119,15 +119,19 @@ const IdentityCard = ({ userData, t }) => {
           </div>
           <div style={{ marginTop: "4px", font: `600 13px ${FONT}`, color: MUTED }}>
             @{userData?.username}
-            <span style={{ opacity: 0.4, margin: "0 8px" }}>•</span>
-            <Link
-              to={`/newprofile/${userData?.username}`}
-              style={{ color: ACCENT, textDecoration: "none" }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-            >
-              {t('profile.viewPublicProfile')}
-            </Link>
+            {isOwnProfile && (
+              <>
+                <span style={{ opacity: 0.4, margin: "0 8px" }}>•</span>
+                <Link
+                  to={`/newprofile/${userData?.username}`}
+                  style={{ color: ACCENT, textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                >
+                  {t('profile.viewPublicProfile')}
+                </Link>
+              </>
+            )}
           </div>
           {personalDescription ? (
             <p style={{ margin: "10px 0 0", font: `400 13.5px/1.6 ${FONT}`, color: "#b7c6d6", maxWidth: "560px" }}>
@@ -168,12 +172,14 @@ const IdentityCard = ({ userData, t }) => {
         </div>
 
         {/* Edit actions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-          <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
-          <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
-          <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
-          <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
-        </div>
+        {isOwnProfile && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+            <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
+            <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
+            <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
+            <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
@@ -1054,9 +1060,12 @@ const MarketChangesSection = () => {
 // ─── page ─────────────────────────────────────────────────────────────────────
 const NewProfile = () => {
   const { t } = useTranslation();
-  const { username } = useAuth();
+  const { username: authUsername } = useAuth();
+  const { username: paramUsername } = useParams();
   const location = useLocation();
-  const { userData, userLoading, userError } = useUserData(username, true);
+  const username = paramUsername || authUsername;
+  const isOwnProfile = !paramUsername || paramUsername === authUsername;
+  const { userData, userLoading, userError } = useUserData(username, isOwnProfile);
   const [mainTab, setMainTab] = useState(() => t('profile.portfolio'));
 
   useEffect(() => {
@@ -1067,7 +1076,7 @@ const NewProfile = () => {
     String(userData?.usertype || "").toUpperCase() === "MODERATOR" &&
     String(userData?.moderatorStatus || "").toLowerCase() === "active";
 
-  const mainTabs = [t('profile.portfolio'), t('profile.financials'), ...(isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
+  const mainTabs = [t('profile.portfolio'), ...(isOwnProfile ? [t('profile.financials')] : []), ...(isOwnProfile && isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
   const activeTab = mainTabs.includes(mainTab) ? mainTab : t('profile.portfolio');
 
   const proposedMarket = location.state?.proposedMarket;
@@ -1111,7 +1120,7 @@ const NewProfile = () => {
           <ErrorBanner message={`Error loading user data: ${userError}`} />
         ) : (
           <>
-            <IdentityCard userData={userData} t={t} />
+            <IdentityCard userData={userData} t={t} isOwnProfile={isOwnProfile} />
 
             {isActiveModerator && proposedMarket && (
               <div

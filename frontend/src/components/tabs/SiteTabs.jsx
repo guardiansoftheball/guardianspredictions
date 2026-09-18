@@ -37,15 +37,21 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
 
     // ── dark variant (glassmorphism / new UI) ──────────────────────────────────
     if (variant === 'dark') {
+        const activeIdx = tabs.findIndex(t => t.label === currentTab);
+        const tabCount = tabs.length;
+        const pct = 100 / tabCount;
+
         return (
             <div style={{ fontFamily: 'Manrope,system-ui,sans-serif' }}>
-                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto' }}>
+                <div style={{ position: 'relative', display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     {tabs.map(tab => {
                         const isActive = currentTab === tab.label;
                         return (
                             <button
                                 key={tab.label}
                                 onClick={() => handleTabClick(tab.label)}
+                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
+                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = '#5d7189'; }}
                                 style={{
                                     flex: 1,
                                     minWidth: 0,
@@ -57,7 +63,6 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
                                     fontSize: '13px',
                                     fontWeight: 700,
                                     color: isActive ? 'rgba(255,255,255,0.85)' : '#5d7189',
-                                    boxShadow: isActive ? 'inset 0 -2px 0 rgba(255,255,255,0.85)' : 'none',
                                     transition: 'color .15s',
                                     whiteSpace: 'nowrap',
                                     display: 'flex',
@@ -84,6 +89,17 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
                             </button>
                         );
                     })}
+                    {/* Sliding underline */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-1px',
+                        left: `${activeIdx * pct}%`,
+                        width: `${pct}%`,
+                        height: '2px',
+                        background: 'rgba(255,255,255,0.85)',
+                        borderRadius: '2px',
+                        transition: 'left .25s cubic-bezier(.4,0,.2,1)',
+                    }} />
                 </div>
                 <div style={{ padding: '16px' }}>
                     {tabs.map(tab => (

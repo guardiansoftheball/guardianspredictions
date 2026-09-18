@@ -5,7 +5,7 @@ import BetsActivityLayout from '../layouts/activity/bets/BetsActivity';
 import PositionsActivityLayout from '../layouts/activity/positions/PositionsActivity';
 import LeaderboardActivity from '../layouts/activity/leaderboard/LeaderboardActivity';
 
-const ActivityTabs = ({ marketId, market, refreshTrigger, variant }) => {
+const ActivityTabs = ({ marketId, market, refreshTrigger, variant, activeTab, onTabChange }) => {
     const { t } = useTranslation();
     const tabsData = [
         { label: t('activity.bets'), content: <BetsActivityLayout marketId={marketId} refreshTrigger={refreshTrigger} /> },
@@ -14,7 +14,7 @@ const ActivityTabs = ({ marketId, market, refreshTrigger, variant }) => {
         { label: t('activity.comments'), content: <div>Comments Go here...</div> },
     ];
 
-    return <SiteTabs tabs={tabsData} variant={variant} />;
+    return <SiteTabs tabs={tabsData} variant={variant} activeTab={activeTab} onTabChange={onTabChange} />;
 };
 
 export default ActivityTabs;

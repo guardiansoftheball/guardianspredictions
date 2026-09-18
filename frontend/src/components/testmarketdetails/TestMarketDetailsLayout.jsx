@@ -1328,7 +1328,7 @@ function MultiChoiceTradePanel({
             index={i}
             total={answers.length}
             selected={false}
-            onClick={() => {}}
+            onClick={() => setIsLoginModalOpen(true)}
           />
         ))}
         <div
@@ -1338,16 +1338,27 @@ function MultiChoiceTradePanel({
             padding: "18px 16px",
             borderRadius: "14px",
             background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.09)",
+            border: "none",
             textAlign: "center",
             cursor: "pointer",
+            transition: "all .15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+            e.currentTarget.querySelector("[data-sign]").style.color = "#fff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            e.currentTarget.querySelector("[data-sign]").style.color = TEXT;
           }}
         >
           <div
+            data-sign=""
             style={{
               font: `700 14px ${FONT_BODY}`,
               color: TEXT,
               marginBottom: "4px",
+              transition: "color .15s",
             }}
           >
             Sign in to trade
@@ -1414,6 +1425,7 @@ function MultiChoiceTradePanel({
       {/* Buy / Sell tab bar */}
       <div
         style={{
+          position: "relative",
           display: "flex",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           marginTop: "10px",
@@ -1436,10 +1448,23 @@ function MultiChoiceTradePanel({
               color: tab === key ? TEXT : MUTED2,
               transition: "color .15s",
             }}
+            onMouseEnter={(e) => { if (tab !== key) e.currentTarget.style.color = TEXT; }}
+            onMouseLeave={(e) => { if (tab !== key) e.currentTarget.style.color = MUTED2; }}
           >
             {label}
           </button>
         ))}
+        {/* Sliding underline */}
+        <div style={{
+          position: "absolute",
+          bottom: "-1px",
+          left: tab === "buy" ? "0%" : "50%",
+          width: "50%",
+          height: "2px",
+          background: "rgba(255,255,255,0.85)",
+          borderRadius: "2px",
+          transition: "left .25s cubic-bezier(.4,0,.2,1)",
+        }} />
       </div>
 
       {tab === "buy" ? (
@@ -1469,10 +1494,10 @@ function MultiChoiceTradePanel({
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "stretch",
                 background: "rgba(0,0,0,0.28)",
-                borderRadius: "999px",
-                padding: "4px 10px",
+                borderRadius: "11px",
+                overflow: "hidden",
               }}
             >
               <button
@@ -1480,14 +1505,17 @@ function MultiChoiceTradePanel({
                   setAmount((v) => clamp((parseInt(v) || 0) - 10, 1, 99999))
                 }
                 style={{
-                  width: "34px",
-                  height: "34px",
+                  width: "44px",
                   border: "none",
                   background: "transparent",
                   color: MUTED,
                   font: `700 20px ${FONT_BODY}`,
                   cursor: "pointer",
+                  transition: "all .15s",
+                  borderRight: "1px solid rgba(255,255,255,0.06)",
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
               >
                 −
               </button>
@@ -1498,6 +1526,7 @@ function MultiChoiceTradePanel({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "2px",
+                  padding: "10px 0",
                 }}
               >
                 <span style={{ font: `700 17px ${FONT_BODY}`, color: MUTED }}>
@@ -1526,14 +1555,17 @@ function MultiChoiceTradePanel({
               <button
                 onClick={() => setAmount((v) => (parseInt(v) || 0) + 10)}
                 style={{
-                  width: "34px",
-                  height: "34px",
+                  width: "44px",
                   border: "none",
                   background: "transparent",
                   color: MUTED,
                   font: `700 20px ${FONT_BODY}`,
                   cursor: "pointer",
+                  transition: "all .15s",
+                  borderLeft: "1px solid rgba(255,255,255,0.06)",
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
               >
                 +
               </button>
@@ -1552,7 +1584,10 @@ function MultiChoiceTradePanel({
                     color: "#b7c6d6",
                     font: `700 12px ${FONT_BODY}`,
                     cursor: "pointer",
+                    transition: "all .15s",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = TEXT; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#b7c6d6"; }}
                 >
                   +{p}
                 </button>
@@ -1771,33 +1806,39 @@ function MultiChoiceTradePanel({
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "center",
-                  gap: "12px",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  borderRadius: "12px",
+                  background: "rgba(186,214,89,0.08)",
+                  border: "1px solid rgba(186,214,89,0.20)",
                 }}
               >
-                <div
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    background: "rgba(186,214,89,0.12)",
-                    border: "1px solid rgba(186,214,89,0.3)",
-                    textAlign: "center",
-                  }}
-                >
-                  <div
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span
                     style={{
-                      font: `700 11px ${FONT_BODY}`,
-                      color: YES_TEXT,
-                      letterSpacing: ".06em",
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: YES_GREEN,
+                      flexShrink: 0,
                     }}
-                  >
+                  />
+                  <span style={{ font: `600 14px ${FONT_BODY}`, color: TEXT }}>
                     {selectedAnswer.answerLabel}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ font: `800 16px ${FONT_HEAD}`, color: TEXT }}>
+                      {sellShares.yesSharesOwned} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>shares</span>
+                    </div>
                   </div>
-                  <div style={{ font: `800 18px ${FONT_HEAD}`, color: TEXT }}>
-                    {t('marketDetails.sharesCount', { count: sellShares.yesSharesOwned })}
-                  </div>
-                  <div style={{ font: `600 12px ${FONT_BODY}`, color: MUTED2 }}>
-                    {t('marketDetails.value', { value: sellShares.value })}
+                  <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.10)" }} />
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ font: `800 16px ${FONT_HEAD}`, color: YES_TEXT }}>
+                      {sellShares.value} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>value</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1816,10 +1857,10 @@ function MultiChoiceTradePanel({
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "stretch",
                     background: "rgba(0,0,0,0.28)",
-                    borderRadius: "999px",
-                    padding: "4px 10px",
+                    borderRadius: "11px",
+                    overflow: "hidden",
                   }}
                 >
                   <button
@@ -1827,14 +1868,17 @@ function MultiChoiceTradePanel({
                       setSellAmount((v) => Math.max(1, (parseInt(v) || 0) - 1))
                     }
                     style={{
-                      width: "34px",
-                      height: "34px",
+                      width: "44px",
                       border: "none",
                       background: "transparent",
                       color: MUTED,
                       font: `700 20px ${FONT_BODY}`,
                       cursor: "pointer",
+                      transition: "all .15s",
+                      borderRight: "1px solid rgba(255,255,255,0.06)",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
                   >
                     −
                   </button>
@@ -1845,6 +1889,7 @@ function MultiChoiceTradePanel({
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "2px",
+                      padding: "10px 0",
                     }}
                   >
                     <span
@@ -1885,14 +1930,17 @@ function MultiChoiceTradePanel({
                       )
                     }
                     style={{
-                      width: "34px",
-                      height: "34px",
+                      width: "44px",
                       border: "none",
                       background: "transparent",
                       color: MUTED,
                       font: `700 20px ${FONT_BODY}`,
                       cursor: "pointer",
+                      transition: "all .15s",
+                      borderLeft: "1px solid rgba(255,255,255,0.06)",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
                   >
                     +
                   </button>
@@ -1915,10 +1963,6 @@ function MultiChoiceTradePanel({
                   display: "flex",
                   flexDirection: "column",
                   gap: "6px",
-                  borderRadius: "28px",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "rgba(255,255,255,0.03)",
-                  padding: "10px",
                 }}
               >
                 <button
@@ -1935,9 +1979,7 @@ function MultiChoiceTradePanel({
                       ? "rgba(255,255,255,0.08)"
                       : "linear-gradient(180deg,#BAD659,#AABA49)",
                     color: isSellActionDisabled ? MUTED2 : "#1a1a00",
-                    boxShadow: isSellActionDisabled
-                      ? "none"
-                      : "0 8px 22px rgba(186,214,89,0.28)",
+                    boxShadow: "none",
                     transition: "all .15s",
                     opacity: isSellSubmitting ? 0.7 : 1,
                   }}
@@ -1981,6 +2023,12 @@ function OptionRow({ answer, index, total, selected, onClick }) {
   return (
     <button
       onClick={onClick}
+      onMouseEnter={(e) => {
+        if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+      }}
+      onMouseLeave={(e) => {
+        if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+      }}
       style={{
         display: "flex",
         alignItems: "center",
@@ -2239,8 +2287,12 @@ function MarketLayout({
   probabilityChanges,
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [showShareModal, setShowShareModal] = useState(false);
   const [allTags, setAllTags] = useState([]);
+  const [activityTab, setActivityTab] = useState(null);
+  const activityRef = useRef(null);
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     listMarketTags().then((res) => {
@@ -2252,7 +2304,7 @@ function MarketLayout({
   const marketTagSlugs = (market?.tags || []).map((t) => t.slug);
 
   return (
-    <div>
+    <div style={isMobile ? {} : { display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Breadcrumb */}
       <div
         style={{
@@ -2323,6 +2375,10 @@ function MarketLayout({
           <div style={{ display: "flex", alignItems: "center", gap: "14px", flexShrink: 0 }}>
             {/* Comment */}
             <button
+              onClick={() => {
+                setActivityTab(t('activity.comments'));
+                setTimeout(() => activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
               style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
               onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
@@ -2344,11 +2400,18 @@ function MarketLayout({
             </button>
             {/* Bookmark */}
             <button
-              style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
+              onClick={() => {
+                setBookmarked((prev) => {
+                  const next = !prev;
+                  toast.success(next ? t('marketDetails.bookmarkAdded', 'Market saved to your bookmarks') : t('marketDetails.bookmarkRemoved', 'Removed from bookmarks'));
+                  return next;
+                });
+              }}
+              style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: bookmarked ? 1 : 0.7, transition: "opacity .15s" }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+              onMouseLeave={(e) => { if (!bookmarked) e.currentTarget.style.opacity = "0.7"; }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={bookmarked ? "#fff" : "none"} stroke={bookmarked ? "#fff" : MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
               </svg>
             </button>
@@ -2444,6 +2507,8 @@ function MarketLayout({
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              onFocus={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              onBlur={(e) => e.currentTarget.style.background = "transparent"}
             >
               <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2470,15 +2535,22 @@ function MarketLayout({
                     padding: "9px 12px",
                     font: `${isActive ? "600" : "500"} 13px ${FONT_BODY}`,
                     color: isActive ? TEXT : MUTED,
+                    background: isActive ? "rgba(255,255,255,0.05)" : "transparent",
                     textDecoration: "none",
                     borderRadius: "8px",
                     transition: "all .15s",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                    if (!isActive) e.currentTarget.style.color = TEXT;
                   }}
                   onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    if (!isActive) e.currentTarget.style.color = TEXT;
+                  }}
+                  onBlur={(e) => {
                     e.currentTarget.style.background = "transparent";
                     if (!isActive) e.currentTarget.style.color = MUTED;
                   }}
@@ -2548,12 +2620,14 @@ function MarketLayout({
           ) : null}
 
           {/* Activity */}
-          <div style={{ ...MARKET_CARD, overflow: "hidden" }}>
+          <div ref={activityRef} style={{ ...MARKET_CARD, overflow: "hidden" }}>
             <ActivityTabs
               marketId={marketId}
               market={market}
               refreshTrigger={refreshTrigger}
               variant="dark"
+              activeTab={activityTab}
+              onTabChange={setActivityTab}
             />
           </div>
         </div>
@@ -2564,8 +2638,7 @@ function MarketLayout({
             style={{
               ...MARKET_CARD,
               border: "none",
-              padding: "20px",
-              paddingTop: "0",
+              padding: "0",
               position: "sticky",
               top: "100px",
             }}
@@ -3585,6 +3658,7 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
         ].map(({ label, pct, color, bg, border }) => (
           <div
             key={label}
+            onClick={() => setIsLoginModalOpen(true)}
             style={{
               flex: 1,
               padding: "11px 8px",
@@ -3592,7 +3666,11 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
               textAlign: "center",
               background: bg,
               border: `1px solid ${border}`,
+              cursor: "pointer",
+              transition: "all .15s",
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = bg}
           >
             <div style={{ font: `700 13px ${FONT_BODY}`, color }}>{label}</div>
             <div style={{ font: `800 17px ${FONT_HEAD}`, color }}>{pct}¢</div>
@@ -3605,16 +3683,27 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
           borderRadius: "14px",
           padding: "20px 16px",
           background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.09)",
+          border: "none",
           textAlign: "center",
           cursor: "pointer",
+          transition: "all .15s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          e.currentTarget.querySelector("[data-sign]").style.color = "#fff";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+          e.currentTarget.querySelector("[data-sign]").style.color = TEXT;
         }}
       >
         <div
+          data-sign=""
           style={{
             font: `700 14px ${FONT_BODY}`,
             color: TEXT,
             marginBottom: "6px",
+            transition: "color .15s",
           }}
         >
           Sign in to trade

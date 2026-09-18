@@ -92,20 +92,25 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
 const AmountInput = ({ value, onChange, onPlus, onMinus }) => (
   <div style={{
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'stretch',
     background: 'rgba(0,0,0,0.28)',
     borderRadius: '11px',
-    padding: '4px 10px',
+    overflow: 'hidden',
   }}>
     <button
       onClick={onMinus}
       style={{
-        width: '34px', height: '34px',
-        border: 'none', background: 'transparent',
+        width: '44px',
+        border: 'none',
+        background: 'transparent',
         color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
+        transition: 'all .15s',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = TEXT; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = MUTED; }}
     >−</button>
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '10px 0' }}>
       <span style={{ font: `700 17px ${FONT}`, color: MUTED }}>$</span>
       <input
         type="number"
@@ -127,10 +132,15 @@ const AmountInput = ({ value, onChange, onPlus, onMinus }) => (
     <button
       onClick={onPlus}
       style={{
-        width: '34px', height: '34px',
-        border: 'none', background: 'transparent',
+        width: '44px',
+        border: 'none',
+        background: 'transparent',
         color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
+        transition: 'all .15s',
+        borderLeft: '1px solid rgba(255,255,255,0.06)',
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = TEXT; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = MUTED; }}
     >+</button>
   </div>
 );
@@ -146,7 +156,10 @@ const PresetBtn = ({ label, onClick }) => (
       color: '#b7c6d6',
       font: `700 12px ${FONT}`,
       cursor: 'pointer',
+      transition: 'all .15s',
     }}
+    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = TEXT; }}
+    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#b7c6d6'; }}
   >
     {label}
   </button>
@@ -775,7 +788,7 @@ const SellQuotePanel = ({ quote, quoteError, isLoading, selectedOutcome, onSelec
   const { t } = useTranslation();
   if (!selectedOutcome && !quoteError && !isLoading) return null;
   if (isLoading) return (
-    <div style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', font: `500 12px ${FONT}`, color: MUTED2 }}>
+    <div style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', font: `500 12px ${FONT}`, color: MUTED2 }}>
       Calculating sale preview...
     </div>
   );
@@ -821,7 +834,7 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
   const color = isYes ? YES_COLOR : NO_COLOR;
   const textColor = isYes ? YES_TEXT : NO_TEXT;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', padding: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <ActionBtn
         onClick={onSubmit}
         disabled={disabled}
@@ -898,6 +911,7 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
       `}</style>
       {/* Tab bar */}
       <div style={{
+        position: 'relative',
         display: 'flex',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         marginBottom: '16px',
@@ -911,13 +925,25 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
               cursor: 'pointer', background: 'transparent',
               font: `700 13px ${FONT}`,
               color: tab === key ? TEXT : MUTED2,
-              boxShadow: tab === key ? `inset 0 -2px 0 rgba(255,255,255,0.85)` : 'none',
               transition: 'color .15s',
             }}
+            onMouseEnter={(e) => { if (tab !== key) e.currentTarget.style.color = TEXT; }}
+            onMouseLeave={(e) => { if (tab !== key) e.currentTarget.style.color = MUTED2; }}
           >
             {label}
           </button>
         ))}
+        {/* Sliding underline */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-1px',
+          left: tab === 'buy' ? '0%' : '50%',
+          width: '50%',
+          height: '2px',
+          background: 'rgba(255,255,255,0.85)',
+          borderRadius: '2px',
+          transition: 'left .25s cubic-bezier(.4,0,.2,1)',
+        }} />
       </div>
 
       {tab === 'buy' ? (

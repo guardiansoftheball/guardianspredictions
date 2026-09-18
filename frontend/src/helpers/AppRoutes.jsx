@@ -100,7 +100,7 @@ const AppRoutes = () => {
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : (
-          <User />
+          <NewProfile />
         )}
       </Route>
 
