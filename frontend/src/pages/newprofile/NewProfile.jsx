@@ -85,95 +85,107 @@ const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
 
   return (
     <SectionCard>
-      <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexWrap: "wrap" }}>
-        {/* Avatar */}
-        <div
-          style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "20px",
-            background: "rgba(156,201,241,0.10)",
-            border: "1px solid rgba(156,201,241,0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "34px",
-            flexShrink: 0,
-          }}
-        >
-          {personalEmoji || "👤"}
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexWrap: "wrap" }}>
+          {/* Avatar */}
+          <div
+            style={{
+              width: "72px",
+              height: "72px",
+              borderRadius: "20px",
+              background: "rgba(156,201,241,0.10)",
+              border: "1px solid rgba(156,201,241,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "34px",
+              flexShrink: 0,
+            }}
+          >
+            {personalEmoji || "👤"}
+          </div>
 
-        {/* Identity */}
-        <div style={{ flex: 1, minWidth: "220px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, font: `800 24px ${FONT_HEAD}`, color: TEXT, letterSpacing: "-.01em" }}>
-              {personalDisplayName || userData?.username}
-            </h1>
-            {usertype && <Chip tone="sky">{usertype}</Chip>}
-            {moderatorStatus && (
-              <Chip tone={moderatorStatus === "active" ? "green" : "amber"}>
-                MOD {moderatorStatus.toUpperCase()}
-              </Chip>
+          {/* Identity */}
+          <div style={{ flex: 1, minWidth: "180px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <h1 style={{ margin: 0, font: `800 24px ${FONT_HEAD}`, color: TEXT, letterSpacing: "-.01em" }}>
+                {personalDisplayName || userData?.username}
+              </h1>
+              {usertype && <Chip tone="sky">{usertype}</Chip>}
+              {moderatorStatus && (
+                <Chip tone={moderatorStatus === "active" ? "green" : "amber"}>
+                  MOD {moderatorStatus.toUpperCase()}
+                </Chip>
+              )}
+            </div>
+            <div style={{ marginTop: "4px", font: `600 13px ${FONT}`, color: MUTED }}>
+              @{userData?.username}
+              {isOwnProfile && (
+                <>
+                  <span style={{ opacity: 0.4, margin: "0 8px" }}>•</span>
+                  <Link
+                    to={`/newprofile/${userData?.username}`}
+                    style={{ color: ACCENT, textDecoration: "none" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                    onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                  >
+                    {t('profile.viewPublicProfile')}
+                  </Link>
+                </>
+              )}
+            </div>
+            {personalDescription ? (
+              <p style={{ margin: "10px 0 0", font: `400 13.5px/1.6 ${FONT}`, color: "#b7c6d6", maxWidth: "560px" }}>
+                {personalDescription}
+              </p>
+            ) : (
+              <p style={{ margin: "10px 0 0", font: `400 13px ${FONT}`, color: MUTED3, fontStyle: "italic" }}>
+                {t('profile.noDescription')}
+              </p>
+            )}
+            {links.length > 0 && (
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
+                {links.map((link) => (
+                  <a
+                    key={link}
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: "4px 12px",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(156,201,241,0.25)",
+                      background: "rgba(156,201,241,0.07)",
+                      color: ACCENT,
+                      font: `600 12px ${FONT}`,
+                      textDecoration: "none",
+                      maxWidth: "260px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {link.replace(/^https?:\/\//, "")}
+                  </a>
+                ))}
+              </div>
             )}
           </div>
-          <div style={{ marginTop: "4px", font: `600 13px ${FONT}`, color: MUTED }}>
-            @{userData?.username}
-            {isOwnProfile && (
-              <>
-                <span style={{ opacity: 0.4, margin: "0 8px" }}>•</span>
-                <Link
-                  to={`/newprofile/${userData?.username}`}
-                  style={{ color: ACCENT, textDecoration: "none" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                >
-                  {t('profile.viewPublicProfile')}
-                </Link>
-              </>
-            )}
-          </div>
-          {personalDescription ? (
-            <p style={{ margin: "10px 0 0", font: `400 13.5px/1.6 ${FONT}`, color: "#b7c6d6", maxWidth: "560px" }}>
-              {personalDescription}
-            </p>
-          ) : (
-            <p style={{ margin: "10px 0 0", font: `400 13px ${FONT}`, color: MUTED3, fontStyle: "italic" }}>
-              {t('profile.noDescription')}
-            </p>
-          )}
-          {links.length > 0 && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
-              {links.map((link) => (
-                <a
-                  key={link}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: "999px",
-                    border: "1px solid rgba(156,201,241,0.25)",
-                    background: "rgba(156,201,241,0.07)",
-                    color: ACCENT,
-                    font: `600 12px ${FONT}`,
-                    textDecoration: "none",
-                    maxWidth: "260px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {link.replace(/^https?:\/\//, "")}
-                </a>
-              ))}
+
+          {/* Edit actions — desktop only (column, right side) */}
+          {isOwnProfile && (
+            <div className="hidden sm:flex" style={{ flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+              <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
+              <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
+              <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
+              <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
             </div>
           )}
         </div>
 
-        {/* Edit actions */}
+        {/* Edit actions — mobile only (row, below content) */}
         {isOwnProfile && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+          <div className="flex flex-wrap gap-2 sm:hidden">
             <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
             <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
             <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>

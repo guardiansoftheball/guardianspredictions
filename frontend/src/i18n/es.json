@@ -85,11 +85,13 @@
     "reviewMarkets": "Revisar Mercados",
     "create": "Crear",
     "myProfile": "Mi perfil",
+    "myBets": "Mis apuestas",
     "signOut": "Cerrar sesion",
     "signIn": "Iniciar sesion",
     "createAccount": "Crear cuenta",
     "more": "Mas",
-    "credits": "creditos"
+    "credits": "creditos",
+    "language": "Idioma"
   },
   "error": {
     "title": "Algo salio mal.",
@@ -134,6 +136,11 @@
     "total": "Total",
     "lastBet": "Ultima apuesta",
     "noPositions": "No se encontraron posiciones. Comienza a operar para armar tu portafolio.",
+    "noBets": "Todavia no hiciste ninguna apuesta. Empeza a operar para ver tu historial.",
+    "totalBets": "Total apuestas",
+    "outcome": "Resultado",
+    "amount": "Monto",
+    "date": "Fecha",
     "accountBalance": "Saldo de cuenta",
     "amountInPlay": "Monto en juego",
     "totalProfits": "Ganancias totales",

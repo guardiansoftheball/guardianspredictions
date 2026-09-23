@@ -85,11 +85,13 @@
     "reviewMarkets": "Review Markets",
     "create": "Create",
     "myProfile": "My profile",
+    "myBets": "My bets",
     "signOut": "Sign out",
     "signIn": "Sign in",
     "createAccount": "Create account",
     "more": "More",
-    "credits": "credits"
+    "credits": "credits",
+    "language": "Language"
   },
   "error": {
     "title": "Oops! Something went wrong.",
@@ -134,6 +136,11 @@
     "total": "Total",
     "lastBet": "Last bet",
     "noPositions": "No positions found. Start trading to build your portfolio.",
+    "noBets": "No bets placed yet. Start trading to see your bet history.",
+    "totalBets": "Total bets",
+    "outcome": "Outcome",
+    "amount": "Amount",
+    "date": "Date",
     "accountBalance": "Account balance",
     "amountInPlay": "Amount in play",
     "totalProfits": "Total profits",

@@ -13,6 +13,7 @@ import {
 import LoginModal from "../modals/login/LoginModal";
 import RegisterModal from "../modals/register/RegisterModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
+import MyBetsPanel from "../panels/MyBetsPanel";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
@@ -46,11 +47,28 @@ const BOTTOM_NAV = [
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
+const BetsIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+);
+
 const UserChip = ({
   username,
   credit,
   onLogout,
   onProfile,
+  onMyBets,
   onCreate,
   isAdmin,
   canCreateMarket,
@@ -222,7 +240,7 @@ const UserChip = ({
           </div>
 
           {/* Menu items */}
-          <div style={{ padding: "6px" }}>
+          <div style={{ padding: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
             {isAdmin && (
               <DropdownItem
                 icon={<AdminIcon />}
@@ -256,6 +274,14 @@ const UserChip = ({
                 }}
               />
             )}
+            <DropdownItem
+              icon={<BetsIcon />}
+              label={t('nav.myBets')}
+              onClick={() => {
+                setOpen(false);
+                onMyBets?.();
+              }}
+            />
             <DropdownItem
               icon={<LogoutIcon />}
               label={t('nav.signOut')}
@@ -566,11 +592,14 @@ const Navbar = () => {
   }, []);
   // ────────────────────────────────────────────────────────────────────────────
 
+  const [betsOpen, setBetsOpen] = useState(false);
+
   const handleLogout = () => {
     logout();
     history.push("/");
   };
   const handleProfile = () => history.push("/newprofile");
+  const handleMyBets = () => setBetsOpen(true);
 
   const openLoginModal = () => setAuthModal("login");
   const openRegisterModal = () => setAuthModal("register");
@@ -805,6 +834,7 @@ const Navbar = () => {
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
+              onMyBets={handleMyBets}
               onCreate={() => history.push("/create")}
               isAdmin={usertype === "ADMIN"}
               canCreateMarket={canCreateMarket}
@@ -897,26 +927,7 @@ const Navbar = () => {
         </div>
 
         <nav className="flex-grow overflow-y-auto px-4 py-4">
-          <ul className="space-y-2">
-            {NAV_LINKS.map((link) => (
-              <li key={link.labelKey}>
-                <Link
-                  to={link.to}
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                  style={{
-                    fontFamily: "'Roboto', sans-serif",
-                    fontSize: "16px",
-                  }}
-                >
-                  {link.Icon && <link.Icon className="w-5 h-5" />}
-                  {t(link.labelKey)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-6 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             {isLoggedIn ? (
               <div style={{ padding: "8px 4px" }}>
                 {/* User info */}
@@ -981,7 +992,7 @@ const Navbar = () => {
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "4px",
+                    gap: "8px",
                   }}
                 >
                   {usertype === "ADMIN" && (
@@ -1050,9 +1061,46 @@ const Navbar = () => {
                       <PersonIcon /> {t('nav.myProfile')}
                     </button>
                   )}
-                  <div style={{ padding: "4px 3px" }}>
-                    <LanguageDropdown i18n={i18n} />
-                  </div>
+                  <button
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      handleMyBets();
+                    }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <BetsIcon /> {t('nav.myBets')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = (i18n.language || "en").startsWith("es") ? "en" : "es";
+                      i18n.changeLanguage(next);
+                    }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <GlobeIcon /> {t('nav.language')} — {(i18n.language || "en").startsWith("es") ? "Español" : "English"}
+                  </button>
                   <button
                     onClick={() => {
                       setSidebarOpen(false);
@@ -1165,6 +1213,14 @@ const Navbar = () => {
           isOpen
           onClose={closeAuthModal}
           onSwitchToLogin={openLoginModal}
+        />
+      )}
+
+      {isLoggedIn && (
+        <MyBetsPanel
+          isOpen={betsOpen}
+          onClose={() => setBetsOpen(false)}
+          username={username}
         />
       )}
     </>
