@@ -996,7 +996,7 @@ const TestAdminMarketsReview = () => {
   return (
     <div className="min-h-screen bg-primary-background relative overflow-x-hidden">
       {/* Background glow */}
-      <div style={{ position: 'fixed', width: '70vw', height: '70vh', left: '50%', top: '30%', transform: 'translate(-50%, -50%)', background: 'radial-gradient(ellipse, rgba(233,30,140,0.07) 0%, rgba(81,173,246,0.05) 60%, transparent 100%)', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(233,30,140,0.08) 0%, rgba(81,173,246,0.05) 40%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
 
       <Navbar />
 

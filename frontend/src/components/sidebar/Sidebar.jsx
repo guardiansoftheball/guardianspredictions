@@ -7,6 +7,7 @@ import {
   AboutSVG,
   AdminGearSVG,
   CoinsSVG,
+  HelpSVG,
   HomeSVG,
   LockPasswordSVG,
   LogoutSVG,
@@ -145,6 +146,9 @@ const Sidebar = () => {
           <SidebarLink to='/about' icon={AboutSVG}>
             About
           </SidebarLink>
+          <SidebarLink to='/faq' icon={HelpSVG}>
+            Help / FAQ
+          </SidebarLink>
           <SidebarLink to='/stats' icon={StatsSVG}>
             Stats
           </SidebarLink>
@@ -172,6 +176,9 @@ const Sidebar = () => {
           </SidebarLink>
           <SidebarLink to='/about' icon={AboutSVG}>
             About
+          </SidebarLink>
+          <SidebarLink to='/faq' icon={HelpSVG}>
+            Help / FAQ
           </SidebarLink>
           <SidebarLink to='/stats' icon={StatsSVG}>
             System Stats
@@ -222,6 +229,9 @@ const Sidebar = () => {
         )}
         <SidebarLink to='/about' icon={AboutSVG}>
           About
+        </SidebarLink>
+        <SidebarLink to='/faq' icon={HelpSVG}>
+          Help / FAQ
         </SidebarLink>
         <SidebarLink to='/stats' icon={StatsSVG}>
           Stats

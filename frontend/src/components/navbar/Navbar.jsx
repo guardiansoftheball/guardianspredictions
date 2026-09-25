@@ -69,6 +69,7 @@ const UserChip = ({
   onLogout,
   onProfile,
   onMyBets,
+  onHelp,
   onCreate,
   isAdmin,
   canCreateMarket,
@@ -280,6 +281,15 @@ const UserChip = ({
               onClick={() => {
                 setOpen(false);
                 onMyBets?.();
+              }}
+            />
+            <DropdownItem
+              icon={<HelpIcon />}
+              label={t('nav.helpFaq')}
+              active={pathname === "/faq"}
+              onClick={() => {
+                setOpen(false);
+                onHelp?.();
               }}
             />
             <DropdownItem
@@ -511,6 +521,23 @@ const GlobeIcon = () => (
     <circle cx="12" cy="12" r="10" />
     <path d="M2 12h20" />
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" />
+  </svg>
+);
+
+const HelpIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v.01" />
+    <path d="M12 13a2 2 0 0 0 .914-3.782 1.98 1.98 0 0 0-2.414.483" />
   </svg>
 );
 
@@ -835,6 +862,7 @@ const Navbar = () => {
               onLogout={handleLogout}
               onProfile={handleProfile}
               onMyBets={handleMyBets}
+              onHelp={() => history.push("/faq")}
               onCreate={() => history.push("/create")}
               isAdmin={usertype === "ADMIN"}
               canCreateMarket={canCreateMarket}
@@ -1080,6 +1108,26 @@ const Navbar = () => {
                     }}
                   >
                     <BetsIcon /> {t('nav.myBets')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      history.push("/faq");
+                    }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <HelpIcon /> {t('nav.helpFaq')}
                   </button>
                   <button
                     onClick={() => {

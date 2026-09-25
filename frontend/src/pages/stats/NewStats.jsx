@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -6,9 +6,8 @@ import { API_URL } from '../../config';
 import { authStorage } from '../../api/authStorage';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
+import BlueGlow from '../../components/ui/BlueGlow';
 import LoadingSpinner from '../../components/loaders/LoadingSpinner';
-import SiteTabs from '../../components/tabs/SiteTabs';
-import { Button } from '../../components/ui/Button';
 import { unwrapApiResponse } from '../../utils/apiResponse';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -26,6 +25,22 @@ const COLORS = {
   emerald: '#34d399',
   rose: '#fb7185',
 };
+
+const CARD = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  borderRadius: '16px',
+};
+
+const AVATAR_COLORS = [
+  { bg: '#1F2A37', text: '#9CC8FF' },
+  { bg: '#2A2236', text: '#CDB6FF' },
+  { bg: '#1E2E2A', text: '#8FE3C8' },
+  { bg: '#2A2519', text: '#FFD19A' },
+  { bg: '#2A1926', text: '#FFB0D0' },
+];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,35 +71,95 @@ const freshnessTimeLabel = (freshness) => {
 
 const fmt = (val) => typeof val === 'number' ? val.toLocaleString() : val;
 
-// ─── shared UI components ─────────────────────────────────────────────────────
-
-const GlassCard = ({ children, className = '' }) => (
-  <div className={`rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 ${className}`}>{children}</div>
-);
+// ─── shared UI ────────────────────────────────────────────────────────────────
 
 const ErrorBanner = ({ msg }) => msg ? (
   <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{msg}</div>
 ) : null;
 
-const InfoBanner = ({ children }) => (
-  <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{children}</div>
+const StatCard = ({ label, value, color }) => (
+  <div style={{ ...CARD, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '112px', boxSizing: 'border-box' }}>
+    <span style={{ fontSize: '13px', color: '#8B929C' }}>{label}</span>
+    <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', color: color || '#F3F4F6' }}>{value}</span>
+  </div>
 );
 
-const PaginationBar = ({ page, visibleCount, total, hasPrev, hasNext, onPrev, onNext, loading, t }) => {
-  const start = total > 0 ? page * LEADERBOARD_PAGE_SIZE + 1 : 0;
-  const end = total > 0 ? page * LEADERBOARD_PAGE_SIZE + visibleCount : 0;
-  return (
-    <GlassCard className="flex items-center justify-between !py-3">
-      <span className="text-xs text-gray-400">{total > 0 ? t('stats.leaderboard.showing', { start, end }) : t('stats.leaderboard.zeroResults')}</span>
-      <div className="flex gap-2">
-        <Button variant="dark" disabled={loading || !hasPrev} onClick={onPrev}>{t('stats.leaderboard.previous')}</Button>
-        <Button variant="dark" disabled={loading || !hasNext} onClick={onNext}>{t('stats.leaderboard.next')}</Button>
+const CenteredProfitBar = ({ profit, maxAbsProfit }) => {
+  if (maxAbsProfit === 0) {
+    return (
+      <div style={{ position: 'relative', width: '100px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.10)' }}>
+        <div style={{ position: 'absolute', left: '49px', top: '-3px', width: '2px', height: '10px', background: '#3A3F47' }} />
       </div>
-    </GlassCard>
+    );
+  }
+  const pct = Math.min(Math.abs(profit) / maxAbsProfit, 1) * 50;
+  const isPositive = profit >= 0;
+  return (
+    <div style={{ position: 'relative', width: '100px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.10)' }}>
+      {profit !== 0 && (
+        <div style={{
+          position: 'absolute', top: 0, height: '4px',
+          borderRadius: isPositive ? '0 2px 2px 0' : '2px 0 0 2px',
+          background: isPositive ? COLORS.emerald : '#F2767A',
+          ...(isPositive ? { left: '50px', width: `${pct}%` } : { right: '50px', width: `${pct}%` }),
+        }} />
+      )}
+      <div style={{ position: 'absolute', left: '49px', top: '-3px', width: '2px', height: '10px', background: '#3A3F47' }} />
+    </div>
   );
 };
 
-// ─── Recharts dark tooltip ────────────────────────────────────────────────────
+const SectionHeader = ({ icon, title, subtitle, badge }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.07)', color: '#C9CDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#F3F4F6' }}>{title}</h2>
+        {badge && <span style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '999px', background: 'rgba(255,255,255,0.07)', color: '#C9CDD3', border: '1px solid rgba(255,255,255,0.10)' }}>{badge}</span>}
+      </div>
+      {subtitle && <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#8B929C' }}>{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const NavCard = ({ icon, title, description, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    style={{
+      ...CARD, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      flexGrow: 1, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'border-color 0.2s, background 0.2s',
+    }}
+    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(156,201,241,0.4)'; e.currentTarget.style.background = 'rgba(156,201,241,0.08)'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+  >
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.07)', color: '#C9CDD3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7D848F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7v10M17 7v10" /><path d="M7 12h10" /></svg>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <span style={{ fontSize: '16px', fontWeight: 600, color: '#F3F4F6' }}>{title}</span>
+      <span style={{ fontSize: '13px', lineHeight: 1.45, color: '#8B929C' }}>{description}</span>
+    </div>
+  </button>
+);
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const ChartIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-6" /></svg>
+);
+const SlidersIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+);
+const RefreshIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
+);
+const LeaderboardIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="14" width="4" height="7" rx="1" /><rect x="10" y="8" width="4" height="13" rx="1" /><rect x="16" y="3" width="4" height="18" rx="1" /></svg>
+);
+
+// ─── Recharts tooltip ─────────────────────────────────────────────────────────
 
 const DarkTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -93,72 +168,6 @@ const DarkTooltip = ({ active, payload }) => {
     <div className="rounded-lg border border-white/10 bg-gray-900/95 px-3 py-2 text-xs shadow-xl backdrop-blur">
       <span className="text-gray-400">{name}</span>
       <span className="ml-2 font-semibold text-white">{fmt(value)}</span>
-    </div>
-  );
-};
-
-// ─── Profit bar (inline, like the screenshot) ─────────────────────────────────
-
-const ProfitBar = ({ profit, maxAbsProfit }) => {
-  if (maxAbsProfit === 0) return <div className="h-2 w-full rounded-full bg-white/10" />;
-  const pct = Math.min(Math.abs(profit) / maxAbsProfit, 1) * 100;
-  const isPositive = profit >= 0;
-  const barColor = isPositive ? COLORS.emerald : COLORS.rose;
-  return (
-    <div className="relative h-2 w-full rounded-full bg-white/10">
-      <div
-        className="absolute top-0 h-full rounded-full transition-all duration-500"
-        style={{ width: `${pct}%`, backgroundColor: barColor, left: 0 }}
-      />
-    </div>
-  );
-};
-
-// ─── Tab: Setup Configuration ─────────────────────────────────────────────────
-
-const SetupConfigTab = ({ statsData }) => {
-  const { t } = useTranslation();
-  const explanations = {
-    initialMarketProbability: t('stats.setupConfig.explanations.initialMarketProbability'),
-    initialMarketSubsidization: t('stats.setupConfig.explanations.initialMarketSubsidization'),
-    initialMarketYes: t('stats.setupConfig.explanations.initialMarketYes'),
-    initialMarketNo: t('stats.setupConfig.explanations.initialMarketNo'),
-    createMarketCost: t('stats.setupConfig.explanations.createMarketCost'),
-    traderBonus: t('stats.setupConfig.explanations.traderBonus'),
-    initialAccountBalance: t('stats.setupConfig.explanations.initialAccountBalance'),
-    maximumDebtAllowed: t('stats.setupConfig.explanations.maximumDebtAllowed'),
-    minimumBet: t('stats.setupConfig.explanations.minimumBet'),
-    maxDustPerSale: t('stats.setupConfig.explanations.maxDustPerSale'),
-    initialBetFee: t('stats.setupConfig.explanations.initialBetFee'),
-    buySharesFee: t('stats.setupConfig.explanations.buySharesFee'),
-    sellSharesFee: t('stats.setupConfig.explanations.sellSharesFee'),
-  };
-  return (
-    <div className="flex flex-col gap-4">
-      <InfoBanner>{t('stats.setupConfig.description')}</InfoBanner>
-      <div className="overflow-x-auto rounded-xl border border-white/10">
-        <table className="min-w-full divide-y divide-white/10 text-left text-sm">
-          <thead className="bg-white/5 text-xs uppercase tracking-widest text-gray-400">
-            <tr>
-              <th className="px-4 py-3">{t('stats.setupConfig.variable')}</th>
-              <th className="px-4 py-3">{t('stats.setupConfig.value')}</th>
-              <th className="hidden px-4 py-3 sm:table-cell">{t('stats.setupConfig.explanation')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {statsData?.setupConfiguration && Object.entries(statsData.setupConfiguration).map(([key, value]) => (
-              <tr key={key} className="hover:bg-white/5 transition">
-                <td className="px-4 py-3 align-top">
-                  <div className="font-mono text-sm text-[#9CC9F1]">{key}</div>
-                  <div className="mt-1 text-xs text-gray-500 sm:hidden">{explanations[key] || t('stats.setupConfig.configParam')}</div>
-                </td>
-                <td className="px-4 py-3 align-top font-semibold text-white">{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
-                <td className="hidden px-4 py-3 align-top text-gray-400 sm:table-cell">{explanations[key] || t('stats.setupConfig.configParamFull')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };
@@ -179,55 +188,106 @@ const FormulaToggle = ({ formula, show, onToggle }) => {
   );
 };
 
-// ─── MetricRow (compact metric with explanation + optional formula) ───────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 
-const MetricRow = ({ label, value, explanation, formula, showFormula, onToggleFormula, color, icon }) => (
-  <div className="flex items-start gap-3 py-3">
-    {icon && <span className="text-xl mt-0.5 shrink-0">{icon}</span>}
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-gray-300">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className={`text-lg font-bold ${color || 'text-white'}`}>{fmt(value)}</span>
-          <FormulaToggle formula={formula} show={showFormula} onToggle={onToggleFormula} />
-        </div>
-      </div>
-      {explanation && <p className="text-xs text-gray-500 mt-1">{explanation}</p>}
-    </div>
-  </div>
-);
-
-// ─── Tab: System Financial Metrics (with charts) ─────────────────────────────
-
-const SystemMetricsTab = () => {
+const NewStats = () => {
   const { t } = useTranslation();
+  const metricsRef = useRef(null);
+  const configRef = useRef(null);
+
+  // Stats config
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
+
+  // Leaderboard
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [lbFreshness, setLbFreshness] = useState(null);
+  const [lbLoading, setLbLoading] = useState(false);
+  const [lbError, setLbError] = useState(null);
+  const [lbLoginRequired, setLbLoginRequired] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  // System metrics
   const [systemMetrics, setSystemMetrics] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [loginRequired, setLoginRequired] = useState(false);
-  const [freshness, setFreshness] = useState(null);
+  const [smFreshness, setSmFreshness] = useState(null);
+  const [smLoading, setSmLoading] = useState(false);
+  const [smError, setSmError] = useState(null);
+  const [smLoginRequired, setSmLoginRequired] = useState(false);
   const [showFormulas, setShowFormulas] = useState({});
 
-  const fetchMetrics = async () => {
-    setLoading(true); setError(null); setLoginRequired(false);
+  useEffect(() => { document.title = t('stats.pageTitle'); }, [t]);
+
+  // Fetch stats config
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetch(`${API_URL}/v0/stats`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
+        setStatsData(unwrapApiResponse(await response.json()));
+      } catch (err) { setStatsError(err.message); }
+      finally { setStatsLoading(false); }
+    })();
+  }, []);
+
+  // Fetch leaderboard
+  const fetchLeaderboard = useCallback(async (pageNum = 0) => {
+    setLbLoading(true); setLbError(null); setLbLoginRequired(false);
+    try {
+      const offset = pageNum * LEADERBOARD_PAGE_SIZE;
+      const response = await fetch(`${API_URL}/v0/global/leaderboard?limit=${LEADERBOARD_PAGE_SIZE + 1}&offset=${offset}`, {
+        method: 'GET', headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
+      });
+      if (!response.ok) await readReportingError(response, t('stats.leaderboard.loginRequired'), t('stats.leaderboard.fetchError'));
+      const result = unwrapApiResponse(await response.json());
+      const rows = Array.isArray(result) ? result : (Array.isArray(result?.entries) ? result.entries : []);
+      setLbFreshness(Array.isArray(result) ? null : (result?.freshness || null));
+      setLeaderboard(rows.slice(0, LEADERBOARD_PAGE_SIZE));
+      setPage(pageNum);
+      setHasNextPage(rows.length > LEADERBOARD_PAGE_SIZE);
+    } catch (err) { setLbError(err.message); setLbLoginRequired(Boolean(err.loginRequired)); setHasNextPage(false); }
+    finally { setLbLoading(false); }
+  }, [t]);
+
+  // Fetch system metrics
+  const fetchMetrics = useCallback(async () => {
+    setSmLoading(true); setSmError(null); setSmLoginRequired(false);
     try {
       const response = await fetch(`${API_URL}/v0/system/metrics`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
+        method: 'GET', headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
       });
       if (!response.ok) await readReportingError(response, t('stats.metrics.loginRequired'), t('stats.metrics.fetchError'));
-      const data = await response.json();
-      const result = unwrapApiResponse(data);
-      setFreshness(result?.freshness || null);
+      const result = unwrapApiResponse(await response.json());
+      setSmFreshness(result?.freshness || null);
       setSystemMetrics(result ? { ...result, freshness: undefined } : result);
-    } catch (err) { setError(err.message); setLoginRequired(Boolean(err.loginRequired)); }
-    finally { setLoading(false); }
-  };
+    } catch (err) { setSmError(err.message); setSmLoginRequired(Boolean(err.loginRequired)); }
+    finally { setSmLoading(false); }
+  }, [t]);
 
+  // Auto-fetch everything on mount
+  useEffect(() => { fetchLeaderboard(0); }, [fetchLeaderboard]);
+  useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
+
+  const lbFreshnessLabel = freshnessTimeLabel(lbFreshness);
+  const smFreshnessLabel = freshnessTimeLabel(smFreshness);
   const toggleFormula = (key) => setShowFormulas((prev) => ({ ...prev, [key]: !prev[key] }));
-  const freshnessLabel = freshnessTimeLabel(freshness);
 
-  // Build chart data from metrics
+  const maxAbsProfit = useMemo(() => {
+    if (!leaderboard?.length) return 0;
+    return Math.max(...leaderboard.map((u) => Math.abs(u.totalProfit)), 1);
+  }, [leaderboard]);
+
+  const summary = useMemo(() => {
+    if (!leaderboard?.length) return { users: 0, value: 0, spent: 0, profit: 0 };
+    return {
+      users: leaderboard.length,
+      value: leaderboard.reduce((s, u) => s + (u.totalCurrentValue || 0), 0),
+      spent: leaderboard.reduce((s, u) => s + (u.totalSpent || 0), 0),
+      profit: leaderboard.reduce((s, u) => s + (u.totalProfit || 0), 0),
+    };
+  }, [leaderboard]);
+
   const utilizationData = useMemo(() => {
     if (!systemMetrics) return [];
     const u = systemMetrics.moneyUtilized;
@@ -238,439 +298,325 @@ const SystemMetricsTab = () => {
       { name: t('stats.metrics.participationFees'), value: Math.abs(u.participationFees.value), color: COLORS.cyan, explanation: u.participationFees.explanation, formula: u.participationFees.formula, key: 'participationFees' },
       { name: t('stats.metrics.bonusesShort'), value: Math.abs(u.bonusesPaid.value), color: COLORS.pink, explanation: u.bonusesPaid.explanation, key: 'bonusesPaid' },
     ].filter((d) => d.value > 0);
-  }, [systemMetrics]);
+  }, [systemMetrics, t]);
 
   const isBalanced = systemMetrics?.verification?.balanced?.value === true;
   const surplus = systemMetrics?.verification?.surplus;
+  const start = page * LEADERBOARD_PAGE_SIZE;
+
+  const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Setup config explanations
+  const explanations = {
+    initialMarketProbability: t('stats.setupConfig.explanations.initialMarketProbability'),
+    initialMarketSubsidization: t('stats.setupConfig.explanations.initialMarketSubsidization'),
+    initialMarketYes: t('stats.setupConfig.explanations.initialMarketYes'),
+    initialMarketNo: t('stats.setupConfig.explanations.initialMarketNo'),
+    createMarketCost: t('stats.setupConfig.explanations.createMarketCost'),
+    traderBonus: t('stats.setupConfig.explanations.traderBonus'),
+    initialAccountBalance: t('stats.setupConfig.explanations.initialAccountBalance'),
+    maximumDebtAllowed: t('stats.setupConfig.explanations.maximumDebtAllowed'),
+    minimumBet: t('stats.setupConfig.explanations.minimumBet'),
+    maxDustPerSale: t('stats.setupConfig.explanations.maxDustPerSale'),
+    initialBetFee: t('stats.setupConfig.explanations.initialBetFee'),
+    buySharesFee: t('stats.setupConfig.explanations.buySharesFee'),
+    sellSharesFee: t('stats.setupConfig.explanations.sellSharesFee'),
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">{t('stats.beta')}</span>
-        <Button variant="celeste" disabled={loading} onClick={fetchMetrics}>
-          {loading ? t('stats.metrics.calculating') : t('stats.metrics.calculateBtn')}
-        </Button>
-      </div>
+    <div className="min-h-screen bg-[#0A0B0D] relative overflow-x-hidden">
+      <BlueGlow />
+      <Navbar />
 
-      <InfoBanner>
-        {t('stats.metrics.betaDisclaimer')}
-      </InfoBanner>
+      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-8 pb-24">
 
-      {loading && (
-        <div className="flex items-center justify-center gap-3 py-8">
-          <LoadingSpinner />
-          <span className="text-sm text-gray-300">{t('stats.metrics.computing')}</span>
+        {/* ── Header ── */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8B929C' }}>{t('stats.pageEyebrow')}</span>
+            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 600, letterSpacing: '-0.02em', color: '#F3F4F6' }}>{t('stats.pageHeading')}</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {lbFreshnessLabel && (
+              <span style={{ fontSize: '13px', color: '#8B929C', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
+                Updated {lbFreshnessLabel}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => { fetchLeaderboard(0); fetchMetrics(); }}
+              disabled={lbLoading || smLoading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 14px',
+                borderRadius: '8px', background: '#F3F4F6', color: '#0A0B0D', border: 'none',
+                fontSize: '13px', fontWeight: 500, cursor: (lbLoading || smLoading) ? 'not-allowed' : 'pointer',
+                opacity: (lbLoading || smLoading) ? 0.6 : 1,
+              }}
+            >
+              <RefreshIcon />
+              Recalculate
+            </button>
+          </div>
+        </header>
+
+        {/* ── Summary stat cards ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard label={t('stats.leaderboard.rank') + 'ed users'} value={fmt(summary.users)} />
+          <StatCard label={t('stats.leaderboard.value')} value={fmt(summary.value)} />
+          <StatCard label={t('stats.leaderboard.spent')} value={fmt(summary.spent)} />
+          <StatCard label={t('stats.leaderboard.profit')} value={summary.profit >= 0 ? fmt(summary.profit) : `−${fmt(Math.abs(summary.profit))}`} color={summary.profit >= 0 ? '#F3F4F6' : '#F2767A'} />
         </div>
-      )}
 
-      {error && !loginRequired && <ErrorBanner msg={error} />}
-      {error && loginRequired && <InfoBanner>{error}</InfoBanner>}
+        {/* ── Bento grid: leaderboard + side nav ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
 
-      {!systemMetrics && !loading && !error && (
-        <GlassCard className="text-center text-gray-400">
-          {t('stats.metrics.noData')}
-        </GlassCard>
-      )}
-
-      {systemMetrics && (
-        <div className="flex flex-col gap-5">
-          {freshnessLabel && (
-            <GlassCard className="!py-3 text-sm text-gray-300">
-              {t('stats.metrics.freshnessLabel', { time: freshnessLabel })}
-            </GlassCard>
-          )}
-
-          {/* ── Money Created: capacity bar + details ── */}
-          <GlassCard>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-3xl">💰</span>
-              <div>
-                <h3 className="text-xl font-bold text-white">{t('stats.metrics.moneyCreated')}</h3>
-                <span className="text-sm text-gray-400">{t('stats.metrics.totalSystemCapacity')}</span>
+          {/* Leaderboard - 3 cols */}
+          <section className="lg:col-span-3" style={{ ...CARD, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+              <SectionHeader icon={<LeaderboardIcon />} title={t('stats.tabs.globalLeaderboard')} subtitle={t('stats.shortcuts.leaderboardDesc')} badge={t('stats.beta')} />
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <button type="button" aria-label="Previous page" disabled={lbLoading || page <= 0} onClick={() => fetchLeaderboard(Math.max(0, page - 1))}
+                  style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: page > 0 ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: page > 0 ? 'pointer' : 'not-allowed' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+                <button type="button" aria-label="Next page" disabled={lbLoading || !hasNextPage} onClick={() => fetchLeaderboard(page + 1)}
+                  style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: hasNextPage ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasNextPage ? 'pointer' : 'not-allowed' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
               </div>
             </div>
-            {/* Capacity usage bar */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-400">{t('stats.metrics.utilizationLabel')}</span>
-                <span className="text-xs text-gray-400">
-                  {fmt(systemMetrics.moneyUtilized.totalUtilized.value)} / {fmt(systemMetrics.moneyCreated.userDebtCapacity.value)}
-                </span>
-              </div>
-              <div className="h-4 w-full rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${Math.min((Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1)) * 100, 100)}%`,
-                    backgroundColor: COLORS.celeste,
-                  }}
-                />
-              </div>
-            </div>
-            {/* Detail rows */}
-            <div className="divide-y divide-white/5">
-              <MetricRow
-                icon="👥"
-                label={t('stats.metrics.numUsers')}
-                value={systemMetrics.moneyCreated.numUsers.value}
-                explanation={systemMetrics.moneyCreated.numUsers.explanation}
-              />
-              <MetricRow
-                icon="💳"
-                label={t('stats.metrics.userDebtCapacity')}
-                value={systemMetrics.moneyCreated.userDebtCapacity.value}
-                explanation={systemMetrics.moneyCreated.userDebtCapacity.explanation}
-                formula={systemMetrics.moneyCreated.userDebtCapacity.formula}
-                showFormula={showFormulas.userDebtCapacity}
-                onToggleFormula={() => toggleFormula('userDebtCapacity')}
-                color="text-[#9CC9F1]"
-              />
-              <MetricRow
-                icon="📊"
-                label={t('stats.metrics.totalUtilized')}
-                value={systemMetrics.moneyUtilized.totalUtilized.value}
-                explanation={systemMetrics.moneyUtilized.totalUtilized.explanation}
-                formula={systemMetrics.moneyUtilized.totalUtilized.formula}
-                showFormula={showFormulas.totalUtilized}
-                onToggleFormula={() => toggleFormula('totalUtilized')}
-                color="text-white"
-              />
-            </div>
-          </GlassCard>
 
-          {/* ── Money Utilized: bar chart + detail list ── */}
-          <GlassCard>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-3xl">📊</span>
-              <div>
-                <h3 className="text-xl font-bold text-white">{t('stats.metrics.moneyUtilized')}</h3>
-                <span className="text-sm text-gray-400">{t('stats.metrics.whereMoneyWent')}</span>
+            {lbLoading && !leaderboard && (
+              <div className="flex items-center justify-center gap-3 py-12">
+                <LoadingSpinner />
+                <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.leaderboard.computing')}</span>
               </div>
-            </div>
-            {utilizationData.length > 0 ? (
-              <div className="flex flex-col gap-4">
-                {/* Chart */}
-                <div className="min-h-[200px]">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={utilizationData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
-                      <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                      <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
-                        {utilizationData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+            )}
+            {lbError && !lbLoginRequired && <ErrorBanner msg={lbError} />}
+            {lbError && lbLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{lbError}</div>}
+
+            {leaderboard && leaderboard.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* Table header */}
+                <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '36px', fontSize: '12px', fontWeight: 500, color: '#7D848F', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                  <div>#</div><div>{t('stats.leaderboard.user')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.profit')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.value')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.spent')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.markets')}</div>
                 </div>
-                {/* Detail rows with explanations */}
-                <div className="divide-y divide-white/5">
-                  {utilizationData.map((d) => (
-                    <div key={d.key} className="flex items-start gap-3 py-3">
-                      <div className="h-3 w-3 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: d.color }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-gray-300">{d.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{fmt(d.value)}</span>
-                            <FormulaToggle formula={d.formula} show={showFormulas[d.key]} onToggle={() => toggleFormula(d.key)} />
-                          </div>
+                {leaderboard.map((user, idx) => {
+                  const rank = start + idx + 1;
+                  const av = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+                  const initials = user.username.slice(0, 2).toUpperCase();
+                  const neg = user.totalProfit < 0;
+                  return (
+                    <div key={user.username}>
+                      {/* Desktop */}
+                      <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '60px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '14px' }}>
+                        <div style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 500, color: rank === 1 ? '#F3F4F6' : '#8B929C' }}>{String(rank).padStart(2, '0')}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>{initials}</div>
+                          <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none' }}>{user.username}</Link>
                         </div>
-                        {d.explanation && <p className="text-xs text-gray-500 mt-1">{d.explanation}</p>}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
+                          <CenteredProfitBar profit={user.totalProfit} maxAbsProfit={maxAbsProfit} />
+                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: neg ? '#F2767A' : '#C9CDD3', width: '48px', textAlign: 'right' }}>
+                            {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</div>
+                        <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalSpent)}</div>
+                        <div style={{ textAlign: 'right', color: '#8B929C', fontSize: '13px' }}>
+                          <span style={{ color: '#E7E9EC' }}>{user.activeMarkets}</span> {t('stats.leaderboard.active')} · <span style={{ color: '#E7E9EC' }}>{user.resolvedMarkets}</span> res.
+                        </div>
                       </div>
+                      {/* Mobile */}
+                      <div className="sm:hidden" style={{ ...CARD, padding: '16px', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 700, color: '#F3F4F6', fontSize: '18px' }}>{String(rank).padStart(2, '0')}</span>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
+                          <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none', flex: 1 }}>{user.username}</Link>
+                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 600, color: neg ? '#F2767A' : '#C9CDD3' }}>
+                            {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8B929C' }}>
+                          <span>Value: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</span></span>
+                          <span>Spent: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalSpent)}</span></span>
+                          <span>{user.activeMarkets} {t('stats.leaderboard.active')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {leaderboard && leaderboard.length === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#8B929C' }}>{t('stats.leaderboard.noResults')}</div>
+            )}
+            {leaderboard && leaderboard.length > 0 && (
+              <div style={{ marginTop: 'auto', fontSize: '12px', color: '#7D848F' }}>
+                {t('stats.leaderboard.showing', { start: start + 1, end: start + leaderboard.length })}
+              </div>
+            )}
+          </section>
+
+          {/* Side nav cards - 1 col */}
+          <div className="flex flex-row lg:flex-col gap-4">
+            <NavCard icon={<ChartIcon />} title={t('stats.shortcuts.financials')} description={t('stats.shortcuts.metricsDesc')} onClick={() => scrollTo(metricsRef)} />
+            <NavCard icon={<SlidersIcon />} title={t('stats.shortcuts.config')} description={t('stats.shortcuts.configDesc')} onClick={() => scrollTo(configRef)} />
+          </div>
+        </div>
+
+        {/* ── Financial Metrics section ── */}
+        <section ref={metricsRef} style={{ ...CARD, padding: '24px', marginBottom: '16px' }}>
+          <SectionHeader icon={<ChartIcon />} title={t('stats.tabs.systemMetrics')} subtitle={t('stats.shortcuts.metricsDesc')} badge={t('stats.beta')} />
+
+          {smLoading && (
+            <div className="flex items-center justify-center gap-3 py-8">
+              <LoadingSpinner />
+              <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.metrics.computing')}</span>
+            </div>
+          )}
+          {smError && !smLoginRequired && <ErrorBanner msg={smError} />}
+          {smError && smLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{smError}</div>}
+
+          {systemMetrics && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {smFreshnessLabel && (
+                <div style={{ fontSize: '12px', color: '#7D848F', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
+                  {t('stats.metrics.freshnessLabel', { time: smFreshnessLabel })}
+                </div>
+              )}
+
+              {/* Money Created - capacity bar */}
+              <div>
+                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyCreated')}</h3>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px', color: '#7D848F' }}>
+                    <span>{t('stats.metrics.utilizationLabel')}</span>
+                    <span>{fmt(systemMetrics.moneyUtilized.totalUtilized.value)} / {fmt(systemMetrics.moneyCreated.userDebtCapacity.value)}</span>
+                  </div>
+                  <div style={{ height: '6px', width: '100%', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '3px', transition: 'width 0.7s',
+                      width: `${Math.min((Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1)) * 100, 100)}%`,
+                      backgroundColor: COLORS.celeste,
+                    }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { label: t('stats.metrics.numUsers'), value: systemMetrics.moneyCreated.numUsers.value, icon: '👥' },
+                    { label: t('stats.metrics.userDebtCapacity'), value: systemMetrics.moneyCreated.userDebtCapacity.value, icon: '💳' },
+                    { label: t('stats.metrics.totalUtilized'), value: systemMetrics.moneyUtilized.totalUtilized.value, icon: '📊' },
+                  ].map((m) => (
+                    <div key={m.label} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ fontSize: '12px', color: '#8B929C', marginBottom: '6px' }}>{m.icon} {m.label}</div>
+                      <div style={{ fontSize: '20px', fontWeight: 600, color: '#F3F4F6', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>{fmt(m.value)}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-gray-500">{t('stats.metrics.noUtilizationData')}</p>
-            )}
-          </GlassCard>
 
-          {/* ── Accounting Verification ── */}
-          <GlassCard>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-3xl">{isBalanced ? '✅' : '❌'}</span>
-              <div>
-                <h3 className="text-xl font-bold text-white">{t('stats.metrics.accountingVerification')}</h3>
-                <span className="text-sm text-gray-400">{t('stats.metrics.balanceCheck')}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Balanced status */}
-              <div className="flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-4">
-                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 ${isBalanced ? 'border-emerald-400/50 bg-emerald-400/10' : 'border-rose-400/50 bg-rose-400/10'}`}>
-                  <span className={`text-xl font-bold ${isBalanced ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isBalanced ? t('stats.metrics.yes') : t('stats.metrics.no')}
-                  </span>
-                </div>
+              {/* Money Utilized - chart */}
+              {utilizationData.length > 0 && (
                 <div>
-                  <div className="text-sm font-semibold text-white">{isBalanced ? t('stats.metrics.systemBalanced') : t('stats.metrics.systemImbalanced')}</div>
-                  <p className="text-xs text-gray-500 mt-1">{systemMetrics.verification.balanced.explanation}</p>
-                </div>
-              </div>
-              {/* Surplus/Deficit */}
-              <div className="flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-4">
-                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 ${
-                  surplus?.value === 0 ? 'border-emerald-400/50 bg-emerald-400/10' :
-                  surplus?.value > 0 ? 'border-amber-400/50 bg-amber-400/10' : 'border-rose-400/50 bg-rose-400/10'
-                }`}>
-                  <span className={`text-lg font-bold ${
-                    surplus?.value === 0 ? 'text-emerald-400' :
-                    surplus?.value > 0 ? 'text-amber-400' : 'text-rose-400'
-                  }`}>
-                    {surplus?.value > 0 ? '+' : ''}{fmt(surplus?.value)}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">{t('stats.metrics.surplusDeficit')}</span>
-                    <FormulaToggle formula={surplus?.formula} show={showFormulas.surplus} onToggle={() => toggleFormula('surplus')} />
+                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyUtilized')}</h3>
+                  <div style={{ minHeight: '180px' }}>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={utilizationData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                        <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
+                          {utilizationData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">{surplus?.explanation}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3">
+                    {utilizationData.map((d) => (
+                      <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: '11px', color: '#8B929C' }}>{d.name}</div>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#F3F4F6' }}>{fmt(d.value)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-          </GlassCard>
-        </div>
-      )}
-    </div>
-  );
-};
+              )}
 
-// ─── Tab: Global Leaderboard (with inline profit bars) ────────────────────────
-
-const GlobalLeaderboardTab = () => {
-  const { t } = useTranslation();
-  const [leaderboard, setLeaderboard] = useState(null);
-  const [freshness, setFreshness] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [loginRequired, setLoginRequired] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasNextPage, setHasNextPage] = useState(false);
-
-  const fetchLeaderboard = async (pageNum = 0) => {
-    setLoading(true); setError(null); setLoginRequired(false);
-    try {
-      const offset = pageNum * LEADERBOARD_PAGE_SIZE;
-      const response = await fetch(`${API_URL}/v0/global/leaderboard?limit=${LEADERBOARD_PAGE_SIZE + 1}&offset=${offset}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', ...getOptionalAuthHeaders() },
-      });
-      if (!response.ok) await readReportingError(response, t('stats.leaderboard.loginRequired'), t('stats.leaderboard.fetchError'));
-      const data = await response.json();
-      const result = unwrapApiResponse(data);
-      const rows = Array.isArray(result) ? result : (Array.isArray(result?.entries) ? result.entries : []);
-      setFreshness(Array.isArray(result) ? null : (result?.freshness || null));
-      setLeaderboard(rows.slice(0, LEADERBOARD_PAGE_SIZE));
-      setPage(pageNum);
-      setHasNextPage(rows.length > LEADERBOARD_PAGE_SIZE);
-    } catch (err) { setError(err.message); setLoginRequired(Boolean(err.loginRequired)); setHasNextPage(false); }
-    finally { setLoading(false); }
-  };
-
-  const start = page * LEADERBOARD_PAGE_SIZE;
-  const freshnessLabel = freshnessTimeLabel(freshness);
-  const maxAbsProfit = useMemo(() => {
-    if (!leaderboard?.length) return 0;
-    return Math.max(...leaderboard.map((u) => Math.abs(u.totalProfit)), 1);
-  }, [leaderboard]);
-
-  const getRankDisplay = (rank) => {
-    if (rank === 1) return '1st';
-    if (rank === 2) return '2nd';
-    if (rank === 3) return '3rd';
-    return `#${rank}`;
-  };
-
-  const getUserInitials = (username) => {
-    return username.slice(0, 2).toUpperCase();
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-200 self-start">{t('stats.beta')}</span>
-        <Button variant="celeste" disabled={loading} onClick={() => fetchLeaderboard(0)}>
-          {loading ? t('stats.leaderboard.calculating') : t('stats.leaderboard.calculateBtn')}
-        </Button>
-      </div>
-
-      <InfoBanner>
-        {t('stats.leaderboard.betaDisclaimer')}
-      </InfoBanner>
-
-      {loading && (
-        <div className="flex items-center justify-center gap-3 py-8">
-          <LoadingSpinner />
-          <span className="text-sm text-gray-300">{t('stats.leaderboard.computing')}</span>
-        </div>
-      )}
-
-      {error && !loginRequired && <ErrorBanner msg={error} />}
-      {error && loginRequired && <InfoBanner>{error}</InfoBanner>}
-
-      {!leaderboard && !loading && !error && (
-        <GlassCard className="text-center text-gray-400">
-          {t('stats.leaderboard.noData')}
-        </GlassCard>
-      )}
-
-      {leaderboard && leaderboard.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {freshnessLabel && (
-            <GlassCard className="!py-3 text-sm text-gray-300">
-              {t('stats.leaderboard.freshnessLabel', { time: freshnessLabel })}
-            </GlassCard>
-          )}
-
-          <PaginationBar
-            page={page}
-            visibleCount={leaderboard.length}
-            total={start + leaderboard.length + (hasNextPage ? 1 : 0)}
-            hasPrev={page > 0}
-            hasNext={hasNextPage}
-            onPrev={() => fetchLeaderboard(Math.max(0, page - 1))}
-            onNext={() => fetchLeaderboard(page + 1)}
-            loading={loading}
-            t={t}
-          />
-
-          {/* Header row */}
-          <div className="hidden sm:grid sm:grid-cols-[60px,1fr,2fr,80px,80px,120px] gap-3 px-4 py-2 text-xs uppercase tracking-widest text-gray-400">
-            <span>{t('stats.leaderboard.rank')}</span>
-            <span>{t('stats.leaderboard.user')}</span>
-            <span>{t('stats.leaderboard.profit')}</span>
-            <span className="text-right">{t('stats.leaderboard.value')}</span>
-            <span className="text-right">{t('stats.leaderboard.spent')}</span>
-            <span className="text-right">{t('stats.leaderboard.markets')}</span>
-          </div>
-
-          {/* Rows */}
-          <div className="flex flex-col gap-2">
-            {leaderboard.map((user) => {
-              const profitPositive = user.totalProfit >= 0;
-              return (
-                <GlassCard key={user.username} className="!py-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-[60px,1fr,2fr,80px,80px,120px] gap-3 items-center">
-                    {/* Rank */}
-                    <span className="text-lg font-bold text-white">{getRankDisplay(user.rank)}</span>
-
-                    {/* User avatar + name */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#9CC9F1]/40 bg-[#9CC9F1]/15 text-xs font-bold text-[#9CC9F1]">
-                        {getUserInitials(user.username)}
-                      </div>
-                      <Link to={`/newprofile/${user.username}`} className="font-medium text-white hover:text-[#9CC9F1] transition-colors truncate">
-                        {user.username}
-                      </Link>
+              {/* Accounting Verification */}
+              <div>
+                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.accountingVerification')}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `2px solid ${isBalanced ? 'rgba(52,211,153,0.5)' : 'rgba(251,113,133,0.5)'}`, background: isBalanced ? 'rgba(52,211,153,0.1)' : 'rgba(251,113,133,0.1)' }}>
+                      <span style={{ fontSize: '16px', fontWeight: 700, color: isBalanced ? COLORS.emerald : COLORS.rose }}>{isBalanced ? '✓' : '✗'}</span>
                     </div>
-
-                    {/* Profit bar + value */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <ProfitBar profit={user.totalProfit} maxAbsProfit={maxAbsProfit} />
-                      </div>
-                      <span className={`text-sm font-semibold min-w-[60px] text-right ${profitPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {profitPositive ? '+' : ''}{fmt(user.totalProfit)}
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{isBalanced ? t('stats.metrics.systemBalanced') : t('stats.metrics.systemImbalanced')}</div>
+                      <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{systemMetrics.verification.balanced.explanation}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      border: `2px solid ${surplus?.value === 0 ? 'rgba(52,211,153,0.5)' : surplus?.value > 0 ? 'rgba(251,191,36,0.5)' : 'rgba(251,113,133,0.5)'}`,
+                      background: surplus?.value === 0 ? 'rgba(52,211,153,0.1)' : surplus?.value > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(251,113,133,0.1)',
+                    }}>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: surplus?.value === 0 ? COLORS.emerald : surplus?.value > 0 ? COLORS.amber : COLORS.rose }}>
+                        {surplus?.value > 0 ? '+' : ''}{fmt(surplus?.value)}
                       </span>
                     </div>
-
-                    {/* Value */}
-                    <span className="text-sm text-gray-300 text-right">{fmt(user.totalCurrentValue)}</span>
-
-                    {/* Spent */}
-                    <span className="text-sm text-gray-300 text-right">{fmt(user.totalSpent)}</span>
-
-                    {/* Markets */}
-                    <span className="text-sm text-gray-400 text-right">
-                      {user.activeMarkets} {t('stats.leaderboard.active')} · {user.resolvedMarkets} {t('stats.leaderboard.resolved')}
-                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.surplusDeficit')}</span>
+                        <FormulaToggle formula={surplus?.formula} show={showFormulas.surplus} onToggle={() => toggleFormula('surplus')} />
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{surplus?.explanation}</p>
+                    </div>
                   </div>
-                </GlassCard>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
-      {leaderboard && leaderboard.length === 0 && (
-        <GlassCard className="text-center text-gray-400">{t('stats.leaderboard.noResults')}</GlassCard>
-      )}
-    </div>
-  );
-};
+        {/* ── Setup Configuration section ── */}
+        <section ref={configRef} style={{ ...CARD, padding: '24px' }}>
+          <SectionHeader icon={<SlidersIcon />} title={t('stats.tabs.setupConfig')} subtitle={t('stats.shortcuts.configDesc')} />
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+          {statsLoading && (
+            <div className="flex items-center justify-center gap-3 py-8">
+              <LoadingSpinner />
+            </div>
+          )}
+          {statsError && <ErrorBanner msg={statsError} />}
 
-const NewStats = () => {
-  const { t } = useTranslation();
-  const [statsData, setStatsData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(t('stats.tabs.globalLeaderboard'));
-
-  useEffect(() => { document.title = t('stats.pageTitle'); }, [t]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch(`${API_URL}/v0/stats`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
-        const data = await response.json();
-        setStatsData(unwrapApiResponse(data));
-      } catch (err) { setError(err.message); }
-      finally { setLoading(false); }
-    };
-    fetchStats();
-  }, []);
-
-  const shortcuts = [
-    { tab: t('stats.tabs.globalLeaderboard'), eyebrow: t('stats.shortcuts.rankings'), title: t('stats.tabs.globalLeaderboard'), description: t('stats.shortcuts.leaderboardDesc') },
-    { tab: t('stats.tabs.systemMetrics'), eyebrow: t('stats.shortcuts.financials'), title: t('stats.tabs.systemMetrics'), description: t('stats.shortcuts.metricsDesc') },
-    { tab: t('stats.tabs.setupConfig'), eyebrow: t('stats.shortcuts.config'), title: t('stats.tabs.setupConfig'), description: t('stats.shortcuts.configDesc') },
-  ];
-
-  const tabs = [
-    { label: t('stats.tabs.globalLeaderboard'), content: <GlobalLeaderboardTab /> },
-    { label: t('stats.tabs.systemMetrics'), content: <SystemMetricsTab /> },
-    { label: t('stats.tabs.setupConfig'), content: loading ? <LoadingSpinner /> : error ? <ErrorBanner msg={error} /> : <SetupConfigTab statsData={statsData} /> },
-  ];
-
-  return (
-    <div className="min-h-screen bg-primary-background relative overflow-x-hidden">
-      <div style={{ position: 'fixed', width: '70vw', height: '70vh', left: '50%', top: '30%', transform: 'translate(-50%, -50%)', background: 'radial-gradient(ellipse, rgba(233,30,140,0.07) 0%, rgba(81,173,246,0.05) 60%, transparent 100%)', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
-
-      <Navbar />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('stats.pageEyebrow')}</p>
-          <h1 className="text-4xl font-bold text-white">{t('stats.pageHeading')}</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('stats.pageSubtitle')}</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-          {shortcuts.map((s) => (
-            <button
-              key={s.tab}
-              type="button"
-              onClick={() => setActiveTab(s.tab)}
-              className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition ${activeTab === s.tab ? 'border-[#9CC9F1]/60 bg-[#9CC9F1]/10 shadow-lg shadow-[#9CC9F1]/10' : 'border-white/10 bg-white/5 hover:border-sky-500/40 hover:bg-white/8'}`}
-            >
-              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">{s.eyebrow}</span>
-              <div className="text-base font-semibold text-white">{s.title}</div>
-              <p className="text-xs leading-5 text-gray-400">{s.description}</p>
-            </button>
-          ))}
-        </div>
-
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
-          <SiteTabs variant="dark" tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
+          {statsData?.setupConfiguration && (
+            <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                    <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.variable')}</th>
+                    <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.value')}</th>
+                    <th className="hidden sm:table-cell" style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.explanation')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(statsData.setupConfiguration).map(([key, value]) => (
+                    <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px 20px', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontSize: '13px', color: '#9CC9F1' }}>{key}</td>
+                      <td style={{ padding: '12px 20px', fontWeight: 600, color: '#F3F4F6' }}>{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
+                      <td className="hidden sm:table-cell" style={{ padding: '12px 20px', color: '#8B929C', fontSize: '13px' }}>{explanations[key] || t('stats.setupConfig.configParamFull')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
 
       <Footer />

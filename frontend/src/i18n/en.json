@@ -91,7 +91,8 @@
     "createAccount": "Create account",
     "more": "More",
     "credits": "credits",
-    "language": "Language"
+    "language": "Language",
+    "helpFaq": "Help / FAQ"
   },
   "error": {
     "title": "Oops! Something went wrong.",
@@ -572,5 +573,20 @@
     "description": "The page you're looking for doesn't exist or has been moved.",
     "goHome": "Go Home",
     "browseMarkets": "Browse Markets"
+  },
+  "faq": {
+    "eyebrow": "Support",
+    "heading": "Frequently Asked Questions",
+    "subtitle": "Find answers to common questions about the platform.",
+    "searchPlaceholder": "Search questions...",
+    "noResults": "No questions match your search.",
+    "q1": "What is a prediction market?",
+    "a1": "A prediction market is a platform where participants trade on the outcome of future events. Unlike polls, prediction markets incentivize accuracy because users put points at stake based on what they believe will happen, promoting rigorous research and reducing bias.",
+    "q2": "How do I place a bet?",
+    "a2": "Navigate to any active market, select the outcome you believe is most likely, enter the amount of points you want to bet, and confirm. Your potential payout depends on the current market probability — the earlier you bet on the correct outcome, the higher your reward.",
+    "q3": "How are market prices calculated?",
+    "a3": "We use the LMSR (Logarithmic Market Scoring Rule) pricing mechanism. This automated market maker adjusts prices based on the volume of bets on each outcome, ensuring there is always liquidity and that prices reflect the collective belief of all participants.",
+    "q4": "Can I create my own market?",
+    "a4": "Yes! If your account has the required permissions, you can create markets by clicking \"Create\" in the navigation menu. Define a clear question, set the possible outcomes, and submit it for review. Once approved, your market goes live."
   }
 }

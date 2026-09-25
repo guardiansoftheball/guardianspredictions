@@ -7,6 +7,7 @@ import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import GhostCard from "../../components/cards/GhostCard";
+import BlueGlow from "../../components/ui/BlueGlow";
 import { skeletonForType } from "../../components/cards/SkeletonCard";
 import { useMarkets } from "../../hooks/useMarkets";
 import { usePaginatedCards } from "../../hooks/usePaginatedCards";
@@ -136,22 +137,7 @@ const NewMarkets = () => {
 
   return (
     <div className="bg-primary-background min-h-screen pb-16">
-      <div
-        style={{
-          position: "fixed",
-          width: "75vw",
-          height: "100vh",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          background:
-            "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 30%) 0%)",
-          filter: "blur(250px)",
-          pointerEvents: "none",
-          zIndex: 0,
-          borderRadius: "50%",
-        }}
-      />
+      <BlueGlow />
       <Navbar />
 
       <div className="flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">

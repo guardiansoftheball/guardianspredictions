@@ -9,7 +9,7 @@ import AppRoutes from './helpers/AppRoutes';
 import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
-const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', '/create', '/stats'];
+const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', '/create', '/stats', '/faq'];
 const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/newprofile'];
 const KNOWN_NON_FULLSCREEN = ['/old', '/about', '/profile', '/changepassword', '/polls', '/notifications', '/admin', '/style'];
 

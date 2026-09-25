@@ -91,7 +91,8 @@
     "createAccount": "Crear cuenta",
     "more": "Mas",
     "credits": "creditos",
-    "language": "Idioma"
+    "language": "Idioma",
+    "helpFaq": "Ayuda / FAQ"
   },
   "error": {
     "title": "Algo salio mal.",
@@ -572,5 +573,20 @@
     "description": "La página que buscás no existe o fue movida.",
     "goHome": "Ir al Inicio",
     "browseMarkets": "Ver Mercados"
+  },
+  "faq": {
+    "eyebrow": "Soporte",
+    "heading": "Preguntas Frecuentes",
+    "subtitle": "Encontrá respuestas a las preguntas más comunes sobre la plataforma.",
+    "searchPlaceholder": "Buscar preguntas...",
+    "noResults": "No se encontraron preguntas con tu búsqueda.",
+    "q1": "¿Qué es un mercado de predicciones?",
+    "a1": "Un mercado de predicciones es una plataforma donde los participantes operan sobre el resultado de eventos futuros. A diferencia de las encuestas, los mercados de predicciones incentivan la precisión porque los usuarios ponen puntos en juego basándose en lo que creen que va a pasar, promoviendo la investigación y reduciendo el sesgo.",
+    "q2": "¿Cómo hago una apuesta?",
+    "a2": "Navegá a cualquier mercado activo, seleccioná el resultado que creés más probable, ingresá la cantidad de puntos que querés apostar y confirmá. Tu pago potencial depende de la probabilidad actual del mercado — cuanto antes apuestes al resultado correcto, mayor será tu recompensa.",
+    "q3": "¿Cómo se calculan los precios del mercado?",
+    "a3": "Usamos el mecanismo de precios LMSR (Logarithmic Market Scoring Rule). Este market maker automático ajusta los precios según el volumen de apuestas en cada resultado, asegurando que siempre haya liquidez y que los precios reflejen la creencia colectiva de todos los participantes.",
+    "q4": "¿Puedo crear mi propio mercado?",
+    "a4": "¡Sí! Si tu cuenta tiene los permisos necesarios, podés crear mercados haciendo click en \"Crear\" en el menú de navegación. Definí una pregunta clara, establecé los posibles resultados y envialo para revisión. Una vez aprobado, tu mercado estará activo."
   }
 }

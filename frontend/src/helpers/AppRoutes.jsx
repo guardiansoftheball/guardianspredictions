@@ -15,6 +15,7 @@ import User from '../pages/user/User';
 import Style from '../pages/style/Style';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import NotFound from '../pages/notfound/NotFound';
+import Faq from '../pages/faq/Faq';
 import DesignPreview from '../pages/designpreview/DesignPreview';
 import NewHome from '../pages/newhome/NewHome';
 import NewMarkets from '../pages/newmarkets/NewMarkets';
@@ -110,6 +111,13 @@ const AppRoutes = () => {
           <Redirect to='/changepassword' />
         ) : (
           <About />
+        )}
+      </Route>
+      <Route exact path='/faq'>
+        {isLoggedIn && mustChangePassword ? (
+          <Redirect to='/changepassword' />
+        ) : (
+          <Faq />
         )}
       </Route>
       <Route exact path='/markets/topic/:slug'>

@@ -8,6 +8,7 @@ import PredictionCard from "../../components/cards/PredictionCard";
 import QuestionCard from "../../components/cards/QuestionCard";
 import MatchCard from "../../components/cards/MatchCard";
 import GhostCard from "../../components/cards/GhostCard";
+import BlueGlow from "../../components/ui/BlueGlow";
 import { useMarkets } from "../../hooks/useMarkets";
 
 // Number of cards to show per row-count at each breakpoint:
@@ -79,30 +80,7 @@ const NewHome = () => {
         className="bg-primary-background pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
         style={{ position: "relative", zIndex: 2 }}
       >
-        {/* Blue glow blob — sticky so it follows scroll but stays inside this section */}
-        <div
-          style={{
-            position: "sticky",
-            top: "25%",
-            height: 0,
-            overflow: "visible",
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        >
-          <div
-            style={{
-              width: "60vw",
-              height: "100vh",
-              margin: "0 auto",
-              transform: "translateY(-15%)",
-              background:
-                "linear-gradient(135deg, rgb(81 173 246 / 35%) 0%, rgb(30 144 255 / 37%) 0%)",
-              filter: "blur(250px)",
-              borderRadius: "50%",
-            }}
-          />
-        </div>
+        <BlueGlow position="sticky" width="60vw" />
         <div className="relative w-full" style={{ zIndex: 1 }}>
           {/* Layer 1 — Ghost cards */}
           <div

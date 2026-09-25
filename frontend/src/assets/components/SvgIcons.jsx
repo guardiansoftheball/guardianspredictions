@@ -86,6 +86,10 @@ const TelegramSVG = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M23.91 3.79 20.3 20.84c-.36 1.64-1.31 2.05-2.65 1.28l-7.32-5.4-3.53 3.4c-.39.39-.72.72-1.47.72l.53-7.49L20.16 5.24c.6-.53-.13-.82-.93-.29L6.4 13.13l-3.51-1.1c-.76-.24-.78-.76.16-1.12l14.16-5.46c.63-.24 1.18.14.98 1.34Z" /></svg>
 );
 
+const HelpSVG = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-help"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 16v.01" /><path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" /></svg>
+);
+
 
 export {
     AboutSVG,
@@ -109,5 +113,6 @@ export {
     TiktokSVG,
     InstagramSVG,
     LinkedinSVG,
-    TelegramSVG
+    TelegramSVG,
+    HelpSVG
 };
