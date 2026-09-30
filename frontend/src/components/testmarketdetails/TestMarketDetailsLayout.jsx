@@ -14,6 +14,14 @@ import {
 import Navbar from "../navbar/Navbar";
 import Footer from "../footer/Footer";
 import NewMarketChart from "../charts/NewMarketChart";
+import {
+  useChartDateFormat,
+  useRangeLabel,
+  chartTouchHandlers,
+  rangeButtonStyle,
+  useElementWidth,
+  thinXLabels,
+} from "../charts/chartUtils";
 import ActivityTabs from "../tabs/ActivityTabs";
 import NewTradePanel from "./NewTradePanel";
 import ResolveModalButton from "../modals/resolution/ResolveModalDark";
@@ -413,6 +421,9 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
   const [range, setRange] = useState("ALL");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
+  const { fmtX, fmtTip, fmtDay } = useChartDateFormat(range);
+  const rangeLabel = useRangeLabel();
+  const chartWidth = useElementWidth(chartRef);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
@@ -522,8 +533,9 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     }
     if (!rangeSelect) setHoverT(winStart + frac * windowMs);
   };
-  const onTouchStart = (e) => { e.preventDefault(); if (!rangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
-  const onTouchMove = (e) => { e.preventDefault(); if (!rangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const touchHandlers = chartTouchHandlers({
+    getFrac, disabled: !!rangeSelect, winStart, windowMs, setHoverT,
+  });
   const onLeave = () => { if (!dragStartRef.current) setHoverT(null); };
 
   const onDown = (e) => {
@@ -570,23 +582,6 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     return { x: hx, frac: hx / W, probs: hProbs, ys: hProbs.map(yOf), time: hoverT };
   })();
 
-  // Time labels
-  const pad2 = (v) => String(v).padStart(2, "0");
-  const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  const fmtX = (d) => {
-    if (range === "1H" || range === "6H" || range === "1D")
-      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-    return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
-  };
-  const fmtTip = (d) => {
-    const mon = MONTHS_SHORT[d.getMonth()];
-    const day = d.getDate();
-    const h = d.getHours(), m = pad2(d.getMinutes());
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
-  };
-
   const labelStepMs = range === "ALL"
     ? (windowMs > 60 * 86400_000 ? 30 * 86400_000 : windowMs > 14 * 86400_000 ? 7 * 86400_000 : 86400_000)
     : MC_LABEL_STEP[range];
@@ -596,15 +591,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     const frac = (t - winStart) / windowMs;
     if (frac >= 0 && frac <= 1) rawXLabels.push({ t, leftPct: frac * 100 });
   }
-  // Thin out X labels so they don't overlap — keep every Nth label on mobile
-  const xLabels = (() => {
-    if (rawXLabels.length <= 1) return rawXLabels;
-    const avgGap = rawXLabels.length > 1 ? (rawXLabels[rawXLabels.length - 1].leftPct - rawXLabels[0].leftPct) / (rawXLabels.length - 1) : 100;
-    const minGap = isMobile ? 14 : 8;
-    if (avgGap >= minGap) return rawXLabels;
-    const step = Math.ceil(minGap / avgGap);
-    return rawXLabels.filter((_, i) => i % step === 0);
-  })();
+  const xLabels = thinXLabels(rawXLabels, chartWidth, fmtX);
 
   // End label collision avoidance — big enough gap so 24px number doesn't cover neighbor's name
   const labelH = 52;
@@ -634,19 +621,15 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
         display: "flex", alignItems: "center", justifyContent: "flex-end",
         marginBottom: "12px",
       }}>
-        <div style={{ display: "flex", gap: "0" }}>
+        <div role="group" aria-label={t("chart.rangeSelector")} style={{ display: "flex", gap: "0" }}>
           {MC_RANGES.map((r) => (
             <button key={r}
+              type="button"
+              aria-pressed={r === range}
               onClick={() => { setRange(r); setHoverT(null); }}
-              style={{
-                padding: "5px 10px", border: "none", cursor: "pointer",
-                font: `700 11px ${FONT_BODY}`, letterSpacing: ".02em",
-                background: "transparent",
-                color: r === range ? "#ffffff" : "rgba(255,255,255,0.3)",
-                transition: "color .15s",
-              }}
+              style={rangeButtonStyle({ active: r === range, isMobile, font: FONT_BODY })}
             >
-              {r}
+              {rangeLabel(r)}
             </button>
           ))}
         </div>
@@ -655,13 +638,12 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
       {/* Chart area */}
       <div style={{ display: "flex", position: "relative" }}>
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "none", cursor: "crosshair" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={onDown}
           onMouseLeave={onLeave}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
+          {...touchHandlers}
         >
           <svg
             viewBox={`0 0 ${W} ${CHART_H}`}
@@ -791,9 +773,9 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
                 borderRadius: "6px", whiteSpace: "nowrap",
               }}>
                 <span style={{ font: `600 12px ${FONT_BODY}`, color: "#8ca0b6" }}>
-                  {new Date(rangeInfo.t1).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {fmtDay(new Date(rangeInfo.t1))}
                   {" – "}
-                  {new Date(rangeInfo.t2).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {fmtDay(new Date(rangeInfo.t2))}
                 </span>
                 <button onClick={() => { setRangeSelect(null); setDragState(null); }}
                   style={{ background: "none", border: "none", color: "#5d7189",
@@ -2265,6 +2247,246 @@ function StatRow({ label, value, valueColor }) {
 
 // ─── Multi-choice full layout ─────────────────────────────────────────────────
 // ─── Shared layout for both binary and multi-choice markets ─────────────────
+// Resolution banner for grouped markets. Each option is its own child market,
+// so the per-market "resolved as YES/NO" banner reads differently on every
+// option URL. This summarises the whole group instead: which option won.
+function GroupResolutionAlert({ options }) {
+  const { t } = useTranslation();
+  const resolved = options.filter((o) => o.isResolved);
+  if (resolved.length === 0) return null;
+
+  const results = resolved.map((o) => String(o.resolutionResult || "").toUpperCase());
+  const allResolved = resolved.length === options.length;
+  const winners = resolved.filter((o) => String(o.resolutionResult || "").toUpperCase() === "YES");
+  const cancelled = allResolved && results.every((r) => r === "N/A");
+
+  let tone = "neutral";
+  let title = t("marketDetails.groupResolvedTitle");
+  let body;
+  if (!allResolved) {
+    tone = "partial";
+    title = t("marketDetails.groupPartialTitle");
+    body = t("marketDetails.groupPartial");
+  } else if (cancelled) {
+    body = t("marketDetails.groupCancelled");
+  } else if (winners.length > 0) {
+    tone = "winner";
+    body = (
+      <>
+        {t("marketDetails.groupWinner")}{" "}
+        <strong className="text-green-300">{winners.map((w) => w.label).join(", ")}</strong>
+      </>
+    );
+  } else {
+    body = t("marketDetails.groupNoWinner");
+  }
+
+  const toneClass = {
+    winner: "bg-blue-900/30 border-blue-500/50 text-blue-200",
+    partial: "bg-yellow-900/20 border-yellow-500/40 text-yellow-100",
+    neutral: "bg-gray-800/40 border-gray-500/40 text-gray-200",
+  }[tone];
+  const iconClass = { winner: "text-blue-400", partial: "text-yellow-400", neutral: "text-gray-400" }[tone];
+
+  return (
+    <div role="status" className={`mb-4 p-4 border rounded-lg ${toneClass}`}>
+      <div className="flex items-center">
+        <svg className={`h-5 w-5 ${iconClass} mr-2 shrink-0`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-sm">{body}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Compact option picker for the activity card of grouped markets. The menu is
+// fixed-positioned so the card's overflow:hidden can't clip it.
+function ActivityOptionPicker({ label, options, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [focusIdx, setFocusIdx] = useState(value);
+  const [menuPos, setMenuPos] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const current = options[value];
+
+  const openMenu = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) setMenuPos({ top: rect.bottom + 6, left: rect.left, minWidth: rect.width });
+    setFocusIdx(value);
+    setOpen(true);
+  };
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) triggerRef.current?.focus();
+  };
+  const choose = (i) => {
+    onChange(i);
+    close();
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    menuRef.current?.focus();
+    const onPointer = (e) => {
+      if (!menuRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) close(false);
+    };
+    const onViewportChange = () => close(false);
+    document.addEventListener("mousedown", onPointer);
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("resize", onViewportChange);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("resize", onViewportChange);
+    };
+  }, [open]);
+
+  const onMenuKeyDown = (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setFocusIdx((i) => (i + 1) % options.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setFocusIdx((i) => (i - 1 + options.length) % options.length); }
+    else if (e.key === "Home") { e.preventDefault(); setFocusIdx(0); }
+    else if (e.key === "End") { e.preventDefault(); setFocusIdx(options.length - 1); }
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(focusIdx); }
+    else if (e.key === "Escape" || e.key === "Tab") { close(e.key === "Escape"); }
+  };
+
+  const dot = (color) => (
+    <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+  );
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 18px 0", fontFamily: FONT_BODY }}>
+      <span id="activity-option-label" style={{ fontSize: "12px", color: MUTED }}>{label}</span>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-labelledby="activity-option-label activity-option-value"
+        onClick={() => (open ? close() : openMenu())}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); openMenu(); }
+        }}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "5px 10px",
+          borderRadius: "8px",
+          background: open ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.035)",
+          border: `1px solid ${open ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.09)"}`,
+          color: TEXT,
+          fontSize: "12.5px",
+          fontWeight: 700,
+          fontFamily: FONT_BODY,
+          cursor: "pointer",
+          transition: "background .15s, border-color .15s",
+        }}
+      >
+        {current && dot(current.color)}
+        <span id="activity-option-value">{current?.label}</span>
+        <svg
+          aria-hidden="true"
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={MUTED}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && menuPos && (
+        <ul
+          ref={menuRef}
+          role="listbox"
+          tabIndex={-1}
+          aria-labelledby="activity-option-label"
+          aria-activedescendant={`activity-option-${focusIdx}`}
+          onKeyDown={onMenuKeyDown}
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            minWidth: Math.max(menuPos.minWidth, 200),
+            maxHeight: "280px",
+            overflowY: "auto",
+            zIndex: 50,
+            margin: 0,
+            padding: "4px",
+            listStyle: "none",
+            background: "#0f1b2b",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "10px",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+            outline: "none",
+          }}
+        >
+          {options.map((opt, i) => {
+            const selected = i === value;
+            const focused = i === focusIdx;
+            return (
+              <li
+                key={opt.key}
+                id={`activity-option-${i}`}
+                role="option"
+                aria-selected={selected}
+                onMouseEnter={() => setFocusIdx(i)}
+                onClick={() => choose(i)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 10px",
+                  borderRadius: "7px",
+                  cursor: "pointer",
+                  background: focused ? "rgba(255,255,255,0.06)" : "transparent",
+                  color: selected ? TEXT : MUTED,
+                  fontSize: "13px",
+                  fontWeight: selected ? 700 : 600,
+                }}
+              >
+                {dot(opt.color)}
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {opt.label}
+                </span>
+                {opt.pct != null && (
+                  <span style={{ fontFamily: FONT_HEAD, fontSize: "12px", color: MUTED2, fontVariantNumeric: "tabular-nums" }}>
+                    {opt.pct}%
+                  </span>
+                )}
+                <svg
+                  aria-hidden="true"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={TEXT}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ visibility: selected ? "visible" : "hidden" }}
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function MarketLayout({
   title,
   market,
@@ -2285,6 +2507,13 @@ function MarketLayout({
   answers,
   currentProbability,
   probabilityChanges,
+  activityMarketId,
+  activityMarket,
+  activityOptions,
+  activityIdx,
+  onActivityIdx,
+  resolveAnswers,
+  resolveGroupId,
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -2344,11 +2573,15 @@ function MarketLayout({
       </div>
 
       {/* Resolution alert */}
-      <ResolutionAlert
-        isResolved={market?.isResolved}
-        resolutionResult={market?.resolutionResult}
-        market={market}
-      />
+      {resolveAnswers ? (
+        <GroupResolutionAlert options={resolveAnswers} />
+      ) : (
+        <ResolutionAlert
+          isResolved={market?.isResolved}
+          resolutionResult={market?.resolutionResult}
+          market={market}
+        />
+      )}
 
       {/* ── Header ── */}
       <div style={{ marginBottom: isMobile ? "16px" : "24px" }}>
@@ -2420,6 +2653,9 @@ function MarketLayout({
                 marketId={marketId}
                 token={token}
                 market={market}
+                answers={resolveAnswers}
+                groupId={resolveGroupId}
+                defaultMarketId={activityMarketId}
                 onResolved={onResolved}
                 disabled={!token}
               />
@@ -2462,13 +2698,17 @@ function MarketLayout({
             </svg>
             {fmt(totalVolume)} {t('marketDetails.vol')}
           </span>
-          <span style={{ opacity: 0.3 }}>·</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            {fmt(numUsers)} {t('marketDetails.traders')}
-          </span>
+          {numUsers != null && (
+            <>
+              <span style={{ opacity: 0.3 }}>·</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                {fmt(numUsers)} {t('marketDetails.traders')}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -2621,9 +2861,17 @@ function MarketLayout({
 
           {/* Activity */}
           <div ref={activityRef} style={{ ...MARKET_CARD, overflow: "hidden" }}>
+            {activityOptions?.length > 1 && (
+              <ActivityOptionPicker
+                label={t("marketDetails.activityFor")}
+                options={activityOptions}
+                value={activityIdx}
+                onChange={onActivityIdx}
+              />
+            )}
             <ActivityTabs
-              marketId={marketId}
-              market={market}
+              marketId={activityMarketId ?? marketId}
+              market={activityMarket ?? market}
               refreshTrigger={refreshTrigger}
               variant="dark"
               activeTab={activityTab}
@@ -2686,6 +2934,7 @@ function MultiChoiceLayout({
   const [groupData, setGroupData] = useState(null);
   const [groupLoading, setGroupLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [activityIdx, setActivityIdx] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const groupId = market?.marketGroup?.id;
@@ -2729,6 +2978,56 @@ function MultiChoiceLayout({
     (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0),
   );
 
+  // Every option of a group is its own market with its own URL, but they all
+  // render this same page. The URL only preselects the option; the activity
+  // filter then picks which option's bets/positions/leaderboard are shown.
+  const urlAnswerIdx = answers.findIndex(
+    (a) => String(a.marketId) === String(marketId),
+  );
+  useEffect(() => {
+    if (urlAnswerIdx >= 0) {
+      setSelectedIdx(urlAnswerIdx);
+      setActivityIdx(urlAnswerIdx);
+    }
+  }, [urlAnswerIdx]);
+
+  const activityAnswer = answers[activityIdx];
+
+  // Group-level header/resolve data. Volume sums cleanly across options;
+  // trader counts don't (one user can trade several options), so the header
+  // hides them for groups instead of showing a double-counted number.
+  const isGrouped = answers.length > 1;
+  const groupVolume = answers.reduce(
+    (sum, a) => sum + Number(a.market?.totalVolume || 0),
+    0,
+  );
+  const resolveAnswers = answers.map((a) => ({
+    marketId: a.marketId,
+    label: a.answerLabel,
+    market: a.market?.market,
+    isResolved: !!a.market?.market?.isResolved,
+    resolutionResult: a.market?.market?.resolutionResult,
+  }));
+  const groupCanResolve = isGrouped
+    ? String(username || "").trim() === String(stewardUsername || "").trim() &&
+      resolveAnswers.some((a) => !a.isResolved)
+    : canResolve;
+  const activityOptions = answers.map((a, i) => ({
+    key: a.marketId || i,
+    label: a.answerLabel,
+    color: getOptionTheme(i, answers.length).color,
+    pct: Math.round(getAnswerProb(a) * 100),
+  }));
+  const handleSelectIdx = (idx) => {
+    setSelectedIdx(idx);
+    setActivityIdx(idx);
+    const nextId = answers[idx]?.marketId;
+    // replaceState keeps the address shareable without remounting the route.
+    if (nextId && typeof window !== "undefined") {
+      window.history.replaceState(window.history.state, "", `/markets/${nextId}`);
+    }
+  };
+
   const handleSuccess = () => {
     setTimeout(() => {
       if (refetchData) refetchData();
@@ -2743,7 +3042,7 @@ function MultiChoiceLayout({
     <MultiChoiceTradePanel
       answers={answers}
       selectedIdx={selectedIdx}
-      onSelectIdx={setSelectedIdx}
+      onSelectIdx={handleSelectIdx}
       token={token}
       isLoggedIn={isLoggedIn}
       isMarketOpen={isMarketOpen}
@@ -2755,7 +3054,7 @@ function MultiChoiceLayout({
     <MultiOptionChart
       answers={answers}
       selectedIdx={selectedIdx}
-      onSelectIdx={setSelectedIdx}
+      onSelectIdx={handleSelectIdx}
     />
   ) : (
     <NewMarketChart
@@ -2774,18 +3073,25 @@ function MultiChoiceLayout({
       creatorUsername={creatorUsername}
       closesLabel={closesLabel}
       isMarketOpen={isMarketOpen}
-      canResolve={canResolve}
+      canResolve={groupCanResolve}
       marketId={marketId}
       token={token}
-      numUsers={numUsers}
-      totalVolume={totalVolume}
+      numUsers={isGrouped ? null : numUsers}
+      totalVolume={isGrouped ? groupVolume : totalVolume}
       isMobile={isMobile}
       refreshTrigger={refreshTrigger}
       onResolved={handleSuccess}
       loading={groupLoading}
+      resolveAnswers={isGrouped ? resolveAnswers : undefined}
+      resolveGroupId={isGrouped ? groupId : undefined}
       chartContent={chartContent}
       tradePanelContent={tradePanelContent}
       answers={answers.map((a) => ({ ...a, probability: getAnswerProb(a) }))}
+      activityMarketId={activityAnswer?.marketId}
+      activityMarket={activityAnswer?.market?.market}
+      activityOptions={activityOptions}
+      activityIdx={activityIdx}
+      onActivityIdx={setActivityIdx}
     />
   );
 }
@@ -2822,6 +3128,9 @@ function BinaryChart({
   const [range, setRange] = useState("ALL");
   const [hoverT, setHoverT] = useState(null);
   const chartRef = useRef(null);
+  const { fmtX, fmtTip, fmtDay } = useChartDateFormat(range);
+  const rangeLabel = useRangeLabel();
+  const chartWidth = useElementWidth(chartRef);
 
   const [liveNow, setLiveNow] = useState(() => Date.now());
   useEffect(() => {
@@ -2918,8 +3227,9 @@ function BinaryChart({
     }
     if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
   };
-  const bcOnTouchStart = (e) => { e.preventDefault(); if (!bcRangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
-  const bcOnTouchMove = (e) => { e.preventDefault(); if (!bcRangeSelect) setHoverT(winStart + getFrac(e) * windowMs); };
+  const bcTouchHandlers = chartTouchHandlers({
+    getFrac, disabled: !!bcRangeSelect, winStart, windowMs, setHoverT,
+  });
   const onLeave = () => { if (!bcDragStartRef.current) setHoverT(null); };
 
   const bcOnDown = (e) => {
@@ -2971,23 +3281,6 @@ function BinaryChart({
     };
   })();
 
-  // Time axis labels
-  const pad2 = (v) => String(v).padStart(2, "0");
-  const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  const fmtX = (d) => {
-    if (range === "1H" || range === "6H" || range === "1D")
-      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-    return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
-  };
-  const fmtTip = (d) => {
-    const mon = MONTHS_SHORT[d.getMonth()];
-    const day = d.getDate();
-    const h = d.getHours(), m = pad2(d.getMinutes());
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return `${mon} ${day}, ${h12}:${m} ${ampm}`;
-  };
-
   const labelStepMs = range === "ALL"
     ? (windowMs > 60 * 86400_000 ? 30 * 86400_000 : windowMs > 14 * 86400_000 ? 7 * 86400_000 : 86400_000)
     : BC_LABEL_STEP[range];
@@ -2997,11 +3290,7 @@ function BinaryChart({
     const frac = (t - winStart) / windowMs;
     if (frac >= 0 && frac <= 1) rawXLabels.push({ t, leftPct: frac * 100 });
   }
-  const minXGap = isMobile ? 18 : 10;
-  const xLabels = rawXLabels.filter((lbl, i) => {
-    if (i === 0) return true;
-    return lbl.leftPct - rawXLabels[i - 1].leftPct >= minXGap;
-  });
+  const xLabels = thinXLabels(rawXLabels, chartWidth, fmtX);
 
   // End labels positioning
   const lastYesP = curP;
@@ -3034,19 +3323,15 @@ function BinaryChart({
         <span style={{ font: `600 13px ${FONT_BODY}`, color: "#5d7189" }}>
           + ${Number(totalVolume || 0).toLocaleString()}
         </span>
-        <div style={{ display: "flex", gap: "0" }}>
+        <div role="group" aria-label={t("chart.rangeSelector")} style={{ display: "flex", gap: "0" }}>
           {BC_RANGES.map((r) => (
             <button key={r}
+              type="button"
+              aria-pressed={r === range}
               onClick={() => { setRange(r); setHoverT(null); }}
-              style={{
-                padding: "5px 10px", border: "none", cursor: "pointer",
-                font: `700 11px ${FONT_BODY}`, letterSpacing: ".02em",
-                background: "transparent",
-                color: r === range ? "#ffffff" : "rgba(255,255,255,0.3)",
-                transition: "color .15s",
-              }}
+              style={rangeButtonStyle({ active: r === range, isMobile, font: FONT_BODY })}
             >
-              {r}
+              {rangeLabel(r)}
             </button>
           ))}
         </div>
@@ -3056,13 +3341,12 @@ function BinaryChart({
       <div style={{ display: "flex", position: "relative" }}>
         {/* Main chart */}
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "none", cursor: "crosshair" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={bcOnDown}
           onMouseLeave={onLeave}
-          onTouchStart={bcOnTouchStart}
-          onTouchMove={bcOnTouchMove}
+          {...bcTouchHandlers}
         >
           <svg
             viewBox={`0 0 ${W} ${CHART_H}`}
@@ -3188,9 +3472,9 @@ function BinaryChart({
                 borderRadius: "6px", whiteSpace: "nowrap",
               }}>
                 <span style={{ font: `600 12px ${FONT_BODY}`, color: "#8ca0b6" }}>
-                  {new Date(bcRangeInfo.t1).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {fmtDay(new Date(bcRangeInfo.t1))}
                   {" – "}
-                  {new Date(bcRangeInfo.t2).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {fmtDay(new Date(bcRangeInfo.t2))}
                 </span>
                 <button onClick={() => { setBcRangeSelect(null); setBcDragState(null); }}
                   style={{ background: "none", border: "none", color: "#5d7189",

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
 import Filtros, { INITIAL_FILTERS } from "../../components/filtros/Filtros";
@@ -76,6 +77,7 @@ function filterAndSortCards(cards, filters) {
 }
 
 const NewMarkets = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [filters, setFilters] = useState(() => {
     const params = new URLSearchParams(location.search);
@@ -170,16 +172,16 @@ const NewMarkets = () => {
                 <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
                 <path d="M21 21l-6 -6" />
               </svg>
-              <p className="text-lg font-semibold mb-1">No markets found</p>
-              <p className="text-sm">
-                Try adjusting your filters or search terms
+              <p className="text-lg font-semibold mb-1">
+                {t("markets.noResults")}
               </p>
+              <p className="text-sm">{t("markets.noResultsHint")}</p>
               <button
                 type="button"
                 onClick={() => handleFilterChange("clear")}
                 className="mt-4 px-4 py-2 rounded-full border border-white/20 text-sm text-white/70 hover:text-white hover:border-white/40 transition-colors"
               >
-                Clear all filters
+                {t("markets.clearAllFilters")}
               </button>
             </div>
           ) : (
