@@ -149,7 +149,8 @@
     "more": "Mas",
     "credits": "creditos",
     "language": "Idioma",
-    "helpFaq": "Ayuda / FAQ"
+    "helpFaq": "Ayuda / FAQ",
+    "watchlist": "Siguiendo"
   },
   "error": {
     "title": "Algo salio mal.",
@@ -240,7 +241,8 @@
     "approvedBy": "Aprobado por @{{user}}{{date}}.",
     "decisionReasonPlaceholder": "Se requiere razon para el rechazo",
     "approveAnswer": "Aprobar respuesta",
-    "reject": "Rechazar"
+    "reject": "Rechazar",
+    "performance": "Rendimiento"
   },
   "auth": {
     "login": {
@@ -648,5 +650,35 @@
     "a3": "Usamos el mecanismo de precios LMSR (Logarithmic Market Scoring Rule). Este market maker automático ajusta los precios según el volumen de apuestas en cada resultado, asegurando que siempre haya liquidez y que los precios reflejen la creencia colectiva de todos los participantes.",
     "q4": "¿Puedo crear mi propio mercado?",
     "a4": "¡Sí! Si tu cuenta tiene los permisos necesarios, podés crear mercados haciendo click en \"Crear\" en el menú de navegación. Definí una pregunta clara, establecé los posibles resultados y envialo para revisión. Una vez aprobado, tu mercado estará activo."
+  },
+  "performance": {
+    "totalPnl": "Ganancia / pérdida",
+    "roi": "ROI",
+    "winRate": "Tasa de acierto",
+    "openPositions": "Posiciones abiertas",
+    "winRateDetail": "{{wins}} de {{total}} mercados resueltos con ganancia",
+    "byMarket": "Resultado por mercado",
+    "pnlHint": "Valor actual − monto invertido",
+    "open": "ABIERTO",
+    "spent": "Invertido",
+    "payout": "Cobrado",
+    "currentValue": "Valor actual",
+    "moreMarkets": "{{count}} mercados más",
+    "showAll": "Ver los {{count}} mercados",
+    "showLess": "Ver menos",
+    "loadError": "No se pudo cargar el rendimiento",
+    "partial": "No se pudieron cargar {{count}} mercados; los totales están incompletos. Recargá en un momento."
+  },
+  "watchlist": {
+    "add": "Seguir mercado",
+    "remove": "Dejar de seguir",
+    "filter": "Siguiendo",
+    "emptyTitle": "Todavía no seguís ningún mercado",
+    "emptyHint": "Tocá el marcador de cualquier mercado y lo vas a tener siempre a mano acá, con el precio actualizado.",
+    "added": "Agregado a Siguiendo",
+    "removed": "Quitado de Siguiendo",
+    "view": "Ver",
+    "browse": "Explorar mercados",
+    "mine": "Mis mercados"
   }
 }

@@ -12,6 +12,7 @@ import DisplayNameSelector from "../../components/buttons/profile/DisplayNameSel
 import PersonalLinksSelector from "../../components/buttons/profile/PersonalLinksSelector";
 import { groupLifecycleMarketRows } from "../../components/layouts/profile/MarketLifecycleTable";
 import useUserData from "../../hooks/useUserData";
+import PerformanceSection from "../../components/layouts/profile/PerformanceSection";
 import { useAuth } from "../../helpers/AuthContent";
 import { API_URL } from "../../config";
 import { listMyLifecycleMarkets } from "../../api/lifecycleMarketsApi";
@@ -1088,7 +1089,7 @@ const NewProfile = () => {
     String(userData?.usertype || "").toUpperCase() === "MODERATOR" &&
     String(userData?.moderatorStatus || "").toLowerCase() === "active";
 
-  const mainTabs = [t('profile.portfolio'), ...(isOwnProfile ? [t('profile.financials')] : []), ...(isOwnProfile && isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
+  const mainTabs = [t('profile.portfolio'), t('profile.performance'), ...(isOwnProfile ? [t('profile.financials')] : []), ...(isOwnProfile && isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
   const activeTab = mainTabs.includes(mainTab) ? mainTab : t('profile.portfolio');
 
   const proposedMarket = location.state?.proposedMarket;
@@ -1161,6 +1162,7 @@ const NewProfile = () => {
             </div>
 
             {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
+            {activeTab === t('profile.performance') && <PerformanceSection username={username} t={t} />}
             {activeTab === t('profile.financials') && <FinancialsSection username={username} t={t} />}
             {activeTab === t('profile.myMarkets') && isActiveModerator && <MyMarketsSection />}
             {activeTab === t('profile.marketChanges') && isActiveModerator && <MarketChangesSection />}

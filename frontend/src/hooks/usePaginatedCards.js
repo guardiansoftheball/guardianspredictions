@@ -17,8 +17,12 @@ function getSkeletonCap() {
  * Keeps loading pages (with a 300ms skeleton delay each) until the sentinel
  * element scrolls out of the viewport, then loads more when the user scrolls
  * back down to it.
+ *
+ * Pagination restarts when `resetKey` changes (e.g. the active filters). It
+ * defaults to the list length; pass an explicit key when the list can grow or
+ * shrink on its own (live refreshes) so those updates don't wipe the grid.
  */
-export function usePaginatedCards(allCards) {
+export function usePaginatedCards(allCards, resetKey) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef(null);
@@ -31,10 +35,11 @@ export function usePaginatedCards(allCards) {
   const hasMore = visibleCount < total;
 
   // Reset pagination when the filtered list changes
-  const prevTotalRef = useRef(total);
+  const key = resetKey === undefined ? total : resetKey;
+  const prevKeyRef = useRef(key);
   useEffect(() => {
-    if (prevTotalRef.current !== total) {
-      prevTotalRef.current = total;
+    if (prevKeyRef.current !== key) {
+      prevKeyRef.current = key;
       setVisibleCount(0);
       setLoading(false);
       clearTimeout(timerRef.current);
@@ -43,7 +48,7 @@ export function usePaginatedCards(allCards) {
         sentinelVisible.current = true;
       }, 0);
     }
-  }, [total]);
+  }, [key]);
 
   const loadNextPage = useCallback(() => {
     if (loading) return;
@@ -90,7 +95,7 @@ export function usePaginatedCards(allCards) {
 
   const visibleCards = allCards.slice(0, visibleCount);
   // Show enough skeletons to fill ~one screen, capped to remaining
-  const skeletonCount = Math.min(getSkeletonCap(), total - visibleCount);
+  const skeletonCount = Math.max(0, Math.min(getSkeletonCap(), total - visibleCount));
 
   return { visibleCards, skeletonCount, loading, hasMore, sentinelRef };
 }

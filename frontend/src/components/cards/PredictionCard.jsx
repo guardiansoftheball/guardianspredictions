@@ -1,4 +1,6 @@
 import React from "react";
+import BookmarkButton from "./BookmarkButton";
+import LivePct from "./LivePct";
 
 const PredictionCard = ({
   teamLogo,
@@ -11,6 +13,7 @@ const PredictionCard = ({
   onYes,
   onNo,
   transparent = false,
+  marketId,
 }) => {
   const [hovered, setHovered] = React.useState(false);
   return (
@@ -72,7 +75,7 @@ const PredictionCard = ({
           <span className="text-white font-['Roboto',sans-serif] font-light text-[clamp(15px,4vw,18px)] tracking-[0.4px]">
             {poolAmount}
           </span>
-          <BookmarkIcon />
+          <BookmarkButton marketId={marketId} strokeWidth={1.25} />
         </div>
       </div>
     </div>
@@ -89,7 +92,7 @@ const PredictionRow = ({ label, pct, onYes, onNo }) => (
     </span>
     <div className="flex items-center shrink-0 gap-[6px]">
       <span className="w-[clamp(30px,8vw,42px)] shrink-0 text-white font-['Roboto',sans-serif] font-medium text-[clamp(14px,4vw,18px)] tracking-[0.4px]">
-        {pct}%
+        <LivePct value={pct} />
       </span>
       <YesNoButton label="Yes" color="#BAD659" pct={pct} onClick={onYes} />
       <YesNoButton label="No" color="#f89182" pct={pct} onClick={onNo} />
@@ -171,29 +174,5 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
   );
 };
 
-const BookmarkIcon = () => {
-  const [hovered, setHovered] = React.useState(false);
-  return (
-    <svg
-      width="14.5"
-      height="20"
-      viewBox="-0.5 -0.5 15.55 20.29"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="block shrink-0 cursor-pointer transition-opacity duration-200"
-      style={{ opacity: hovered ? 1 : 0.8 }}
-    >
-      <path
-        d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"
-        stroke="#F1EFEF"
-        strokeWidth="1.25"
-        fill={hovered ? "#ffffff" : "none"}
-        style={{ transition: "fill 0.2s ease" }}
-      />
-    </svg>
-  );
-};
 
 export default PredictionCard;

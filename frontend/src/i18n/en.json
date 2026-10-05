@@ -149,7 +149,8 @@
     "more": "More",
     "credits": "credits",
     "language": "Language",
-    "helpFaq": "Help / FAQ"
+    "helpFaq": "Help / FAQ",
+    "watchlist": "Following"
   },
   "error": {
     "title": "Oops! Something went wrong.",
@@ -240,7 +241,8 @@
     "approvedBy": "Approved by @{{user}}{{date}}.",
     "decisionReasonPlaceholder": "Decision reason required for rejection",
     "approveAnswer": "Approve answer",
-    "reject": "Reject"
+    "reject": "Reject",
+    "performance": "Performance"
   },
   "auth": {
     "login": {
@@ -648,5 +650,35 @@
     "a3": "We use the LMSR (Logarithmic Market Scoring Rule) pricing mechanism. This automated market maker adjusts prices based on the volume of bets on each outcome, ensuring there is always liquidity and that prices reflect the collective belief of all participants.",
     "q4": "Can I create my own market?",
     "a4": "Yes! If your account has the required permissions, you can create markets by clicking \"Create\" in the navigation menu. Define a clear question, set the possible outcomes, and submit it for review. Once approved, your market goes live."
+  },
+  "performance": {
+    "totalPnl": "Profit / loss",
+    "roi": "ROI",
+    "winRate": "Win rate",
+    "openPositions": "Open positions",
+    "winRateDetail": "{{wins}} of {{total}} resolved markets in profit",
+    "byMarket": "Result by market",
+    "pnlHint": "Current value − amount spent",
+    "open": "OPEN",
+    "spent": "Spent",
+    "payout": "Payout",
+    "currentValue": "Current value",
+    "moreMarkets": "{{count}} more markets",
+    "showAll": "Show all {{count}} markets",
+    "showLess": "Show less",
+    "loadError": "Couldn't load performance",
+    "partial": "{{count}} markets couldn't be loaded; totals are incomplete. Try reloading in a moment."
+  },
+  "watchlist": {
+    "add": "Follow market",
+    "remove": "Unfollow",
+    "filter": "Following",
+    "emptyTitle": "You're not following any markets yet",
+    "emptyHint": "Tap the bookmark on any market to keep it here, with live prices.",
+    "added": "Added to Following",
+    "removed": "Removed from Following",
+    "view": "View",
+    "browse": "Browse markets",
+    "mine": "My markets"
   }
 }

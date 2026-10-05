@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom/cjs/react-router-dom';
 import { API_URL } from '../config';
+import { usePollWhileVisible } from './usePollWhileVisible';
+
+// How often the open market page re-fetches so the chart and price follow
+// other users' trades without a reload.
+const LIVE_REFRESH_MS = 10000;
 
 const DEFAULT_CREATOR_EMOJI = '👤';
 
@@ -256,6 +261,15 @@ export const useMarketDetails = () => {
   const [currentProbability, setCurrentProbability] = useState(0);
   const { marketId } = useParams();
   const [triggerRefresh, setTriggerRefresh] = useState(0);
+  const pollingRef = useRef(false);
+  const hasDetailsRef = useRef(false);
+  hasDetailsRef.current = !!details;
+
+  usePollWhileVisible(() => {
+    if (!hasDetailsRef.current) return;
+    pollingRef.current = true;
+    setTriggerRefresh((prev) => prev + 1);
+  }, LIVE_REFRESH_MS);
 
   useEffect(() => {
     const fetchedToken = localStorage.getItem('token');
@@ -270,7 +284,11 @@ export const useMarketDetails = () => {
   }, [marketId]);
 
   useEffect(() => {
-    setError(null);
+    // Background polls stay silent: a failed poll keeps the last good data
+    // instead of replacing the page with an error.
+    const silent = pollingRef.current;
+    pollingRef.current = false;
+    if (!silent) setError(null);
     let cancelled = false;
 
     const fetchData = async (attempt = 0) => {
@@ -298,9 +316,11 @@ export const useMarketDetails = () => {
           const summary = normalizeMarketDetails(unwrapApiEnvelope(await summaryResponse.json()));
           normalized = mergeMarketDetailsWithSummary(normalized, summary);
         }
+        if (cancelled) return;
         setDetails(normalized);
         setCurrentProbability(calculateCurrentProbability(normalized));
       } catch (err) {
+        if (cancelled || silent) return;
         console.error('Error fetching market data:', err);
         setError(err.message || 'Unknown error');
       }

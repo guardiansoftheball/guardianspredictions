@@ -1,4 +1,6 @@
 import React from "react";
+import BookmarkButton from "./BookmarkButton";
+import LivePct from "./LivePct";
 import CardButton from "./CardButton";
 
 const QuestionCard = ({
@@ -9,6 +11,7 @@ const QuestionCard = ({
   onYes,
   onNo,
   transparent = false,
+  marketId,
 }) => {
   const [hovered, setHovered] = React.useState(false);
   return (
@@ -53,7 +56,7 @@ const QuestionCard = ({
           <div className="flex flex-col items-center shrink-0">
             <ArcIndicator pct={pct} />
             <span className="mt-0.5 text-white font-['Roboto',sans-serif] font-medium text-xs tracking-[0.28px]">
-              {pct}%
+              <LivePct value={pct} />
             </span>
             <span className="text-white font-['Roboto',sans-serif] font-light text-[10px] tracking-[0.24px]">
               chance
@@ -84,7 +87,7 @@ const QuestionCard = ({
           <span className="text-white font-['Roboto',sans-serif] font-light text-[clamp(15px,4vw,18px)] tracking-[0.4px]">
             {poolAmount}
           </span>
-          <BookmarkIcon />
+          <BookmarkButton marketId={marketId} />
         </div>
       </div>
     </div>
@@ -117,29 +120,5 @@ const ArcIndicator = ({ pct }) => {
   );
 };
 
-const BookmarkIcon = () => {
-  const [hovered, setHovered] = React.useState(false);
-  return (
-    <svg
-      width="14.5"
-      height="20"
-      viewBox="-0.5 -0.5 15.55 20.29"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="block shrink-0 cursor-pointer transition-opacity duration-200"
-      style={{ opacity: hovered ? 1 : 0.8 }}
-    >
-      <path
-        d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"
-        stroke="#F1EFEF"
-        strokeWidth="1"
-        fill={hovered ? "#ffffff" : "none"}
-        style={{ transition: "fill 0.2s ease" }}
-      />
-    </svg>
-  );
-};
 
 export default QuestionCard;

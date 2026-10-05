@@ -118,6 +118,7 @@ const NewHome = () => {
                 card.type === "match" ? (
                   <MatchCard
                     key={i}
+                    marketId={card.id}
                     homeTeam={card.home}
                     awayTeam={card.away}
                     draw={card.draw}
@@ -127,6 +128,7 @@ const NewHome = () => {
                 ) : card.type === "question" ? (
                   <QuestionCard
                     key={i}
+                    marketId={card.id}
                     teamLogo={card.logo}
                     question={card.question}
                     pct={card.pct}
@@ -136,6 +138,7 @@ const NewHome = () => {
                 ) : (
                   <PredictionCard
                     key={i}
+                    marketId={card.id}
                     teamLogo={card.logo}
                     question={card.question}
                     options={card.options}

@@ -19,10 +19,11 @@ export default function ToastProvider({ children }) {
     }, 300);
   }, []);
 
+  // options.action = { label, onClick } renders an inline button (e.g. "View").
   const addToast = useCallback(
-    (message, type = "info") => {
+    (message, type = "info", options = {}) => {
       const id = ++nextId;
-      setToasts((prev) => [...prev, { id, message, type, exiting: false }]);
+      setToasts((prev) => [...prev, { id, message, type, action: options.action, exiting: false }]);
       setTimeout(() => removeToast(id), AUTO_DISMISS_MS);
       return id;
     },
@@ -33,9 +34,9 @@ export default function ToastProvider({ children }) {
   api.current = { addToast, removeToast };
 
   const value = {
-    success: (msg) => api.current.addToast(msg, "success"),
-    error: (msg) => api.current.addToast(msg, "error"),
-    info: (msg) => api.current.addToast(msg, "info"),
+    success: (msg, options) => api.current.addToast(msg, "success", options),
+    error: (msg, options) => api.current.addToast(msg, "error", options),
+    info: (msg, options) => api.current.addToast(msg, "info", options),
   };
 
   return (
@@ -113,6 +114,18 @@ function Toast({ toast, onClose }) {
     >
       {style.icon}
       <p className="flex-1 leading-snug">{toast.message}</p>
+      {toast.action && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action.onClick?.();
+            onClose();
+          }}
+          className="shrink-0 -my-0.5 rounded-full border border-white/25 px-3 py-0.5 text-[13px] font-semibold text-white hover:bg-white/10 transition-colors"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={onClose}

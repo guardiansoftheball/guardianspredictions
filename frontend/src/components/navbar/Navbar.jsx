@@ -19,6 +19,8 @@ import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
 import { listMarketTags } from "../../api/marketTagsApi";
 import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
+import { useWatchlist } from "../../hooks/useWatchlist";
+import { WATCHLIST_PATH } from "../../hooks/useWatchToggle";
 const NAV_LINKS = [
   { labelKey: "nav.trending", to: "/", Icon: HomeSVG },
   { labelKey: "nav.markets", to: "/new-markets", Icon: MarketsSVG },
@@ -63,12 +65,20 @@ const BetsIcon = () => (
   </svg>
 );
 
+const WatchlistIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z" />
+  </svg>
+);
+
 const UserChip = ({
   username,
   credit,
   onLogout,
   onProfile,
   onMyBets,
+  onWatchlist,
+  watchedCount = 0,
   onHelp,
   onCreate,
   isAdmin,
@@ -281,6 +291,14 @@ const UserChip = ({
               onClick={() => {
                 setOpen(false);
                 onMyBets?.();
+              }}
+            />
+            <DropdownItem
+              icon={<WatchlistIcon />}
+              label={watchedCount > 0 ? `${t('nav.watchlist')} (${watchedCount})` : t('nav.watchlist')}
+              onClick={() => {
+                setOpen(false);
+                onWatchlist?.();
               }}
             />
             <DropdownItem
@@ -627,6 +645,8 @@ const Navbar = () => {
   };
   const handleProfile = () => history.push("/newprofile");
   const handleMyBets = () => setBetsOpen(true);
+  const handleWatchlist = () => history.push(WATCHLIST_PATH);
+  const { ids: watchedIds } = useWatchlist();
 
   const openLoginModal = () => setAuthModal("login");
   const openRegisterModal = () => setAuthModal("register");
@@ -862,6 +882,8 @@ const Navbar = () => {
               onLogout={handleLogout}
               onProfile={handleProfile}
               onMyBets={handleMyBets}
+              onWatchlist={handleWatchlist}
+              watchedCount={watchedIds.length}
               onHelp={() => history.push("/faq")}
               onCreate={() => history.push("/create")}
               isAdmin={usertype === "ADMIN"}
@@ -1108,6 +1130,29 @@ const Navbar = () => {
                     }}
                   >
                     <BetsIcon /> {t('nav.myBets')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      handleWatchlist();
+                    }}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    style={{
+                      fontFamily: "'Roboto', sans-serif",
+                      fontSize: "16px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <WatchlistIcon /> {t('nav.watchlist')}
+                    {watchedIds.length > 0 && (
+                      <span className="ml-auto rounded-full bg-white/10 px-2 text-[12px] leading-[20px] tabular-nums">{watchedIds.length}</span>
+                    )}
                   </button>
                   <button
                     onClick={() => {

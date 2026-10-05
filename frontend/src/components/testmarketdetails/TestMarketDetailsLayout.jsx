@@ -40,6 +40,8 @@ import { USER_CREDIT_REFRESH_EVENT } from "../utils/userFinanceTools/FetchUserCr
 import { API_URL } from "../../config";
 import { useToast } from "../../hooks/useToast";
 import ShareModal from "../modals/share/ShareModal";
+import { useWatchToggle } from "../../hooks/useWatchToggle";
+import { usePollWhileVisible } from "../../hooks/usePollWhileVisible";
 import LoginModal from "../modals/login/LoginModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
@@ -2516,12 +2518,12 @@ function MarketLayout({
   resolveGroupId,
 }) {
   const { t } = useTranslation();
-  const toast = useToast();
   const [showShareModal, setShowShareModal] = useState(false);
   const [allTags, setAllTags] = useState([]);
   const [activityTab, setActivityTab] = useState(null);
   const activityRef = useRef(null);
-  const [bookmarked, setBookmarked] = useState(false);
+  const { isWatched, toggle: toggleWatch } = useWatchToggle();
+  const bookmarked = isWatched(marketId);
 
   useEffect(() => {
     listMarketTags().then((res) => {
@@ -2634,17 +2636,16 @@ function MarketLayout({
             {/* Bookmark */}
             <button
               onClick={() => {
-                setBookmarked((prev) => {
-                  const next = !prev;
-                  toast.success(next ? t('marketDetails.bookmarkAdded', 'Market saved to your bookmarks') : t('marketDetails.bookmarkRemoved', 'Removed from bookmarks'));
-                  return next;
-                });
+                toggleWatch(marketId);
               }}
+              aria-pressed={bookmarked}
+              aria-label={bookmarked ? t('watchlist.remove') : t('watchlist.add')}
+              title={bookmarked ? t('watchlist.remove') : t('watchlist.add')}
               style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: bookmarked ? 1 : 0.7, transition: "opacity .15s" }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
               onMouseLeave={(e) => { if (!bookmarked) e.currentTarget.style.opacity = "0.7"; }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={bookmarked ? "#fff" : "none"} stroke={bookmarked ? "#fff" : MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={bookmarked ? COLOR.yesText : "none"} stroke={bookmarked ? COLOR.yesText : MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
               </svg>
             </button>
@@ -2936,8 +2937,24 @@ function MultiChoiceLayout({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activityIdx, setActivityIdx] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [pollTick, setPollTick] = useState(0);
 
   const groupId = market?.marketGroup?.id;
+
+  // Keep every option's chart line live while the page is open.
+  usePollWhileVisible(() => setPollTick((p) => p + 1), groupId ? 10000 : 0);
+  useEffect(() => {
+    if (!pollTick || !groupId) return undefined;
+    let cancelled = false;
+    getMarketGroupDetails(groupId)
+      .then((data) => {
+        if (!cancelled && data) setGroupData(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [pollTick, groupId]);
   const groupTitle =
     market?.marketGroup?.questionTitle || market?.questionTitle;
   const stewardUsername = stewardUsernameFor(market, market?.creatorUsername);

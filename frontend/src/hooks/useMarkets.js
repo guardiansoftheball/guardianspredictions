@@ -9,13 +9,17 @@ import { getFlag, getFlagFromText } from "../helpers/countryFlags";
  * Market groups with 3 answers (incl. "Draw") → type "match" (MatchCard)
  * Market groups with 2+ answers → type "prediction" (PredictionCard)
  */
-export function useMarkets() {
+const REFRESH_MS = 20000;
+
+export function useMarkets({ refreshMs = REFRESH_MS } = {}) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
+    let hasData = false;
+    let timer = null;
 
     async function fetchMarkets() {
       try {
@@ -24,20 +28,15 @@ export function useMarkets() {
         const data = await res.json();
 
         const rawMarkets = data?.markets ?? data?.result ?? [];
-        if (!Array.isArray(rawMarkets)) {
-          setCards([]);
-          return;
-        }
-
-        const transformed = transformMarkets(rawMarkets);
-        if (!cancelled) {
-          setCards(transformed);
-        }
+        if (cancelled) return;
+        setCards(Array.isArray(rawMarkets) ? transformMarkets(rawMarkets) : []);
+        setError(null);
+        hasData = true;
       } catch (err) {
-        if (!cancelled) {
-          setError(err);
-          setCards([]);
-        }
+        if (cancelled) return;
+        setError(err);
+        // A failed background refresh keeps the last good prices on screen.
+        if (!hasData) setCards([]);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -45,9 +44,32 @@ export function useMarkets() {
       }
     }
 
-    fetchMarkets();
-    return () => { cancelled = true; };
-  }, []);
+    // Live prices: poll while the tab is visible, refresh right away on return.
+    const schedule = () => {
+      clearTimeout(timer);
+      if (!refreshMs || document.hidden) return;
+      timer = setTimeout(async () => {
+        await fetchMarkets();
+        if (!cancelled) schedule();
+      }, refreshMs);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        clearTimeout(timer);
+      } else {
+        fetchMarkets().then(() => { if (!cancelled) schedule(); });
+      }
+    };
+
+    fetchMarkets().then(() => { if (!cancelled) schedule(); });
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [refreshMs]);
 
   return { cards, loading, error };
 }
