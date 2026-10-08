@@ -11,19 +11,15 @@ import GhostCard from "../../components/cards/GhostCard";
 import BlueGlow from "../../components/ui/BlueGlow";
 import { useMarkets } from "../../hooks/useMarkets";
 
-// Number of cards to show per row-count at each breakpoint:
-// mobile 1 col × 3 rows = 3, tablet 2 col × 3 rows = 6, desktop 3+ col × 3 rows = 9
-function getHomeCardLimit() {
-  return 15;
-}
+const HOME_ROWS = 4;
 
 const NewHome = () => {
   const { t } = useTranslation();
-  const [cardLimit] = useState(getHomeCardLimit);
   const { cards: apiCards } = useMarkets();
-  const homeCards = apiCards.slice(0, cardLimit);
+  const [cols, setCols] = useState(4);
+  // Up to 4 columns (capped by the grid max width) × 4 rows
+  const homeCards = apiCards.slice(0, cols * HOME_ROWS);
   const [scrollY, setScrollY] = useState(0);
-  const [cols, setCols] = useState(5);
   const gridRef = useRef(null);
   const history = useHistory();
 
@@ -54,10 +50,10 @@ const NewHome = () => {
   }, [handleScroll]);
 
   return (
-    <div className="bg-primary-background relative z-50 min-h-screen pb-16">
-      {/* Navbar — fixed, always on top */}
+    <div className="bg-[#050811] relative z-50 min-h-screen pb-16">
+      {/* Navbar — floats over the hero (no band of its own on mobile), fixed from sm up */}
       <div
-        className=" sm:fixed top-0 left-0 right-0 z-50"
+        className="absolute sm:fixed top-0 left-0 right-0 z-50"
       >
         <Navbar />
       </div>
@@ -77,11 +73,12 @@ const NewHome = () => {
 
       {/* Grid — scrolls over the hero */}
       <div
-        className="bg-primary-background pt-12 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
+        className="bg-[#050811] pt-12 pb-16 px-10 justify-items-center max-lg:px-0 max-lg:pt-8"
         style={{ position: "relative", zIndex: 2 }}
       >
-        <BlueGlow position="sticky" width="60vw" />
-        <div className="relative w-full" style={{ zIndex: 1 }}>
+        {/* Light anchored to this section: fades to the base color right at the footer */}
+        <BlueGlow position="absolute" height="42%" y="45%" />
+        <div className="relative w-full max-w-[1448px] mx-auto" style={{ zIndex: 1 }}>
           {/* Layer 1 — Ghost cards */}
           <div
             ref={gridRef}
@@ -196,7 +193,7 @@ const NewHome = () => {
         </div>
       </div>
 
-      <div className="mt-16">
+      <div>
         <Footer />
       </div>
     </div>

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import Navbar from "../navbar/Navbar";
 import Footer from "../footer/Footer";
+import { TopGlow } from "../ui/BlueGlow";
 import NewMarketChart from "../charts/NewMarketChart";
 import {
   useChartDateFormat,
@@ -28,7 +29,7 @@ import ResolveModalButton from "../modals/resolution/ResolveModalDark";
 import ResolutionAlert from "../resolutions/ResolutionAlert";
 import { stewardUsernameFor } from "../markets/StewardTag";
 import formatResolutionDate from "../../helpers/formatResolutionDate";
-import { CARD, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
+import { FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
 import { getMarketGroupDetails } from "../../api/marketsApi";
 import {
   submitBet,
@@ -57,7 +58,10 @@ const MUTED = COLOR.muted;
 const MUTED2 = COLOR.muted2;
 const MUTED3 = COLOR.muted3;
 const TEXT = COLOR.text;
-const MARKET_CARD = { ...CARD, background: "#0e121d" };
+// Panels have no surface of their own: content sits directly on the page background.
+const MARKET_CARD = { borderRadius: "24px" };
+// Borderless layout: sections are separated by spacing + hairlines instead of boxes.
+const HAIRLINE = { height: "1px", background: "rgba(255,255,255,0.07)", flexShrink: 0 };
 
 // Per-option theme: first=green, last=red, middles=neutral/purple/orange/teal…
 const OPTION_THEMES = [
@@ -2520,6 +2524,10 @@ function MarketLayout({
   const { t } = useTranslation();
   const [showShareModal, setShowShareModal] = useState(false);
   const [allTags, setAllTags] = useState([]);
+  // Tablets / small laptops (<1280px) can't fit three columns: the tag sidebar
+  // becomes a horizontal chip row and the trade panel narrows.
+  const isCompact = useIsMobile(1280);
+  const showTagSidebar = !isMobile && !isCompact && allTags.length > 0;
   const [activityTab, setActivityTab] = useState(null);
   const activityRef = useRef(null);
   const { isWatched, toggle: toggleWatch } = useWatchToggle();
@@ -2713,23 +2721,73 @@ function MarketLayout({
         </div>
       </div>
 
-      {/* ── 3-col layout ── */}
+      {/* Tags as a horizontal chip row when there's no room for the sidebar */}
+      {!showTagSidebar && allTags.length > 0 && (
+        <nav
+          aria-label={t('filters.allEvents', 'All Events')}
+          style={{
+            display: "flex",
+            gap: "8px",
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            margin: isMobile ? "0 0 16px" : "0 0 24px",
+            paddingBottom: "2px",
+          }}
+        >
+          {[{ slug: null, name: t('filters.allEvents', 'All Events'), to: "/new-markets" }]
+            .concat(allTags.map((tag) => {
+              const slug = tag.slug || tag.Slug;
+              const name = tag.displayName || tag.DisplayName || slug;
+              return { slug, name, to: `/new-markets?league=${encodeURIComponent(name)}` };
+            }))
+            .map(({ slug, name, to }) => {
+              const isActive = slug != null && marketTagSlugs.includes(slug);
+              return (
+                <Link
+                  key={slug ?? "all"}
+                  to={to}
+                  style={{
+                    flexShrink: 0,
+                    padding: "7px 14px",
+                    borderRadius: "999px",
+                    border: `1px solid ${isActive ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.08)"}`,
+                    background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                    font: `${isActive ? "600" : "500"} 13px ${FONT_BODY}`,
+                    color: isActive ? TEXT : MUTED,
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {name}
+                </Link>
+              );
+            })}
+        </nav>
+      )}
+
+      {/* ── 3-col layout (2-col on tablets, 1-col on mobile) ── */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : (!isMobile && allTags.length > 0) ? "200px 1fr 340px" : "1fr 340px",
-          gap: isMobile ? "16px" : "28px",
+          gridTemplateColumns: isMobile
+            ? "minmax(0, 1fr)"
+            : showTagSidebar
+              ? "200px minmax(0, 1fr) 340px"
+              : "minmax(0, 1fr) 320px",
+          gap: isMobile ? "16px" : isCompact ? "32px" : "48px",
           alignItems: "start",
         }}
       >
-        {/* LEFT — tags sidebar (desktop) */}
-        {!isMobile && allTags.length > 0 && (
+        {/* LEFT — tags sidebar (wide screens) */}
+        {showTagSidebar && (
           <div
             style={{
               position: "sticky",
               top: "100px",
               display: "flex",
               flexDirection: "column",
+              paddingRight: "24px",
+              borderRight: "1px solid rgba(255,255,255,0.07)",
             }}
           >
             {/* All Events link */}
@@ -2824,6 +2882,8 @@ function MarketLayout({
             isMobile={isMobile}
           />
 
+          <div style={HAIRLINE} />
+
           {/* Chart card */}
           <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             {loading ? (
@@ -2852,13 +2912,10 @@ function MarketLayout({
               }}>
                 {market.description}
               </p>
-              <div style={{
-                marginTop: "16px",
-                height: "1px",
-                background: "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, transparent 100%)",
-              }} />
             </div>
           ) : null}
+
+          <div style={HAIRLINE} />
 
           {/* Activity */}
           <div ref={activityRef} style={{ ...MARKET_CARD, overflow: "hidden" }}>
@@ -4063,47 +4120,36 @@ function TestMarketDetailsLayout({
   return (
     <div
       className="pb-16"
-      style={{ minHeight: "100vh", color: TEXT, fontFamily: FONT_BODY }}
+      style={{ minHeight: "100vh", color: TEXT, fontFamily: FONT_BODY, background: "#050811" }}
     >
-      <div
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "70%",
-          left: "50%",
-          top: "-10%",
-          transform: "translateX(-50%)",
-          background:
-            "radial-gradient(ellipse at 30% 0%, rgba(30,144,255,0.12) 0%, transparent 70%), radial-gradient(ellipse at 70% 20%, rgba(186,214,89,0.07) 0%, transparent 60%)",
-          filter: "blur(80px)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
-      <div style={{ position: "relative", zIndex: 20 }}>
-        <Navbar />
-      </div>
-      <div
-        style={{
-          zIndex: 10,
-          maxWidth: "1400px",
-          margin: "0 auto",
-          padding: isMobile ? "16px 16px 60px" : "22px 40px 60px",
-        }}
-      >
-        {isGroupMember ? (
-          <MultiChoiceLayout
-            {...commonProps}
-            currentProbability={currentProbability}
-            probabilityChanges={probabilityChanges}
-          />
-        ) : (
-          <BinaryLayout
-            {...commonProps}
-            currentProbability={currentProbability}
-            probabilityChanges={probabilityChanges}
-          />
-        )}
+      <div style={{ position: "relative" }}>
+        <TopGlow />
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <Navbar contentWidth="1600px" />
+        </div>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            maxWidth: "1600px",
+            margin: "0 auto",
+            padding: isMobile ? "16px 16px 60px" : "22px 40px 60px",
+          }}
+        >
+          {isGroupMember ? (
+            <MultiChoiceLayout
+              {...commonProps}
+              currentProbability={currentProbability}
+              probabilityChanges={probabilityChanges}
+            />
+          ) : (
+            <BinaryLayout
+              {...commonProps}
+              currentProbability={currentProbability}
+              probabilityChanges={probabilityChanges}
+            />
+          )}
+        </div>
       </div>
       <Footer />
     </div>

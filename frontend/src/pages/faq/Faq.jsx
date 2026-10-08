@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
-import BlueGlow from '../../components/ui/BlueGlow';
+import { TopGlow } from '../../components/ui/BlueGlow';
 
 const FAQ_DATA = [
   {
@@ -64,71 +64,75 @@ function Faq() {
   };
 
   return (
-    <div className="min-h-screen bg-primary-background relative overflow-x-hidden">
-      <BlueGlow />
+    <div className="min-h-screen bg-[#050811] relative overflow-x-hidden">
+      {/* Light coming down from the top edge */}
+      <div className="relative">
+        <TopGlow />
 
-      <Navbar />
+        <Navbar />
 
-      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('faq.eyebrow')}</p>
-          <h1 className="text-4xl font-bold text-white">{t('faq.heading')}</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('faq.subtitle')}</p>
-        </div>
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+          <div className="mb-8">
+            <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('faq.eyebrow')}</p>
+            <h1 className="text-4xl font-bold text-white">{t('faq.heading')}</h1>
+            <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('faq.subtitle')}</p>
+          </div>
 
-        <div className="relative mb-6">
-          <input
-            type="text"
-            placeholder={t('faq.searchPlaceholder')}
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setOpenIndex(null);
-            }}
-            className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-[#9CC9F1]/60 focus:bg-[#9CC9F1]/5 transition-colors"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
+          <div className="relative mb-6">
+            <input
+              type="text"
+              placeholder={t('faq.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
                 setOpenIndex(null);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-              aria-label="Clear search"
-            >
-              &times;
-            </button>
-          )}
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-[#9CC9F1]/60 focus:bg-[#9CC9F1]/5 transition-colors"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setOpenIndex(null);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                &times;
+              </button>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
+            {filteredFaqs.length === 0 ? (
+              <p className="p-6 text-center text-gray-400">
+                {t('faq.noResults')}
+              </p>
+            ) : (
+              filteredFaqs.map((faq, index) => (
+                <div key={index} className={index > 0 ? 'border-t border-white/10' : ''}>
+                  <button
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex items-center justify-between p-4 md:p-5 text-left hover:bg-white/5 transition-colors duration-200"
+                  >
+                    <span className="font-semibold text-sm md:text-base text-white pr-4">
+                      {faq.question}
+                    </span>
+                    <ChevronDown isOpen={openIndex === index} />
+                  </button>
+                  {openIndex === index && (
+                    <div className="px-4 pb-4 md:px-5 md:pb-5">
+                      <p className="text-sm leading-relaxed text-gray-400">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
-          {filteredFaqs.length === 0 ? (
-            <p className="p-6 text-center text-gray-400">
-              {t('faq.noResults')}
-            </p>
-          ) : (
-            filteredFaqs.map((faq, index) => (
-              <div key={index} className={index > 0 ? 'border-t border-white/10' : ''}>
-                <button
-                  onClick={() => toggleFaq(index)}
-                  className="w-full flex items-center justify-between p-4 md:p-5 text-left hover:bg-white/5 transition-colors duration-200"
-                >
-                  <span className="font-semibold text-sm md:text-base text-white pr-4">
-                    {faq.question}
-                  </span>
-                  <ChevronDown isOpen={openIndex === index} />
-                </button>
-                {openIndex === index && (
-                  <div className="px-4 pb-4 md:px-5 md:pb-5">
-                    <p className="text-sm leading-relaxed text-gray-400">
-                      {faq.answer}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       <Footer />

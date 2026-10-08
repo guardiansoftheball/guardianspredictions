@@ -226,99 +226,103 @@ const NewMarkets = () => {
   );
 
   return (
-    <div className="bg-primary-background min-h-screen pb-16">
-      <BlueGlow />
-      <Navbar />
+    <div className="bg-[#050811] min-h-screen pb-16">
+      {/* Light anchored to the page content (centered behind the cards), fades out at the footer */}
+      <div className="relative">
+        <BlueGlow position="absolute" height="45%" y="40%" />
+        <Navbar />
 
-      <div className="flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">
-        {/* Panel de filtros */}
-        <aside className="w-[280px] z-10 shrink-0 max-lg:w-auto">
-          <Filtros
-            filters={filters}
-            watchedCount={watchedIds.length}
-            onFilterChange={handleFilterChange}
-            resultCount={filteredCards.length}
-            marketChips={marketTags}
-          />
-        </aside>
+        <div className="relative z-10 flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">
+          {/* Panel de filtros */}
+          <aside className="w-[280px] z-10 shrink-0 max-lg:w-auto">
+            <Filtros
+              filters={filters}
+              watchedCount={watchedIds.length}
+              onFilterChange={handleFilterChange}
+              resultCount={filteredCards.length}
+              marketChips={marketTags}
+            />
+          </aside>
 
-        {/* Cards */}
-        <div className="flex-1 justify-items-center">
-          {filters.watchlist && !watchedIds.length ? (
-            <WatchlistEmpty t={t} onBrowse={() => handleFilterChange("watchlist", false)} />
-          ) : filteredCards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-white/50">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mb-4 opacity-40"
-              >
-                <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
-                <path d="M21 21l-6 -6" />
-              </svg>
-              <p className="text-lg font-semibold mb-1">
-                {t("markets.noResults")}
-              </p>
-              <p className="text-sm">{t("markets.noResultsHint")}</p>
-              <button
-                type="button"
-                onClick={() => handleFilterChange("clear")}
-                className="mt-4 px-4 py-2 rounded-full border border-white/20 text-sm text-white/70 hover:text-white hover:border-white/40 transition-colors"
-              >
-                {t("markets.clearAllFilters")}
-              </button>
-            </div>
-          ) : (
-            <div className="relative w-full">
-              {/* Layer 1 — Ghost cards */}
-              <div
-                className="grid gap-6  w-full justify-center pointer-events-none"
-                style={{
-                  opacity: 0.35,
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(300px, 344px))",
-                }}
-              >
-                {visibleCards.map((_, i) => (
-                  <GhostCard key={`ghost-${i}`} />
-                ))}
-                {nextCards.map((_, i) => (
-                  <GhostCard key={`ghost-skel-${i}`} />
-                ))}
+          {/* Cards */}
+          <div className="flex-1 justify-items-center">
+            {filters.watchlist && !watchedIds.length ? (
+              <WatchlistEmpty t={t} onBrowse={() => handleFilterChange("watchlist", false)} />
+            ) : filteredCards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mb-4 opacity-40"
+                >
+                  <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
+                  <path d="M21 21l-6 -6" />
+                </svg>
+                <p className="text-lg font-semibold mb-1">
+                  {t("markets.noResults")}
+                </p>
+                <p className="text-sm">{t("markets.noResultsHint")}</p>
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange("clear")}
+                  className="mt-4 px-4 py-2 rounded-full border border-white/20 text-sm text-white/70 hover:text-white hover:border-white/40 transition-colors"
+                >
+                  {t("markets.clearAllFilters")}
+                </button>
               </div>
+            ) : (
+              <div className="relative w-full">
+                {/* Layer 1 — Ghost cards */}
+                <div
+                  className="grid gap-6  w-full justify-center pointer-events-none"
+                  style={{
+                    opacity: 0.35,
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(300px, 344px))",
+                  }}
+                >
+                  {visibleCards.map((_, i) => (
+                    <GhostCard key={`ghost-${i}`} />
+                  ))}
+                  {nextCards.map((_, i) => (
+                    <GhostCard key={`ghost-skel-${i}`} />
+                  ))}
+                </div>
 
-              {/* Layer 2 — Real cards */}
-              <div
-                className="grid gap-6 gap-[0 1.5rem] w-full justify-center absolute inset-0"
-                style={{
-                  zIndex: 2,
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(300px, 344px))",
-                }}
-              >
-                {visibleCards.map((card, i) => (
-                  <MarketCard key={card.id ?? `idx-${i}`} card={card} />
-                ))}
+                {/* Layer 2 — Real cards */}
+                <div
+                  className="grid gap-6 gap-[0 1.5rem] w-full justify-center absolute inset-0"
+                  style={{
+                    zIndex: 2,
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(300px, 344px))",
+                  }}
+                >
+                  {visibleCards.map((card, i) => (
+                    <MarketCard key={card.id ?? `idx-${i}`} card={card} />
+                  ))}
 
-                {/* Skeletons */}
-                {nextCards.map((card, i) => {
-                  const Skeleton = skeletonForType(card.type);
-                  return <Skeleton key={`skel-${i}`} />;
-                })}
+                  {/* Skeletons */}
+                  {nextCards.map((card, i) => {
+                    const Skeleton = skeletonForType(card.type);
+                    return <Skeleton key={`skel-${i}`} />;
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Sentinel for infinite scroll */}
-          <div ref={sentinelRef} className="h-1 w-full" />
+            {/* Sentinel for infinite scroll */}
+            <div ref={sentinelRef} className="h-1 w-full" />
+          </div>
         </div>
+
       </div>
 
       <Footer />

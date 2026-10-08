@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
+import { TopGlow } from "../../components/ui/BlueGlow";
 import LoadingSpinner from "../../components/loaders/LoadingSpinner";
 import MarkdownLite from "../../components/markdown/MarkdownLite";
 import ProfileModal from "../../components/buttons/profile/ProfileModal";
@@ -1096,78 +1097,66 @@ const NewProfile = () => {
   const marketCreationCost = location.state?.marketCreationCost;
 
   return (
-    <div className="bg-primary-background min-h-screen pb-16">
-      {/* Top glow */}
-      <div
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "70%",
-          left: "50%",
-          top: "-10%",
-          transform: "translateX(-50%)",
-          background:
-            "radial-gradient(ellipse at 30% 0%, rgba(30,144,255,0.12) 0%, transparent 70%), radial-gradient(ellipse at 70% 20%, rgba(186,214,89,0.07) 0%, transparent 60%)",
-          filter: "blur(80px)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      <Navbar />
+    <div className="bg-[#050811] min-h-screen pb-16">
+      {/* Light coming down from the top edge */}
+      <div style={{ position: "relative" }}>
+        <TopGlow />
+        <Navbar />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          maxWidth: "1080px",
-          margin: "0 auto",
-          padding: "32px 20px 120px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        {userLoading ? (
-          <LoadingSpinner />
-        ) : userError ? (
-          <ErrorBanner message={`Error loading user data: ${userError}`} />
-        ) : (
-          <>
-            <IdentityCard userData={userData} t={t} isOwnProfile={isOwnProfile} />
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            maxWidth: "1080px",
+            margin: "0 auto",
+            padding: "32px 20px 120px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          {userLoading ? (
+            <LoadingSpinner />
+          ) : userError ? (
+            <ErrorBanner message={`Error loading user data: ${userError}`} />
+          ) : (
+            <>
+              <IdentityCard userData={userData} t={t} isOwnProfile={isOwnProfile} />
 
-            {isActiveModerator && proposedMarket && (
-              <div
-                style={{
-                  borderRadius: "14px",
-                  border: "1px solid rgba(255,193,7,0.35)",
-                  background: "rgba(255,193,7,0.07)",
-                  padding: "16px 18px",
-                }}
-              >
-                <SectionLabel color="#ffc107">{t('profile.proposedMarketCreated')}</SectionLabel>
-                <div style={{ marginTop: "6px", font: `700 16px ${FONT_HEAD}`, color: TEXT }}>
-                  {proposedMarket.questionTitle}
+              {isActiveModerator && proposedMarket && (
+                <div
+                  style={{
+                    borderRadius: "14px",
+                    border: "1px solid rgba(255,193,7,0.35)",
+                    background: "rgba(255,193,7,0.07)",
+                    padding: "16px 18px",
+                  }}
+                >
+                  <SectionLabel color="#ffc107">{t('profile.proposedMarketCreated')}</SectionLabel>
+                  <div style={{ marginTop: "6px", font: `700 16px ${FONT_HEAD}`, color: TEXT }}>
+                    {proposedMarket.questionTitle}
+                  </div>
+                  <p style={{ margin: "6px 0 0", font: `500 13px ${FONT}`, color: MUTED }}>
+                    Market ID <span style={{ fontFamily: "monospace", color: TEXT }}>{proposedMarket.id}</span> is awaiting admin review.
+                    {marketCreationCost !== undefined && marketCreationCost !== null && (
+                      <> The proposal cost was <span style={{ color: TEXT, fontWeight: 700 }}>{marketCreationCost}</span> credits.</>
+                    )}
+                  </p>
                 </div>
-                <p style={{ margin: "6px 0 0", font: `500 13px ${FONT}`, color: MUTED }}>
-                  Market ID <span style={{ fontFamily: "monospace", color: TEXT }}>{proposedMarket.id}</span> is awaiting admin review.
-                  {marketCreationCost !== undefined && marketCreationCost !== null && (
-                    <> The proposal cost was <span style={{ color: TEXT, fontWeight: 700 }}>{marketCreationCost}</span> credits.</>
-                  )}
-                </p>
+              )}
+
+              <div>
+                <PillTabs tabs={mainTabs} active={activeTab} onChange={setMainTab} />
               </div>
-            )}
 
-            <div>
-              <PillTabs tabs={mainTabs} active={activeTab} onChange={setMainTab} />
-            </div>
-
-            {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
-            {activeTab === t('profile.performance') && <PerformanceSection username={username} t={t} />}
-            {activeTab === t('profile.financials') && <FinancialsSection username={username} t={t} />}
-            {activeTab === t('profile.myMarkets') && isActiveModerator && <MyMarketsSection />}
-            {activeTab === t('profile.marketChanges') && isActiveModerator && <MarketChangesSection />}
-          </>
-        )}
+              {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
+              {activeTab === t('profile.performance') && <PerformanceSection username={username} t={t} />}
+              {activeTab === t('profile.financials') && <FinancialsSection username={username} t={t} />}
+              {activeTab === t('profile.myMarkets') && isActiveModerator && <MyMarketsSection />}
+              {activeTab === t('profile.marketChanges') && isActiveModerator && <MarketChangesSection />}
+            </>
+          )}
+        </div>
       </div>
 
       <Footer />

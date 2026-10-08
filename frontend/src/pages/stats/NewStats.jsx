@@ -6,7 +6,7 @@ import { API_URL } from '../../config';
 import { authStorage } from '../../api/authStorage';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
-import BlueGlow from '../../components/ui/BlueGlow';
+import { TopGlow } from '../../components/ui/BlueGlow';
 import LoadingSpinner from '../../components/loaders/LoadingSpinner';
 import { unwrapApiResponse } from '../../utils/apiResponse';
 
@@ -135,7 +135,8 @@ const NavCard = ({ icon, title, description, onClick }) => (
   >
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.07)', color: '#C9CDD3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7D848F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7v10M17 7v10" /><path d="M7 12h10" /></svg>
+      {/* Arrow down: the card scrolls to its section further down the page */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7D848F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14" /><path d="M19 12l-7 7-7-7" /></svg>
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <span style={{ fontSize: '16px', fontWeight: 600, color: '#F3F4F6' }}>{title}</span>
@@ -324,299 +325,303 @@ const NewStats = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0B0D] relative overflow-x-hidden">
-      <BlueGlow />
-      <Navbar />
+    <div className="min-h-screen bg-[#050811] relative overflow-x-hidden">
+      {/* Light coming down from the top edge */}
+      <div className="relative">
+        <TopGlow />
+        <Navbar />
 
-      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-8 pb-24">
+        <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-8 pb-24">
 
-        {/* ── Header ── */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8B929C' }}>{t('stats.pageEyebrow')}</span>
-            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 600, letterSpacing: '-0.02em', color: '#F3F4F6' }}>{t('stats.pageHeading')}</h1>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {lbFreshnessLabel && (
-              <span style={{ fontSize: '13px', color: '#8B929C', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
-                Updated {lbFreshnessLabel}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => { fetchLeaderboard(0); fetchMetrics(); }}
-              disabled={lbLoading || smLoading}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 14px',
-                borderRadius: '8px', background: '#F3F4F6', color: '#0A0B0D', border: 'none',
-                fontSize: '13px', fontWeight: 500, cursor: (lbLoading || smLoading) ? 'not-allowed' : 'pointer',
-                opacity: (lbLoading || smLoading) ? 0.6 : 1,
-              }}
-            >
-              <RefreshIcon />
-              Recalculate
-            </button>
-          </div>
-        </header>
-
-        {/* ── Summary stat cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label={t('stats.leaderboard.rank') + 'ed users'} value={fmt(summary.users)} />
-          <StatCard label={t('stats.leaderboard.value')} value={fmt(summary.value)} />
-          <StatCard label={t('stats.leaderboard.spent')} value={fmt(summary.spent)} />
-          <StatCard label={t('stats.leaderboard.profit')} value={summary.profit >= 0 ? fmt(summary.profit) : `−${fmt(Math.abs(summary.profit))}`} color={summary.profit >= 0 ? '#F3F4F6' : '#F2767A'} />
-        </div>
-
-        {/* ── Bento grid: leaderboard + side nav ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
-
-          {/* Leaderboard - 3 cols */}
-          <section className="lg:col-span-3" style={{ ...CARD, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-              <SectionHeader icon={<LeaderboardIcon />} title={t('stats.tabs.globalLeaderboard')} subtitle={t('stats.shortcuts.leaderboardDesc')} badge={t('stats.beta')} />
-              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button type="button" aria-label="Previous page" disabled={lbLoading || page <= 0} onClick={() => fetchLeaderboard(Math.max(0, page - 1))}
-                  style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: page > 0 ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: page > 0 ? 'pointer' : 'not-allowed' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-                <button type="button" aria-label="Next page" disabled={lbLoading || !hasNextPage} onClick={() => fetchLeaderboard(page + 1)}
-                  style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: hasNextPage ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasNextPage ? 'pointer' : 'not-allowed' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                </button>
-              </div>
+          {/* ── Header ── */}
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8B929C' }}>{t('stats.pageEyebrow')}</span>
+              <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 600, letterSpacing: '-0.02em', color: '#F3F4F6' }}>{t('stats.pageHeading')}</h1>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {lbFreshnessLabel && (
+                <span style={{ fontSize: '13px', color: '#8B929C', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
+                  Updated {lbFreshnessLabel}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => { fetchLeaderboard(0); fetchMetrics(); }}
+                disabled={lbLoading || smLoading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 14px',
+                  borderRadius: '8px', background: '#F3F4F6', color: '#0A0B0D', border: 'none',
+                  fontSize: '13px', fontWeight: 500, cursor: (lbLoading || smLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (lbLoading || smLoading) ? 0.6 : 1,
+                }}
+              >
+                <RefreshIcon />
+                Recalculate
+              </button>
+            </div>
+          </header>
 
-            {lbLoading && !leaderboard && (
-              <div className="flex items-center justify-center gap-3 py-12">
-                <LoadingSpinner />
-                <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.leaderboard.computing')}</span>
-              </div>
-            )}
-            {lbError && !lbLoginRequired && <ErrorBanner msg={lbError} />}
-            {lbError && lbLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{lbError}</div>}
+          {/* ── Summary stat cards ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatCard label={t('stats.leaderboard.rank') + 'ed users'} value={fmt(summary.users)} />
+            <StatCard label={t('stats.leaderboard.value')} value={fmt(summary.value)} />
+            <StatCard label={t('stats.leaderboard.spent')} value={fmt(summary.spent)} />
+            <StatCard label={t('stats.leaderboard.profit')} value={summary.profit >= 0 ? fmt(summary.profit) : `−${fmt(Math.abs(summary.profit))}`} color={summary.profit >= 0 ? '#F3F4F6' : '#F2767A'} />
+          </div>
 
-            {leaderboard && leaderboard.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* Table header */}
-                <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '36px', fontSize: '12px', fontWeight: 500, color: '#7D848F', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-                  <div>#</div><div>{t('stats.leaderboard.user')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.profit')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.value')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.spent')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.markets')}</div>
+          {/* ── Bento grid: leaderboard + side nav ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
+
+            {/* Leaderboard - 3 cols */}
+            <section className="lg:col-span-3" style={{ ...CARD, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                <SectionHeader icon={<LeaderboardIcon />} title={t('stats.tabs.globalLeaderboard')} subtitle={t('stats.shortcuts.leaderboardDesc')} badge={t('stats.beta')} />
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button type="button" aria-label="Previous page" disabled={lbLoading || page <= 0} onClick={() => fetchLeaderboard(Math.max(0, page - 1))}
+                    style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: page > 0 ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: page > 0 ? 'pointer' : 'not-allowed' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                  </button>
+                  <button type="button" aria-label="Next page" disabled={lbLoading || !hasNextPage} onClick={() => fetchLeaderboard(page + 1)}
+                    style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: hasNextPage ? '#C9CDD3' : '#5F6670', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: hasNextPage ? 'pointer' : 'not-allowed' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
                 </div>
-                {leaderboard.map((user, idx) => {
-                  const rank = start + idx + 1;
-                  const av = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-                  const initials = user.username.slice(0, 2).toUpperCase();
-                  const neg = user.totalProfit < 0;
-                  return (
-                    <div key={user.username}>
-                      {/* Desktop */}
-                      <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '60px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '14px' }}>
-                        <div style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 500, color: rank === 1 ? '#F3F4F6' : '#8B929C' }}>{String(rank).padStart(2, '0')}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>{initials}</div>
-                          <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none' }}>{user.username}</Link>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
-                          <CenteredProfitBar profit={user.totalProfit} maxAbsProfit={maxAbsProfit} />
-                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: neg ? '#F2767A' : '#C9CDD3', width: '48px', textAlign: 'right' }}>
-                            {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
-                          </span>
-                        </div>
-                        <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</div>
-                        <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalSpent)}</div>
-                        <div style={{ textAlign: 'right', color: '#8B929C', fontSize: '13px' }}>
-                          <span style={{ color: '#E7E9EC' }}>{user.activeMarkets}</span> {t('stats.leaderboard.active')} · <span style={{ color: '#E7E9EC' }}>{user.resolvedMarkets}</span> res.
-                        </div>
-                      </div>
-                      {/* Mobile */}
-                      <div className="sm:hidden" style={{ ...CARD, padding: '16px', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 700, color: '#F3F4F6', fontSize: '18px' }}>{String(rank).padStart(2, '0')}</span>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
-                          <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none', flex: 1 }}>{user.username}</Link>
-                          <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 600, color: neg ? '#F2767A' : '#C9CDD3' }}>
-                            {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8B929C' }}>
-                          <span>Value: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</span></span>
-                          <span>Spent: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalSpent)}</span></span>
-                          <span>{user.activeMarkets} {t('stats.leaderboard.active')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
-            )}
-            {leaderboard && leaderboard.length === 0 && (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#8B929C' }}>{t('stats.leaderboard.noResults')}</div>
-            )}
-            {leaderboard && leaderboard.length > 0 && (
-              <div style={{ marginTop: 'auto', fontSize: '12px', color: '#7D848F' }}>
-                {t('stats.leaderboard.showing', { start: start + 1, end: start + leaderboard.length })}
-              </div>
-            )}
-          </section>
 
-          {/* Side nav cards - 1 col */}
-          <div className="flex flex-row lg:flex-col gap-4">
-            <NavCard icon={<ChartIcon />} title={t('stats.shortcuts.financials')} description={t('stats.shortcuts.metricsDesc')} onClick={() => scrollTo(metricsRef)} />
-            <NavCard icon={<SlidersIcon />} title={t('stats.shortcuts.config')} description={t('stats.shortcuts.configDesc')} onClick={() => scrollTo(configRef)} />
-          </div>
-        </div>
-
-        {/* ── Financial Metrics section ── */}
-        <section ref={metricsRef} style={{ ...CARD, padding: '24px', marginBottom: '16px' }}>
-          <SectionHeader icon={<ChartIcon />} title={t('stats.tabs.systemMetrics')} subtitle={t('stats.shortcuts.metricsDesc')} badge={t('stats.beta')} />
-
-          {smLoading && (
-            <div className="flex items-center justify-center gap-3 py-8">
-              <LoadingSpinner />
-              <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.metrics.computing')}</span>
-            </div>
-          )}
-          {smError && !smLoginRequired && <ErrorBanner msg={smError} />}
-          {smError && smLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{smError}</div>}
-
-          {systemMetrics && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {smFreshnessLabel && (
-                <div style={{ fontSize: '12px', color: '#7D848F', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
-                  {t('stats.metrics.freshnessLabel', { time: smFreshnessLabel })}
+              {lbLoading && !leaderboard && (
+                <div className="flex items-center justify-center gap-3 py-12">
+                  <LoadingSpinner />
+                  <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.leaderboard.computing')}</span>
                 </div>
               )}
+              {lbError && !lbLoginRequired && <ErrorBanner msg={lbError} />}
+              {lbError && lbLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{lbError}</div>}
 
-              {/* Money Created - capacity bar */}
-              <div>
-                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyCreated')}</h3>
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px', color: '#7D848F' }}>
-                    <span>{t('stats.metrics.utilizationLabel')}</span>
-                    <span>{fmt(systemMetrics.moneyUtilized.totalUtilized.value)} / {fmt(systemMetrics.moneyCreated.userDebtCapacity.value)}</span>
+              {leaderboard && leaderboard.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Table header */}
+                  <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '36px', fontSize: '12px', fontWeight: 500, color: '#7D848F', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                    <div>#</div><div>{t('stats.leaderboard.user')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.profit')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.value')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.spent')}</div><div style={{ textAlign: 'right' }}>{t('stats.leaderboard.markets')}</div>
                   </div>
-                  <div style={{ height: '6px', width: '100%', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', borderRadius: '3px', transition: 'width 0.7s',
-                      width: `${Math.min((Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1)) * 100, 100)}%`,
-                      backgroundColor: COLORS.celeste,
-                    }} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    { label: t('stats.metrics.numUsers'), value: systemMetrics.moneyCreated.numUsers.value, icon: '👥' },
-                    { label: t('stats.metrics.userDebtCapacity'), value: systemMetrics.moneyCreated.userDebtCapacity.value, icon: '💳' },
-                    { label: t('stats.metrics.totalUtilized'), value: systemMetrics.moneyUtilized.totalUtilized.value, icon: '📊' },
-                  ].map((m) => (
-                    <div key={m.label} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ fontSize: '12px', color: '#8B929C', marginBottom: '6px' }}>{m.icon} {m.label}</div>
-                      <div style={{ fontSize: '20px', fontWeight: 600, color: '#F3F4F6', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>{fmt(m.value)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Money Utilized - chart */}
-              {utilizationData.length > 0 && (
-                <div>
-                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyUtilized')}</h3>
-                  <div style={{ minHeight: '180px' }}>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={utilizationData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                        <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
-                          {utilizationData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3">
-                    {utilizationData.map((d) => (
-                      <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#8B929C' }}>{d.name}</div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#F3F4F6' }}>{fmt(d.value)}</div>
+                  {leaderboard.map((user, idx) => {
+                    const rank = start + idx + 1;
+                    const av = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+                    const initials = user.username.slice(0, 2).toUpperCase();
+                    const neg = user.totalProfit < 0;
+                    return (
+                      <div key={user.username}>
+                        {/* Desktop */}
+                        <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '60px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '14px' }}>
+                          <div style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 500, color: rank === 1 ? '#F3F4F6' : '#8B929C' }}>{String(rank).padStart(2, '0')}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>{initials}</div>
+                            <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none' }}>{user.username}</Link>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
+                            <CenteredProfitBar profit={user.totalProfit} maxAbsProfit={maxAbsProfit} />
+                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: neg ? '#F2767A' : '#C9CDD3', width: '48px', textAlign: 'right' }}>
+                              {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
+                            </span>
+                          </div>
+                          <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</div>
+                          <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalSpent)}</div>
+                          <div style={{ textAlign: 'right', color: '#8B929C', fontSize: '13px' }}>
+                            <span style={{ color: '#E7E9EC' }}>{user.activeMarkets}</span> {t('stats.leaderboard.active')} · <span style={{ color: '#E7E9EC' }}>{user.resolvedMarkets}</span> res.
+                          </div>
                         </div>
+                        {/* Mobile */}
+                        <div className="sm:hidden" style={{ ...CARD, padding: '16px', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 700, color: '#F3F4F6', fontSize: '18px' }}>{String(rank).padStart(2, '0')}</span>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
+                            <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none', flex: 1 }}>{user.username}</Link>
+                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 600, color: neg ? '#F2767A' : '#C9CDD3' }}>
+                              {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8B929C' }}>
+                            <span>Value: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</span></span>
+                            <span>Spent: <span style={{ color: '#C9CDD3' }}>{fmt(user.totalSpent)}</span></span>
+                            <span>{user.activeMarkets} {t('stats.leaderboard.active')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {leaderboard && leaderboard.length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#8B929C' }}>{t('stats.leaderboard.noResults')}</div>
+              )}
+              {leaderboard && leaderboard.length > 0 && (
+                <div style={{ marginTop: 'auto', fontSize: '12px', color: '#7D848F' }}>
+                  {t('stats.leaderboard.showing', { start: start + 1, end: start + leaderboard.length })}
+                </div>
+              )}
+            </section>
+
+            {/* Side nav cards - 1 col */}
+            <div className="flex flex-row lg:flex-col gap-4">
+              <NavCard icon={<ChartIcon />} title={t('stats.shortcuts.financials')} description={t('stats.shortcuts.metricsDesc')} onClick={() => scrollTo(metricsRef)} />
+              <NavCard icon={<SlidersIcon />} title={t('stats.shortcuts.config')} description={t('stats.shortcuts.configDesc')} onClick={() => scrollTo(configRef)} />
+            </div>
+          </div>
+
+          {/* ── Financial Metrics section ── */}
+          <section ref={metricsRef} style={{ ...CARD, padding: '24px', marginBottom: '16px' }}>
+            <SectionHeader icon={<ChartIcon />} title={t('stats.tabs.systemMetrics')} subtitle={t('stats.shortcuts.metricsDesc')} badge={t('stats.beta')} />
+
+            {smLoading && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <LoadingSpinner />
+                <span style={{ fontSize: '13px', color: '#8B929C' }}>{t('stats.metrics.computing')}</span>
+              </div>
+            )}
+            {smError && !smLoginRequired && <ErrorBanner msg={smError} />}
+            {smError && smLoginRequired && <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">{smError}</div>}
+
+            {systemMetrics && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {smFreshnessLabel && (
+                  <div style={{ fontSize: '12px', color: '#7D848F', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
+                    {t('stats.metrics.freshnessLabel', { time: smFreshnessLabel })}
+                  </div>
+                )}
+
+                {/* Money Created - capacity bar */}
+                <div>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyCreated')}</h3>
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px', color: '#7D848F' }}>
+                      <span>{t('stats.metrics.utilizationLabel')}</span>
+                      <span>{fmt(systemMetrics.moneyUtilized.totalUtilized.value)} / {fmt(systemMetrics.moneyCreated.userDebtCapacity.value)}</span>
+                    </div>
+                    <div style={{ height: '6px', width: '100%', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '3px', transition: 'width 0.7s',
+                        width: `${Math.min((Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1)) * 100, 100)}%`,
+                        backgroundColor: COLORS.celeste,
+                      }} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { label: t('stats.metrics.numUsers'), value: systemMetrics.moneyCreated.numUsers.value, icon: '👥' },
+                      { label: t('stats.metrics.userDebtCapacity'), value: systemMetrics.moneyCreated.userDebtCapacity.value, icon: '💳' },
+                      { label: t('stats.metrics.totalUtilized'), value: systemMetrics.moneyUtilized.totalUtilized.value, icon: '📊' },
+                    ].map((m) => (
+                      <div key={m.label} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ fontSize: '12px', color: '#8B929C', marginBottom: '6px' }}>{m.icon} {m.label}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 600, color: '#F3F4F6', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>{fmt(m.value)}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* Accounting Verification */}
-              <div>
-                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.accountingVerification')}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `2px solid ${isBalanced ? 'rgba(52,211,153,0.5)' : 'rgba(251,113,133,0.5)'}`, background: isBalanced ? 'rgba(52,211,153,0.1)' : 'rgba(251,113,133,0.1)' }}>
-                      <span style={{ fontSize: '16px', fontWeight: 700, color: isBalanced ? COLORS.emerald : COLORS.rose }}>{isBalanced ? '✓' : '✗'}</span>
+                {/* Money Utilized - chart */}
+                {utilizationData.length > 0 && (
+                  <div>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.moneyUtilized')}</h3>
+                    <div style={{ minHeight: '180px' }}>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={utilizationData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                          <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                          <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
+                            {utilizationData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{isBalanced ? t('stats.metrics.systemBalanced') : t('stats.metrics.systemImbalanced')}</div>
-                      <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{systemMetrics.verification.balanced.explanation}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3">
+                      {utilizationData.map((d) => (
+                        <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '11px', color: '#8B929C' }}>{d.name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#F3F4F6' }}>{fmt(d.value)}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{
-                      width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      border: `2px solid ${surplus?.value === 0 ? 'rgba(52,211,153,0.5)' : surplus?.value > 0 ? 'rgba(251,191,36,0.5)' : 'rgba(251,113,133,0.5)'}`,
-                      background: surplus?.value === 0 ? 'rgba(52,211,153,0.1)' : surplus?.value > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(251,113,133,0.1)',
-                    }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: surplus?.value === 0 ? COLORS.emerald : surplus?.value > 0 ? COLORS.amber : COLORS.rose }}>
-                        {surplus?.value > 0 ? '+' : ''}{fmt(surplus?.value)}
-                      </span>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.surplusDeficit')}</span>
-                        <FormulaToggle formula={surplus?.formula} show={showFormulas.surplus} onToggle={() => toggleFormula('surplus')} />
+                )}
+
+                {/* Accounting Verification */}
+                <div>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.accountingVerification')}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `2px solid ${isBalanced ? 'rgba(52,211,153,0.5)' : 'rgba(251,113,133,0.5)'}`, background: isBalanced ? 'rgba(52,211,153,0.1)' : 'rgba(251,113,133,0.1)' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 700, color: isBalanced ? COLORS.emerald : COLORS.rose }}>{isBalanced ? '✓' : '✗'}</span>
                       </div>
-                      <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{surplus?.explanation}</p>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{isBalanced ? t('stats.metrics.systemBalanced') : t('stats.metrics.systemImbalanced')}</div>
+                        <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{systemMetrics.verification.balanced.explanation}</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{
+                        width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        border: `2px solid ${surplus?.value === 0 ? 'rgba(52,211,153,0.5)' : surplus?.value > 0 ? 'rgba(251,191,36,0.5)' : 'rgba(251,113,133,0.5)'}`,
+                        background: surplus?.value === 0 ? 'rgba(52,211,153,0.1)' : surplus?.value > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(251,113,133,0.1)',
+                      }}>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: surplus?.value === 0 ? COLORS.emerald : surplus?.value > 0 ? COLORS.amber : COLORS.rose }}>
+                          {surplus?.value > 0 ? '+' : ''}{fmt(surplus?.value)}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{t('stats.metrics.surplusDeficit')}</span>
+                          <FormulaToggle formula={surplus?.formula} show={showFormulas.surplus} onToggle={() => toggleFormula('surplus')} />
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#8B929C', margin: '4px 0 0' }}>{surplus?.explanation}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
 
-        {/* ── Setup Configuration section ── */}
-        <section ref={configRef} style={{ ...CARD, padding: '24px' }}>
-          <SectionHeader icon={<SlidersIcon />} title={t('stats.tabs.setupConfig')} subtitle={t('stats.shortcuts.configDesc')} />
+          {/* ── Setup Configuration section ── */}
+          <section ref={configRef} style={{ ...CARD, padding: '24px' }}>
+            <SectionHeader icon={<SlidersIcon />} title={t('stats.tabs.setupConfig')} subtitle={t('stats.shortcuts.configDesc')} />
 
-          {statsLoading && (
-            <div className="flex items-center justify-center gap-3 py-8">
-              <LoadingSpinner />
-            </div>
-          )}
-          {statsError && <ErrorBanner msg={statsError} />}
+            {statsLoading && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <LoadingSpinner />
+              </div>
+            )}
+            {statsError && <ErrorBanner msg={statsError} />}
 
-          {statsData?.setupConfiguration && (
-            <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-                    <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.variable')}</th>
-                    <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.value')}</th>
-                    <th className="hidden sm:table-cell" style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.explanation')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(statsData.setupConfiguration).map(([key, value]) => (
-                    <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '12px 20px', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontSize: '13px', color: '#9CC9F1' }}>{key}</td>
-                      <td style={{ padding: '12px 20px', fontWeight: 600, color: '#F3F4F6' }}>{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
-                      <td className="hidden sm:table-cell" style={{ padding: '12px 20px', color: '#8B929C', fontSize: '13px' }}>{explanations[key] || t('stats.setupConfig.configParamFull')}</td>
+            {statsData?.setupConfiguration && (
+              <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                      <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.variable')}</th>
+                      <th style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.value')}</th>
+                      <th className="hidden sm:table-cell" style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7D848F' }}>{t('stats.setupConfig.explanation')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                  </thead>
+                  <tbody>
+                    {Object.entries(statsData.setupConfiguration).map(([key, value]) => (
+                      <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '12px 20px', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontSize: '13px', color: '#9CC9F1' }}>{key}</td>
+                        <td style={{ padding: '12px 20px', fontWeight: 600, color: '#F3F4F6' }}>{typeof value === 'number' ? value.toLocaleString() : value.toString()}</td>
+                        <td className="hidden sm:table-cell" style={{ padding: '12px 20px', color: '#8B929C', fontSize: '13px' }}>{explanations[key] || t('stats.setupConfig.configParamFull')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
       </div>
 
       <Footer />

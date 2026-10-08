@@ -1,32 +1,18 @@
 import React from "react";
 import heroBg from "../../assets/png/hero.webp";
 
+// Desktop: text centered on the left over the photo.
+// Mobile (<768px): taller hero, photo shifted so the phone stays visible, and the
+// text sits at the bottom on a dark fade that blends into the page (#050811).
 const Hero = () => (
-  <section
-    // style={{
-    //   position: "relative",
-    //   width: "100%",
-    //   height: "56vw",
-    //   maxHeight: "999px",
-    //   minHeight: "520px",
-    //   overflow: "hidden",
-    // }}
-    className="relative w-full h-[56vw] max-h-[999px] min-h-[520px] max-md:min-h-0 overflow-hidden"
-  >
+  <section className="relative w-full h-[56vw] max-h-[999px] min-h-[520px] max-md:h-[78vh] max-md:min-h-[460px] max-md:max-h-[680px] overflow-hidden">
     {/* Background image */}
     <img
       src={heroBg}
       alt=""
       aria-hidden="true"
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        objectPosition: "center",
-        mixBlendMode: "screen",
-      }}
+      className="absolute inset-0 w-full h-full object-cover object-center max-md:object-[70%_center]"
+      style={{ mixBlendMode: "screen" }}
     />
 
     {/* Gradient layers */}
@@ -41,33 +27,19 @@ const Hero = () => (
         `,
       }}
     />
+    {/* Mobile: dark fade behind the text, ending in the page base color */}
+    <div className="md:hidden absolute inset-x-0 bottom-0 h-[65%] bg-gradient-to-t from-[#050811] via-[#050811]/80 to-transparent" />
 
     {/* Text content */}
-    <div
-      // style={{
-      //   position: "absolute",
-      //   inset: 0,
-      //   zIndex: 10,
-      //   display: "flex",
-      //   flexDirection: "column",
-      //   justifyContent: "center",
-      //   paddingTop: "4%",
-      //   paddingLeft: "6.25%",
-      //   paddingRight: "6.25%",
-      // }}
-      className="absolute inset-0 z-10 flex flex-col justify-center pt-[4%] px-[6.25%] max-md:pt-[8%] max-md:px-[5%] max-sm:pt-[12%] max-sm:px-[4%]"
-    >
+    <div className="absolute inset-0 z-10 flex flex-col justify-center pt-[4%] px-[6.25%] max-md:justify-end max-md:pt-0 max-md:pb-10 max-md:px-5">
       <h1
         style={{
           margin: 0,
           color: "#ffffff",
           fontFamily: "'Roboto', sans-serif",
           fontWeight: 500,
-          // fontSize: "clamp(2rem, 3.33vw, 64px)",
-          // letterSpacing: "0.02em",
-          // lineHeight: 1.03,
         }}
-        className="text-[clamp(2rem,3.33vw,64px)] tracking-[0.02em] leading-[1.03] max-md:text-[clamp(1.5rem,3.33vw,48px)] max-sm:text-[clamp(1.25rem,3.33vw,24px)]"
+        className="text-[clamp(2rem,3.33vw,64px)] tracking-[0.02em] leading-[1.03] max-md:text-[2rem] max-md:leading-[1.1] max-md:tracking-normal"
       >
         Lorem ipsum dolor sit amet.
       </h1>
@@ -75,14 +47,10 @@ const Hero = () => (
         style={{
           marginTop: "16px",
           marginBottom: 0,
-          color: "#ededee",
           fontFamily: "'Roboto', sans-serif",
           fontWeight: 400,
-          // fontSize: "clamp(1rem, 1.25vw, 24px)",
-          // maxWidth: "min(651px, 34vw)",
-          // lineHeight: 1.17,
         }}
-        className="text-[clamp(1rem,1.25vw,24px)] max-w-[min(651px,34vw)] leading-[1.17] max-md:text-[clamp(0.75rem,1.25vw,24px)] max-sm:text-[clamp(0.75rem,1.25vw,20px)] max-md:max-w-[min(651px,60vw)] "
+        className="text-[#ededee] text-[clamp(1rem,1.25vw,24px)] max-w-[min(651px,34vw)] leading-[1.17] max-md:mt-3 max-md:text-[15px] max-md:leading-[1.5] max-md:max-w-[34ch] max-md:text-[#c9d1dc]"
       >
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
         tempor incididunt ut labore et dolore magna aliqua.

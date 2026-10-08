@@ -36,7 +36,7 @@ const linkStyle = "text-[#F1EFEF] hover:text-white transition-colors text-sm";
 const Footer = () => {
   const { t } = useTranslation();
   return (
-    <footer className="w-full bg-primary-background border-t border-white/10">
+    <footer className="relative z-10 w-full bg-[#050811] border-t border-white/10">
       <div className="flex flex-wrap items-start justify-between gap-x-12 gap-y-8 px-10 py-10 max-lg:px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center shrink-0">

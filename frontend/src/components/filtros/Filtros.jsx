@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 const ChevronIcon = ({ open }) => (
@@ -373,43 +374,49 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
         </button>
       </div>
 
-      {/* ── MOBILE: filter drawer backdrop ── */}
-      {drawerOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setDrawerOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* ── MOBILE: drawer + backdrop, portaled to <body> so no page stacking
+          context (navbar, glow, bottom nav) can paint over them ── */}
+      {createPortal(
+        <>
+          {drawerOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden="true"
+            />
+          )}
 
-      {/* ── MOBILE: filter drawer (right side) ── */}
-      <aside
-        className={`fixed top-0 right-0 z-50 w-72 h-full bg-gray-900 text-white flex flex-col
-          transition-transform duration-300 ease-in-out lg:hidden
-          ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <span className="text-lg font-bold">{t('filters.filtersTitle')}</span>
-          <button
-            onClick={() => setDrawerOpen(false)}
-            className="text-white/60 hover:text-white transition-colors"
-            aria-label="Close filters"
+          {/* ── MOBILE: filter drawer (right side) ── */}
+          <aside
+            className={`fixed top-0 right-0 z-50 w-72 h-full bg-gray-900 text-white flex flex-col
+              transition-transform duration-300 ease-in-out lg:hidden
+              ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
           >
-            <CloseIcon />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <FilterPanelContent
-            openSections={openSections}
-            toggleSection={toggleSection}
-            filters={filters}
-            onFilterChange={onFilterChange}
-            resultCount={resultCount}
-            marketChips={marketChips}
-            watchedCount={watchedCount}
-          />
-        </div>
-      </aside>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <span className="text-lg font-bold">{t('filters.filtersTitle')}</span>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="text-white/60 hover:text-white transition-colors"
+                aria-label="Close filters"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <FilterPanelContent
+                openSections={openSections}
+                toggleSection={toggleSection}
+                filters={filters}
+                onFilterChange={onFilterChange}
+                resultCount={resultCount}
+                marketChips={marketChips}
+                watchedCount={watchedCount}
+              />
+            </div>
+          </aside>
+        </>,
+        document.body,
+      )}
     </>
   );
 };

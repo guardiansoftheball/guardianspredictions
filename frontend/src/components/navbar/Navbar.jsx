@@ -31,7 +31,8 @@ const NAV_LINKS = [
 const linkStyle = {
   fontFamily: "'Roboto', sans-serif",
   fontWeight: 400,
-  fontSize: "20px",
+  // Scales from 15px (1024px screens) up to 18px (1500px+) so the bar fits on small laptops
+  fontSize: "clamp(15px, 1.2vw, 18px)",
   color: "#F1EFEF",
   letterSpacing: "0.4px",
   textDecoration: "none",
@@ -579,7 +580,14 @@ const LogoutIcon = () => (
 const NAV_HEIGHT = 80; // px — matches padding-top + height
 const SCROLL_THRESHOLD = 80; // px before switching to fixed mode
 
-const Navbar = () => {
+/**
+ * @param {string} [contentWidth] - When set (e.g. "1400px"), the nav keeps its full-width
+ *   background but aligns its content to a centered column of that width (40px gutters).
+ */
+const Navbar = ({ contentWidth } = {}) => {
+  const sidePad = contentWidth
+    ? `max(40px, calc((100% - ${contentWidth}) / 2 + 40px))`
+    : "80px";
   const { t, i18n } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
@@ -675,7 +683,7 @@ const Navbar = () => {
         height: "104px",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "40px 80px 40px 80px",
+        padding: `40px ${sidePad}`,
         boxSizing: "border-box",
         background: "rgba(10,20,34,0.88)",
         backdropFilter: "blur(14px)",
@@ -688,10 +696,12 @@ const Navbar = () => {
           : "none",
       }
     : {
+        position: "relative",
+        zIndex: 20,
         height: "64px",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "40px 80px 0 80px",
+        padding: `40px ${sidePad} 0`,
         marginBottom: "16px",
         boxSizing: "border-box",
       };
@@ -738,7 +748,7 @@ const Navbar = () => {
                     to={link.to}
                     style={{
                       ...linkStyle,
-                      width: "138px",
+                      padding: "0 clamp(10px, 1.6vw, 28px)",
                       height: "25px",
                       display: "flex",
                       alignItems: "center",
@@ -849,7 +859,7 @@ const Navbar = () => {
                 to={link.to}
                 style={{
                   ...linkStyle,
-                  width: "138px",
+                  padding: "0 clamp(10px, 1.6vw, 28px)",
                   height: "25px",
                   display: "flex",
                   alignItems: "center",
@@ -916,7 +926,7 @@ const Navbar = () => {
                   color: "#FFFFFF",
                   background: "#34425F",
                   borderRadius: "20px",
-                  width: "194px",
+                  padding: "0 22px",
                   height: "37px",
                   display: "flex",
                   alignItems: "center",
@@ -935,7 +945,7 @@ const Navbar = () => {
       </nav>
 
       {/* ── MOBILE TOP BAR ── */}
-      <div className="flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
+      <div className="relative z-20 flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
         <Link to="/">
           <img
             src={logo}
