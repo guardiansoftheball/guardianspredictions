@@ -83,6 +83,8 @@ function filterAndSortCards(cards, filters, watchedIds) {
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
+const INITIAL_PLACEHOLDERS = ["match", "prediction", "question", "question", "match", "prediction"]
+  .map((type) => ({ type }));
 
 // Query-string keys for each filter. Defaults are omitted to keep URLs short.
 const URL_KEYS = { search: "q", status: "status", event: "event", league: "league", sort: "sort" };
@@ -216,14 +218,17 @@ const NewMarkets = () => {
     usePaginatedCards(filteredCards, filtersKey);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // On Back/Forward the browser restores the scroll position (the cards
+    // render at once from the cache), so only reset it on new visits.
+    if (history.action !== "POP") window.scrollTo(0, 0);
     document.title = "Markets | Guardians Predictions";
   }, []);
 
-  const nextCards = filteredCards.slice(
-    visibleCards.length,
-    visibleCards.length + skeletonCount,
-  );
+  // Before the first response there is nothing to paginate yet: show a
+  // screen of placeholder cards instead of the empty state.
+  const nextCards = marketsLoading && apiCards.length === 0
+    ? INITIAL_PLACEHOLDERS
+    : filteredCards.slice(visibleCards.length, visibleCards.length + skeletonCount);
 
   return (
     <div className="bg-[#050811] min-h-screen pb-16">
@@ -248,7 +253,7 @@ const NewMarkets = () => {
           <div className="flex-1 justify-items-center">
             {filters.watchlist && !watchedIds.length ? (
               <WatchlistEmpty t={t} onBrowse={() => handleFilterChange("watchlist", false)} />
-            ) : filteredCards.length === 0 ? (
+            ) : filteredCards.length === 0 && !marketsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-white/50">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

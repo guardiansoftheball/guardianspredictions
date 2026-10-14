@@ -11,14 +11,18 @@ import { getFlag, getFlagFromText } from "../helpers/countryFlags";
  */
 const REFRESH_MS = 20000;
 
+// Last good list, so coming back to a markets page renders the cards at once
+// (and the back transition has a card to land on) while a refresh runs.
+let cardsCache = null;
+
 export function useMarkets({ refreshMs = REFRESH_MS } = {}) {
-  const [cards, setCards] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cards, setCards] = useState(() => cardsCache ?? []);
+  const [loading, setLoading] = useState(() => cardsCache == null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    let hasData = false;
+    let hasData = cardsCache != null;
     let timer = null;
 
     async function fetchMarkets() {
@@ -29,7 +33,8 @@ export function useMarkets({ refreshMs = REFRESH_MS } = {}) {
 
         const rawMarkets = data?.markets ?? data?.result ?? [];
         if (cancelled) return;
-        setCards(Array.isArray(rawMarkets) ? transformMarkets(rawMarkets) : []);
+        cardsCache = Array.isArray(rawMarkets) ? transformMarkets(rawMarkets) : [];
+        setCards(cardsCache);
         setError(null);
         hasData = true;
       } catch (err) {
@@ -96,6 +101,7 @@ function transformMarkets(rawMarkets) {
         marketId: market.id,
         totalVolume: item.totalVolume ?? 0,
         numUsers: item.numUsers ?? 0,
+        page: pageFields(market),
       });
     } else {
       standalone.push(toQuestionCard(item));
@@ -137,7 +143,14 @@ function transformMarkets(rawMarkets) {
         draw: {
           pct: Math.round((draw?.lastProbability ?? 0) * 100),
         },
+        // Same order as the market page lists the answers.
+        options: children.map((c) => ({
+          label: c.answerLabel,
+          marketId: c.marketId,
+          pct: Math.round((c.lastProbability ?? 0) * 100),
+        })),
         pool,
+        volume: totalVolume,
         status: "active",
         event: "matches",
         league: group.questionTitle,
@@ -145,6 +158,7 @@ function transformMarkets(rawMarkets) {
         popularity: maxUsers,
         createdAt: group.createdAt,
         id: home?.marketId,
+        page: home?.page,
         groupId: null,
         question: group.questionTitle,
       });
@@ -152,6 +166,7 @@ function transformMarkets(rawMarkets) {
       // Prediction card
       const options = children.map((c) => ({
         label: c.answerLabel,
+        marketId: c.marketId,
         pct: Math.round((c.lastProbability ?? 0) * 100),
       }));
 
@@ -163,6 +178,7 @@ function transformMarkets(rawMarkets) {
         question: group.questionTitle,
         options,
         pool,
+        volume: totalVolume,
         logo,
         status: "active",
         event: "knockouts",
@@ -171,6 +187,7 @@ function transformMarkets(rawMarkets) {
         popularity: maxUsers,
         createdAt: group.createdAt,
         id: children[0]?.marketId,
+        page: children[0]?.page,
         groupId: null,
       });
     }
@@ -178,6 +195,22 @@ function transformMarkets(rawMarkets) {
 
   // Interleave: groups first, then standalone
   return [...groupCards, ...standalone];
+}
+
+// The market fields the market page header shows, carried on the card so the
+// page can render them before its own request returns.
+function pageFields(market) {
+  return {
+    creatorUsername: market.creatorUsername,
+    stewardUsername: market.stewardUsername,
+    resolutionDateTime: market.resolutionDateTime,
+    description: market.description,
+    tags: market.tags,
+    yesLabel: market.yesLabel,
+    noLabel: market.noLabel,
+    isResolved: market.isResolved,
+    resolutionResult: market.resolutionResult,
+  };
 }
 
 function toQuestionCard(item) {
@@ -190,12 +223,14 @@ function toQuestionCard(item) {
     question: title,
     pct,
     pool: formatPool(item.totalVolume ?? 0),
+    volume: item.totalVolume ?? 0,
     logo: getFlagFromText(title),
     status: "active",
     event: "standings",
     league: (market.tags ?? [])[0]?.displayName ?? "",
     teams: [],
     popularity: item.numUsers ?? 0,
+    page: pageFields(market),
     createdAt: market.createdAt,
     id: market.id,
   };

@@ -31,8 +31,12 @@ const CardButton = ({ label, color, variant = "yes", pct, onClick }) => {
   const id = React.useRef(`cb-grad-${_counter++}`).current;
   const stops = buildStops(color);
 
-  React.useEffect(() => {
+  // Layout effect: measure before the first paint, so the pill never shows
+  // with the placeholder size's corners for a frame.
+  React.useLayoutEffect(() => {
     if (!btnRef.current) return;
+    const { width, height } = btnRef.current.getBoundingClientRect();
+    if (width > 0 && height > 0) setDims({ w: Math.round(width), h: Math.round(height) });
     const obs = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width > 0 && height > 0) setDims({ w: Math.round(width), h: Math.round(height) });

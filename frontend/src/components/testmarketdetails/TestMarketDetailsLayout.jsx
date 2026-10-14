@@ -47,6 +47,7 @@ import LoginModal from "../modals/login/LoginModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
+import { SkeletonRows } from "../layouts/activity/dark/activityKit";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT_BODY = FONT;
@@ -60,6 +61,195 @@ const MUTED3 = COLOR.muted3;
 const TEXT = COLOR.text;
 // Panels have no surface of their own: content sits directly on the page background.
 const MARKET_CARD = { borderRadius: "24px" };
+
+// Tags rarely change; keep the last list so later market pages render the
+// sidebar immediately instead of popping it in after a fetch.
+let tagsCache = null;
+
+// ─── Skeleton placeholders (page renders before its data arrives) ────────────
+const SKEL_BG = "rgba(255,255,255,0.07)";
+
+function SkelBar({ w = "100%", h = 12, r = 6, style }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="animate-pulse"
+      style={{ display: "block", width: w, height: h, borderRadius: r, background: SKEL_BG, ...style }}
+    />
+  );
+}
+
+// Entry animation for a chart: progress 0 → 1 over `ms`, eased out. Lines are
+// revealed left to right and the end percentages count up with it; hover is
+// off until it finishes. Reduced motion skips straight to the end.
+function useChartReveal(ms = 900) {
+  const [progress, setProgress] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 1 : 0,
+  );
+  useEffect(() => {
+    if (progress === 1) return undefined;
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const x = Math.min(1, (now - start) / ms);
+      setProgress(1 - Math.pow(1 - x, 3));
+      if (x < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return progress;
+}
+
+// Clip that grows with the reveal; children outside it aren't drawn yet.
+function RevealClip({ id, progress, width, height, children }) {
+  if (progress >= 1) return children;
+  return (
+    <>
+      <defs>
+        <clipPath id={id}>
+          <rect x="0" y="-10" width={width * progress} height={height + 20} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${id})`}>{children}</g>
+    </>
+  );
+}
+
+// Soft fill under a chart line: its color fading out toward the baseline.
+// Kept faint so it reads as depth, not as a second shape.
+function AreaFill({ id, d, color, height, clipPath, opacity = 0.14 }) {
+  if (!d) return null;
+  // Step paths start with "M{x},{y}"; close the shape down to the baseline.
+  const startX = d.slice(1).split(",")[0];
+  return (
+    <>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={opacity} />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${d} V${height} H${startX} Z`} fill={`url(#${id})`} clipPath={clipPath} />
+    </>
+  );
+}
+
+// Skeleton heights match the real blocks they stand in for (measured on the
+// binary, multi-option and match layouts), so nothing below them moves when
+// the data swaps in.
+const SKEL_H = {
+  chart: 327,
+  activity: 303, // tabs + rows; the option picker above it is real
+  tradeBinary: 343,
+  tradeMultiBase: 410,
+  tradeMultiOption: 53,
+};
+
+// Text-shaped placeholder: transparent text on a pulsing bar, so it takes
+// exactly the line box the real text will.
+function SkelText({ children, style }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="animate-pulse"
+      style={{ color: "transparent", background: SKEL_BG, borderRadius: 6, userSelect: "none", ...style }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// Same footprint and chrome as the real chart: the same range buttons (ALL
+// active, as the chart starts), the volume on binary charts, then plot and
+// axis placeholders.
+function ChartSkeleton({ isMobile, volume }) {
+  const { t } = useTranslation();
+  const rangeLabel = useRangeLabel();
+  const showVolume = volume != null;
+  return (
+    <div aria-busy="true" style={{ height: SKEL_H.chart, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: showVolume ? "space-between" : "flex-end", marginBottom: "12px" }}>
+        {showVolume && (
+          <span style={{ font: `600 13px ${FONT_BODY}`, color: "#5d7189" }}>
+            + ${Number(volume || 0).toLocaleString()}
+          </span>
+        )}
+        <div role="group" aria-label={t("chart.rangeSelector")} style={{ display: "flex", gap: "0" }}>
+          {MC_RANGES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              disabled
+              tabIndex={-1}
+              style={{ ...rangeButtonStyle({ active: r === "ALL", isMobile, font: FONT_BODY }), cursor: "default" }}
+            >
+              {rangeLabel(r)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <SkelBar h="auto" r={14} style={{ flex: 1, background: "rgba(255,255,255,0.04)" }} />
+      <div style={{ display: "flex", justifyContent: "space-around", marginTop: 10 }}>
+        {[0, 1, 2, 3, 4, 5].map((i) => <SkelBar key={i} w={34} h={9} />)}
+      </div>
+    </div>
+  );
+}
+
+// Binary markets get the plain buy/sell panel; groups list their options on
+// top of it, one row per option.
+function TradePanelSkeleton({ options, binary }) {
+  const showOptions = !binary && options?.length > 0;
+  const height = showOptions
+    ? SKEL_H.tradeMultiBase + SKEL_H.tradeMultiOption * options.length
+    : SKEL_H.tradeBinary;
+  return (
+    <div aria-busy="true" style={{ height, overflow: "hidden", display: "flex", flexDirection: "column", gap: 12 }}>
+      {showOptions && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {options.map((o, i) => {
+            const theme = getOptionTheme(i, options.length);
+            return (
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                height: 45, boxSizing: "border-box", padding: "0 14px", borderRadius: 999,
+                border: `1px solid ${i === 0 ? theme.border : "rgba(255,255,255,0.08)"}`,
+                background: i === 0 ? theme.bg : "transparent",
+                font: `600 13px ${FONT_BODY}`, color: TEXT,
+              }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: theme.color }} />
+                  {o.label}
+                </span>
+                <span style={{ color: theme.text }}>{o.pct}¢</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <SkelBar h={30} r={8} />
+        <SkelBar h={30} r={8} />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <SkelBar h={38} r={999} />
+        <SkelBar h={38} r={999} />
+      </div>
+      <SkelBar h={44} r={12} />
+      <div style={{ display: "flex", gap: 8 }}>
+        {[0, 1, 2].map((i) => <SkelBar key={i} h={28} r={8} />)}
+      </div>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
+          <SkelBar w={90} h={10} />
+          <SkelBar w={40} h={10} />
+        </div>
+      ))}
+      <SkelBar h={46} r={999} style={{ marginTop: 4 }} />
+    </div>
+  );
+}
 // Borderless layout: sections are separated by spacing + hairlines instead of boxes.
 const HAIRLINE = { height: "1px", background: "rgba(255,255,255,0.07)", flexShrink: 0 };
 
@@ -530,7 +720,11 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
+  const reveal = useChartReveal();
+  const revealing = reveal < 1;
+
   const onMove = (e) => {
+    if (revealing) return;
     const frac = getFrac(e);
     if (dragStartRef.current != null) {
       setDragState({ f1: dragStartRef.current, f2: frac });
@@ -540,12 +734,12 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     if (!rangeSelect) setHoverT(winStart + frac * windowMs);
   };
   const touchHandlers = chartTouchHandlers({
-    getFrac, disabled: !!rangeSelect, winStart, windowMs, setHoverT,
+    getFrac, disabled: !!rangeSelect || revealing, winStart, windowMs, setHoverT,
   });
   const onLeave = () => { if (!dragStartRef.current) setHoverT(null); };
 
   const onDown = (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || revealing) return;
     const frac = getFrac(e);
     dragStartRef.current = frac;
     setDragState({ f1: frac, f2: frac });
@@ -644,7 +838,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
       {/* Chart area */}
       <div style={{ display: "flex", position: "relative" }}>
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: "crosshair" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: revealing ? "default" : "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={onDown}
@@ -681,6 +875,18 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               )}
             </defs>
 
+            <RevealClip id="mc-reveal" progress={reveal} width={W} height={CHART_H}>
+            {/* Fainter than the binary chart's: with several lines, filling
+                one should only hint which option is selected. */}
+            <AreaFill
+              id="mc-area"
+              d={paths[selectedIdx]?.d}
+              color={getOptionTheme(selectedIdx, answers.length).color}
+              height={CHART_H}
+              opacity={0.08}
+              clipPath={hover ? "url(#mc-left-clip)" : rangeInfo ? "url(#mc-range-clip)" : undefined}
+            />
+
             {/* Lines */}
             {paths.map((p, i) => {
               const theme = getOptionTheme(i, answers.length);
@@ -701,6 +907,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
                 </g>
               );
             })}
+            </RevealClip>
 
             {/* Hover crosshair */}
             {hover && (
@@ -710,7 +917,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
           </svg>
 
           {/* Pulsing end dots */}
-          {!hover && !rangeInfo && paths.map((p, i) => {
+          {!revealing && !hover && !rangeInfo && paths.map((p, i) => {
             const theme = getOptionTheme(i, answers.length);
             if (!p.last) return null;
             const leftPct = (p.last[0] / W) * 100;
@@ -827,7 +1034,9 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               const adj = sorted.find(s => s.idx === item.idx);
               const yPos = adj ? adj.y : item.y;
               const prob = probs[item.idx];
-              const pctStr = prob >= 0.01 ? `${Math.round(prob * 100)}%` : `${(prob * 100).toFixed(1)}%`;
+              // Counts up with the entry animation (hover is off until then).
+              const shown = prob * reveal;
+              const pctStr = shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
               const delta = useRange ? rangeInfo.deltas[item.idx].delta : null;
               const deltaPct = delta != null ? Math.round(delta * 1000) / 10 : null;
               return (
@@ -1144,12 +1353,15 @@ function MultiChoiceTradePanel({
   const [isSellSubmitting, setIsSellSubmitting] = useState(false);
 
   const selectedAnswer = answers[selectedIdx];
+  // Answer objects are replaced on every live poll; effects key off the id so
+  // a poll alone doesn't reset what the user typed.
+  const selectedMarketId = selectedAnswer?.marketId;
   const currentProb = selectedAnswer ? getAnswerProb(selectedAnswer) : 0.5;
   const priceCents = Math.round(currentProb * 100);
 
-  // Fetch projection on answer or amount change
+  // Fetch projection on answer, amount or live price change
   useEffect(() => {
-    if (!selectedAnswer || !amount || amount < 1) {
+    if (!selectedMarketId || !amount || amount < 1) {
       setProjection(null);
       return;
     }
@@ -1158,7 +1370,7 @@ function MultiChoiceTradePanel({
       setProjLoading(true);
       try {
         const res = await fetch(
-          `${API_URL}/v0/marketprojection/${selectedAnswer.marketId}/${amount}/${buyOutcome}/`,
+          `${API_URL}/v0/marketprojection/${selectedMarketId}/${amount}/${buyOutcome}/`,
         );
         if (res.ok) setProjection(await res.json());
         else setProjection(null);
@@ -1169,18 +1381,18 @@ function MultiChoiceTradePanel({
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [selectedIdx, amount, buyOutcome, selectedAnswer]);
+  }, [selectedMarketId, amount, buyOutcome, currentProb]);
 
   // Load shares for selected answer when switching to sell tab
   useEffect(() => {
-    if (tab !== "sell" || !token || !selectedAnswer) {
+    if (tab !== "sell" || !token || !selectedMarketId) {
       setSellShares({ yesSharesOwned: 0, value: 0 });
       setSaleQuote(null);
       setQuoteError("");
       return;
     }
     setSellSharesLoading(true);
-    fetchUserShares(selectedAnswer.marketId, token)
+    fetchUserShares(selectedMarketId, token)
       .then((data) => {
         setSellShares(MCNormalizeShares(data));
         setSellAmount(Math.max(1, Number(MCNormalizeShares(data).value) || 1));
@@ -1191,7 +1403,29 @@ function MultiChoiceTradePanel({
         setSellShares({ yesSharesOwned: 0, value: 0 });
       })
       .finally(() => setSellSharesLoading(false));
-  }, [tab, selectedIdx, selectedAnswer, token]);
+  }, [tab, selectedMarketId, token]);
+
+  // When the live price moves, refresh the shares' value and any quote on
+  // screen without resetting the amount.
+  const priceRef = useRef({ id: selectedMarketId, p: currentProb });
+  useEffect(() => {
+    const prev = priceRef.current;
+    priceRef.current = { id: selectedMarketId, p: currentProb };
+    // Switching options is handled by the load effect above.
+    if (prev.id !== selectedMarketId || prev.p === currentProb) return undefined;
+    if (tab !== "sell" || !token || !selectedMarketId) return undefined;
+    let cancelled = false;
+    fetchUserShares(selectedMarketId, token)
+      .then((data) => { if (!cancelled) setSellShares(MCNormalizeShares(data)); })
+      .catch(() => {});
+    if (saleQuote && !isSellSubmitting) {
+      fetchSaleQuote({ marketId: selectedMarketId, outcome: "YES", amount: sellAmount }, token)
+        .then((q) => { if (!cancelled) setSaleQuote(q); })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMarketId, currentProb]);
 
   const handleRequestQuote = () => {
     if (!selectedAnswer) return;
@@ -1597,7 +1831,7 @@ function MultiChoiceTradePanel({
             <StatRow
               label={t('marketDetails.newProbability')}
               value={
-                projLoading
+                projLoading && !projection
                   ? "..."
                   : projection?.projectedProbability != null
                     ? `${Math.round(projection.projectedProbability * 100)}%`
@@ -2520,24 +2754,38 @@ function MarketLayout({
   onActivityIdx,
   resolveAnswers,
   resolveGroupId,
+  skeleton = false,
+  previewVolume,
+  previewOptions,
+  previewBinary = false,
+  previewTradePanel,
 }) {
   const { t } = useTranslation();
   const [showShareModal, setShowShareModal] = useState(false);
-  const [allTags, setAllTags] = useState([]);
+  const [allTags, setAllTags] = useState(() => tagsCache || []);
+  const [tagsLoaded, setTagsLoaded] = useState(() => tagsCache != null);
   // Tablets / small laptops (<1280px) can't fit three columns: the tag sidebar
-  // becomes a horizontal chip row and the trade panel narrows.
+  // becomes a horizontal chip row and the trade panel narrows. Its column is
+  // reserved while tags load so the layout doesn't shift when they arrive.
   const isCompact = useIsMobile(1280);
-  const showTagSidebar = !isMobile && !isCompact && allTags.length > 0;
+  const showTagSidebar = !isMobile && !isCompact && (allTags.length > 0 || !tagsLoaded);
   const [activityTab, setActivityTab] = useState(null);
   const activityRef = useRef(null);
   const { isWatched, toggle: toggleWatch } = useWatchToggle();
   const bookmarked = isWatched(marketId);
 
+  // Keep bets / positions / leaderboard live with other users' trades.
+  const [liveTick, setLiveTick] = useState(0);
+  usePollWhileVisible(() => setLiveTick((p) => p + 1), 10000);
+
   useEffect(() => {
     listMarketTags().then((res) => {
       const tags = res?.tags || res;
-      if (Array.isArray(tags)) setAllTags(tags);
-    }).catch(() => {});
+      if (Array.isArray(tags)) {
+        tagsCache = tags;
+        setAllTags(tags);
+      }
+    }).catch(() => {}).finally(() => setTagsLoaded(true));
   }, []);
 
   const marketTagSlugs = (market?.tags || []).map((t) => t.slug);
@@ -2612,7 +2860,7 @@ function MarketLayout({
                 wordBreak: "break-word",
               }}
             >
-              {title}
+              {title || <SkelText>Loading market question title</SkelText>}
             </h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "14px", flexShrink: 0 }}>
@@ -2681,32 +2929,59 @@ function MarketLayout({
           font: `500 12.5px ${FONT_BODY}`,
           color: MUTED,
         }}>
-          <Link to={`/user/${creatorUsername}`} style={{
-            color: MUTED, textDecoration: "none",
-            display: "inline-flex", alignItems: "center", gap: "4px",
-          }}
-            onMouseEnter={(e) => e.currentTarget.style.color = TEXT}
-            onMouseLeave={(e) => e.currentTarget.style.color = MUTED}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-            @{creatorUsername}
-          </Link>
+          {skeleton && !creatorUsername ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <SkelText>@username</SkelText>
+            </span>
+          ) : (
+            <Link to={`/user/${creatorUsername}`} style={{
+              color: MUTED, textDecoration: "none",
+              display: "inline-flex", alignItems: "center", gap: "4px",
+            }}
+              onMouseEnter={(e) => e.currentTarget.style.color = TEXT}
+              onMouseLeave={(e) => e.currentTarget.style.color = MUTED}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              @{creatorUsername}
+            </Link>
+          )}
           <span style={{ opacity: 0.3 }}>·</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-            {t('marketDetails.closes')} {closesLabel}
-          </span>
+          {skeleton && !closesLabel ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              <SkelText>{t('marketDetails.closes')} 00/00/0000</SkelText>
+            </span>
+          ) : (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              {t('marketDetails.closes')} {closesLabel}
+            </span>
+          )}
           <span style={{ opacity: 0.3 }}>·</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            {fmt(totalVolume)} {t('marketDetails.vol')}
-          </span>
+          {skeleton && previewVolume == null ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <SkelText>0.0k {t('marketDetails.vol')}</SkelText>
+            </span>
+          ) : (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              {fmt(skeleton ? previewVolume : totalVolume)} {t('marketDetails.vol')}
+            </span>
+          )}
           {numUsers != null && (
             <>
               <span style={{ opacity: 0.3 }}>·</span>
@@ -2819,6 +3094,12 @@ function MarketLayout({
 
             <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "6px 0" }} />
 
+            {!tagsLoaded && allTags.length === 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "10px 12px" }}>
+                {[86, 64, 92, 58, 74].map((w, i) => <SkelBar key={i} w={w} h={11} />)}
+              </div>
+            )}
+
             {/* Tag list */}
             {allTags.map((tag) => {
               const slug = tag.slug || tag.Slug;
@@ -2866,11 +3147,7 @@ function MarketLayout({
           {/* Trade panel on mobile */}
           {isMobile && (
             <div style={{ ...MARKET_CARD, padding: "16px" }}>
-              {loading ? (
-                <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
-                  {t('marketDetails.loading')}
-                </div>
-              ) : tradePanelContent}
+              {loading ? (previewTradePanel ?? <TradePanelSkeleton options={previewOptions} binary={previewBinary} />) : tradePanelContent}
             </div>
           )}
 
@@ -2887,9 +3164,7 @@ function MarketLayout({
           {/* Chart card */}
           <div style={{ ...MARKET_CARD, padding: isMobile ? "14px" : "20px 22px" }}>
             {loading ? (
-              <div style={{ height: "240px", display: "flex", alignItems: "center", justifyContent: "center", color: MUTED2 }}>
-                {t('marketDetails.loadingChart')}
-              </div>
+              <ChartSkeleton isMobile={isMobile} volume={previewBinary ? previewVolume : undefined} />
             ) : chartContent}
           </div>
 
@@ -2913,6 +3188,22 @@ function MarketLayout({
                 {market.description}
               </p>
             </div>
+          ) : skeleton && market?.description === undefined ? (
+            // Real heading + one text-shaped line: same box as a one-line
+            // description in any language.
+            <div aria-busy="true" style={{ padding: isMobile ? "0" : "0 4px" }}>
+              <div style={{
+                font: `700 11px ${FONT_BODY}`,
+                letterSpacing: ".08em",
+                color: MUTED2,
+                marginBottom: "10px",
+              }}>
+                {t('marketDetails.resolutionCriteria')}
+              </div>
+              <p style={{ margin: 0, font: `400 14px/1.7 ${FONT_BODY}` }}>
+                <SkelText>Resolves according to the official result of the event.</SkelText>
+              </p>
+            </div>
           ) : null}
 
           <div style={HAIRLINE} />
@@ -2927,14 +3218,15 @@ function MarketLayout({
                 onChange={onActivityIdx}
               />
             )}
-            <ActivityTabs
+            {skeleton ? <div style={{ height: SKEL_H.activity, overflow: "hidden" }}><SkeletonRows count={5} /></div> : <ActivityTabs
               marketId={activityMarketId ?? marketId}
               market={activityMarket ?? market}
               refreshTrigger={refreshTrigger}
+              liveTick={liveTick}
               variant="dark"
               activeTab={activityTab}
               onTabChange={setActivityTab}
-            />
+            />}
           </div>
         </div>
 
@@ -2949,11 +3241,7 @@ function MarketLayout({
               top: "100px",
             }}
           >
-            {loading ? (
-              <div style={{ textAlign: "center", color: MUTED2, font: `500 13px ${FONT_BODY}`, padding: "24px 0" }}>
-                {t('marketDetails.loading')}
-              </div>
-            ) : tradePanelContent}
+            {loading ? (previewTradePanel ?? <TradePanelSkeleton options={previewOptions} binary={previewBinary} />) : tradePanelContent}
           </div>
         )}
 
@@ -2988,6 +3276,7 @@ function MultiChoiceLayout({
   isLoggedIn,
   refetchData,
   isMobile,
+  preview,
 }) {
   const [groupData, setGroupData] = useState(null);
   const [groupLoading, setGroupLoading] = useState(true);
@@ -3070,11 +3359,14 @@ function MultiChoiceLayout({
   // Group-level header/resolve data. Volume sums cleanly across options;
   // trader counts don't (one user can trade several options), so the header
   // hides them for groups instead of showing a double-counted number.
-  const isGrouped = answers.length > 1;
-  const groupVolume = answers.reduce(
-    (sum, a) => sum + Number(a.market?.totalVolume || 0),
-    0,
-  );
+  // Until the group loads, the card says whether this is a group and what
+  // its total volume is, so the header doesn't show one option's numbers
+  // first and then switch.
+  const previewOptionCount = answers.length ? 0 : preview?.options?.length ?? 0;
+  const isGrouped = answers.length > 1 || previewOptionCount > 1;
+  const groupVolume = answers.length
+    ? answers.reduce((sum, a) => sum + Number(a.market?.totalVolume || 0), 0)
+    : preview?.volume ?? totalVolume;
   const resolveAnswers = answers.map((a) => ({
     marketId: a.marketId,
     label: a.answerLabel,
@@ -3160,10 +3452,18 @@ function MultiChoiceLayout({
       resolveGroupId={isGrouped ? groupId : undefined}
       chartContent={chartContent}
       tradePanelContent={tradePanelContent}
-      answers={answers.map((a) => ({ ...a, probability: getAnswerProb(a) }))}
+      // Until the group loads, the card's options keep the banner and
+      // trade panel filled so nothing pops in.
+      answers={answers.length
+        ? answers.map((a) => ({ ...a, probability: getAnswerProb(a) }))
+        : previewAnswersOf(preview)}
+      previewOptions={preview?.options}
+      previewTradePanel={
+        <TradePanelPreview preview={preview} marketId={marketId} token={token} isLoggedIn={isLoggedIn} username={username} />
+      }
       activityMarketId={activityAnswer?.marketId}
       activityMarket={activityAnswer?.market?.market}
-      activityOptions={activityOptions}
+      activityOptions={activityOptions.length ? activityOptions : previewActivityOptionsOf(preview)}
       activityIdx={activityIdx}
       onActivityIdx={setActivityIdx}
     />
@@ -3195,6 +3495,7 @@ function BinaryChart({
   yesLabel = "Yes",
   noLabel = "No",
   totalVolume = 0,
+  selectedSide = null,
 }) {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -3292,7 +3593,11 @@ function BinaryChart({
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
+  const reveal = useChartReveal();
+  const revealing = reveal < 1;
+
   const onMove = (e) => {
+    if (revealing) return;
     const frac = getFrac(e);
     if (bcDragStartRef.current != null) {
       setBcDragState({ f1: bcDragStartRef.current, f2: frac });
@@ -3302,12 +3607,12 @@ function BinaryChart({
     if (!bcRangeSelect) setHoverT(winStart + frac * windowMs);
   };
   const bcTouchHandlers = chartTouchHandlers({
-    getFrac, disabled: !!bcRangeSelect, winStart, windowMs, setHoverT,
+    getFrac, disabled: !!bcRangeSelect || revealing, winStart, windowMs, setHoverT,
   });
   const onLeave = () => { if (!bcDragStartRef.current) setHoverT(null); };
 
   const bcOnDown = (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || revealing) return;
     const frac = getFrac(e);
     bcDragStartRef.current = frac;
     setBcDragState({ f1: frac, f2: frac });
@@ -3415,7 +3720,7 @@ function BinaryChart({
       <div style={{ display: "flex", position: "relative" }}>
         {/* Main chart */}
         <div
-          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: "crosshair" }}
+          style={{ flex: 1, minWidth: 0, position: "relative", touchAction: "pan-y", cursor: revealing ? "default" : "crosshair" }}
           ref={chartRef}
           onMouseMove={onMove}
           onMouseDown={bcOnDown}
@@ -3452,6 +3757,16 @@ function BinaryChart({
               )}
             </defs>
 
+            <RevealClip id="bc-reveal" progress={reveal} width={W} height={CHART_H}>
+            {/* Fill under the side picked in the trade panel (YES until one is). */}
+            <AreaFill
+              id="bc-area"
+              d={selectedSide === "NO" ? noPath : yesPath}
+              color={themes[selectedSide === "NO" ? 1 : 0].color}
+              height={CHART_H}
+              clipPath={hover ? "url(#bc-left-clip)" : bcRangeInfo ? "url(#bc-range-clip)" : undefined}
+            />
+
             {/* Lines — grey when hovering/range, colored inside clip */}
             {[
               { path: yesPath, theme: themes[0] },
@@ -3470,6 +3785,7 @@ function BinaryChart({
                 </g>
               );
             })}
+            </RevealClip>
 
             {/* Hover crosshair */}
             {hover && (
@@ -3479,7 +3795,7 @@ function BinaryChart({
           </svg>
 
           {/* Pulsing end dots */}
-          {!hover && !bcRangeInfo && [
+          {!revealing && !hover && !bcRangeInfo && [
             { pos: yesLast, theme: themes[0] },
             { pos: noLast, theme: themes[1] },
           ].map(({ pos, theme }, i) => {
@@ -3594,7 +3910,9 @@ function BinaryChart({
               const adj = sorted.find(s => s.idx === item.idx);
               const yPos = adj ? adj.y : item.y;
               const prob = probs[item.idx];
-              const pctStr = prob >= 0.01 ? `${Math.round(prob * 100)}%` : `${(prob * 100).toFixed(1)}%`;
+              // Counts up with the entry animation (hover is off until then).
+              const shown = prob * reveal;
+              const pctStr = shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
               const deltaPct = deltas ? Math.round(deltas[item.idx] * 1000) / 10 : null;
               return (
                 <div key={item.idx} style={{
@@ -3690,6 +4008,8 @@ function BinaryLayout({
   isMobile,
 }) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Side picked in the trade panel; the chart fills under that line.
+  const [selectedSide, setSelectedSide] = useState(null);
 
   const safeMarket = market ?? {};
   const creatorUsername =
@@ -3732,6 +4052,7 @@ function BinaryLayout({
       currentProbability={currentProbability}
       username={username}
       onSuccess={handleSuccess}
+      onSideChange={setSelectedSide}
     />
   );
 
@@ -3742,6 +4063,7 @@ function BinaryLayout({
       yesLabel={yesLabel}
       noLabel={noLabel}
       totalVolume={totalVolume}
+      selectedSide={selectedSide}
     />
   );
 
@@ -3783,6 +4105,7 @@ function BinaryTradePanelContent({
   currentProbability,
   username,
   onSuccess,
+  onSideChange,
 }) {
   const { login } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -3817,6 +4140,7 @@ function BinaryTradePanelContent({
         currentProbability={currentProbability}
         username={username}
         onSuccess={onSuccess}
+        onSideChange={onSideChange}
       />
     );
   }
@@ -4077,6 +4401,115 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
+// The option picker above the activity tabs, built from the card so it is
+// already in place while the group loads.
+const previewActivityOptionsOf = (preview) => {
+  const options = preview?.options ?? [];
+  return options.map((o, i) => ({
+    key: i,
+    label: o.label,
+    color: getOptionTheme(i, options.length).color,
+    pct: o.pct,
+  }));
+};
+
+// Answers shaped like the group API's, from the card, so the real banner and
+// trade panel can render while the market loads.
+const previewAnswersOf = (preview) =>
+  (preview?.options ?? []).map((o) => ({
+    answerLabel: o.label,
+    marketId: o.marketId,
+    probability: o.pct / 100,
+    market: { lastProbability: o.pct / 100 },
+  }));
+
+const noop = () => {};
+
+// Same rule the real layouts use; markets listed as active are open.
+const previewIsOpen = (preview) => {
+  const m = preview?.market;
+  if (!m?.resolutionDateTime) return true;
+  return !m.isResolved && new Date(m.resolutionDateTime) > new Date();
+};
+
+// The real trade panel, filled from the card and inert until the market
+// loads, so nothing in it changes look when the data arrives — only values.
+function TradePanelPreview({ preview, marketId, token, isLoggedIn, username }) {
+  if (!preview?.options?.length) return null;
+  let panel;
+  if (preview.type === "question") {
+    const yesPct = preview.options[0].pct;
+    panel = (
+      <BinaryTradePanelContent
+        safeMarket={preview.market}
+        yesLabel={preview.market?.yesLabel || "Yes"}
+        noLabel={preview.market?.noLabel || "No"}
+        yesPct={yesPct}
+        noPct={100 - yesPct}
+        isMarketOpen={previewIsOpen(preview)}
+        isLoggedIn={isLoggedIn}
+        marketId={marketId}
+        token={token}
+        currentProbability={yesPct / 100}
+        username={username}
+        onSuccess={noop}
+      />
+    );
+  } else {
+    const answers = previewAnswersOf(preview);
+    const idx = answers.findIndex((a) => String(a.marketId) === String(marketId));
+    panel = (
+      <MultiChoiceTradePanel
+        answers={answers}
+        selectedIdx={Math.max(0, idx)}
+        onSelectIdx={noop}
+        token={token}
+        isLoggedIn={isLoggedIn}
+        isMarketOpen={previewIsOpen(preview)}
+        onSuccess={noop}
+      />
+    );
+  }
+  return <div inert="" aria-busy="true">{panel}</div>;
+}
+
+// The market page drawn before its data arrives: what the card already
+// showed (title, volume, options, flags) plus skeletons for the rest.
+function SkeletonMarket({ marketId, preview, isMobile, token, isLoggedIn, username }) {
+  const market = { ...preview?.market, id: marketId };
+  // Same labels the real layouts derive from the market.
+  const closesLabel = !preview?.market?.resolutionDateTime
+    ? null
+    : market.isResolved
+      ? "Closed"
+      : formatResolutionDate(market.resolutionDateTime);
+  return (
+    <MarketLayout
+      skeleton
+      loading
+      title={preview?.title ?? ""}
+      market={market}
+      creatorUsername={market.creatorUsername}
+      closesLabel={closesLabel}
+      marketId={marketId}
+      isMobile={isMobile}
+      isMarketOpen={previewIsOpen(preview)}
+      canResolve={false}
+      numUsers={preview?.users ?? null}
+      previewVolume={preview?.volume}
+      previewOptions={preview?.options}
+      previewBinary={preview?.type === "question"}
+      activityOptions={preview?.type === "question" ? undefined : previewActivityOptionsOf(preview)}
+      activityIdx={0}
+      onActivityIdx={noop}
+      answers={previewAnswersOf(preview)}
+      previewTradePanel={
+        <TradePanelPreview preview={preview} marketId={marketId} token={token} isLoggedIn={isLoggedIn} username={username} />
+      }
+    />
+  );
+}
+
 function TestMarketDetailsLayout({
   market,
   creator,
@@ -4089,6 +4522,8 @@ function TestMarketDetailsLayout({
   token,
   isLoggedIn,
   refetchData,
+  skeleton = false,
+  preview,
 }) {
   const isMobile = useIsMobile();
 
@@ -4136,11 +4571,14 @@ function TestMarketDetailsLayout({
             padding: isMobile ? "16px 16px 60px" : "22px 40px 60px",
           }}
         >
-          {isGroupMember ? (
+          {skeleton ? (
+            <SkeletonMarket marketId={marketId} preview={preview} isMobile={isMobile} token={token} isLoggedIn={isLoggedIn} username={username} />
+          ) : isGroupMember ? (
             <MultiChoiceLayout
               {...commonProps}
               currentProbability={currentProbability}
               probabilityChanges={probabilityChanges}
+              preview={preview}
             />
           ) : (
             <BinaryLayout

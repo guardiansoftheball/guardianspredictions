@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { API_URL } from '../../../../config';
 import { unwrapApiResponse } from '../../../../utils/apiResponse';
 
 // Fetches market positions computed live from the bet ledger. Omitting
 // limit/offset makes the backend skip its cached read-model snapshot, which
 // can lag behind the bets tab. Rows come ordered by each user's earliest bet.
-export function useLiveMarketPositions(marketId, token, refreshTrigger) {
+// A change in `liveTick` refetches silently: no loading state, and a failed
+// poll keeps the last good rows.
+export function useLiveMarketPositions(marketId, token, refreshTrigger, liveTick = 0) {
     const [positions, setPositions] = useState([]);
     const [status, setStatus] = useState('loading');
+    const lastTickRef = useRef(liveTick);
 
     useEffect(() => {
+        const isLiveTick = lastTickRef.current !== liveTick;
+        lastTickRef.current = liveTick;
         if (!token) { setStatus('anon'); return undefined; }
         if (!marketId) return undefined;
         let cancelled = false;
-        setStatus('loading');
+        if (!isLiveTick) setStatus('loading');
         fetch(`${API_URL}/v0/markets/positions/${marketId}`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         })
@@ -25,9 +30,9 @@ export function useLiveMarketPositions(marketId, token, refreshTrigger) {
                 setPositions(rows);
                 setStatus('ready');
             })
-            .catch(() => { if (!cancelled) setStatus('error'); });
+            .catch(() => { if (!cancelled && !isLiveTick) setStatus('error'); });
         return () => { cancelled = true; };
-    }, [marketId, token, refreshTrigger]);
+    }, [marketId, token, refreshTrigger, liveTick]);
 
     return { positions, status };
 }

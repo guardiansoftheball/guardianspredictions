@@ -45,12 +45,12 @@ function HolderColumn({ title, color, holders, sharesKey, me, locale, t }) {
     );
 }
 
-const DarkPositionsActivity = ({ marketId, market, refreshTrigger }) => {
+const DarkPositionsActivity = ({ marketId, market, refreshTrigger, liveTick }) => {
     const { t, i18n } = useTranslation();
     const locale = i18n.language || 'en';
     const { token, username: me } = useAuth();
     const labels = useOutcomeLabels(market);
-    const { positions: allPositions, status } = useLiveMarketPositions(marketId, token, refreshTrigger);
+    const { positions: allPositions, status } = useLiveMarketPositions(marketId, token, refreshTrigger, liveTick);
     const [page, setPage] = useState(0);
 
     useEffect(() => { setPage(0); }, [marketId, refreshTrigger, token]);

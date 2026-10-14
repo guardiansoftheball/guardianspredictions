@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../../../config';
 import { unwrapApiResponse } from '../../../../utils/apiResponse';
@@ -12,16 +12,17 @@ import { useLiveMarketPositions, buildLeaderboard } from './useLiveMarketPositio
 const PAGE_SIZE = 20;
 const PODIUM = ['#e8c872', '#c9d3de', '#d49a6a'];
 
-const DarkLeaderboardActivity = ({ marketId, market, refreshTrigger }) => {
+const DarkLeaderboardActivity = ({ marketId, market, refreshTrigger, liveTick = 0 }) => {
     const { t, i18n } = useTranslation();
     const locale = i18n.language || 'en';
     const { token, username: me } = useAuth();
     const labels = useOutcomeLabels(market);
-    const live = useLiveMarketPositions(marketId, token, refreshTrigger);
+    const live = useLiveMarketPositions(marketId, token, refreshTrigger, liveTick);
     const [publicRows, setPublicRows] = useState([]);
     const [page, setPage] = useState(0);
     const [publicHasNext, setPublicHasNext] = useState(false);
     const [publicStatus, setPublicStatus] = useState('loading');
+    const lastTickRef = useRef(liveTick);
 
     useEffect(() => { setPage(0); }, [marketId, refreshTrigger]);
 
@@ -35,9 +36,11 @@ const DarkLeaderboardActivity = ({ marketId, market, refreshTrigger }) => {
     const status = useLive ? live.status : publicStatus;
 
     useEffect(() => {
+        const isLiveTick = lastTickRef.current !== liveTick;
+        lastTickRef.current = liveTick;
         if (!marketId || token) return undefined;
         let cancelled = false;
-        setPublicStatus('loading');
+        if (!isLiveTick) setPublicStatus('loading');
         fetch(`${API_URL}/v0/markets/${marketId}/leaderboard?limit=${PAGE_SIZE + 1}&offset=${page * PAGE_SIZE}`)
             .then(async (res) => {
                 if (!res.ok) throw new Error(res.statusText);
@@ -48,9 +51,9 @@ const DarkLeaderboardActivity = ({ marketId, market, refreshTrigger }) => {
                 setPublicHasNext(list.length > PAGE_SIZE);
                 setPublicStatus('ready');
             })
-            .catch(() => { if (!cancelled) setPublicStatus('error'); });
+            .catch(() => { if (!cancelled && !isLiveTick) setPublicStatus('error'); });
         return () => { cancelled = true; };
-    }, [marketId, page, refreshTrigger, token]);
+    }, [marketId, page, refreshTrigger, token, liveTick]);
 
     if (status === 'loading' && rows.length === 0) return <SkeletonRows />;
     if (status === 'error') return <EmptyState title={t('activity.loadError')} hint={t('activity.loadErrorHint')} />;

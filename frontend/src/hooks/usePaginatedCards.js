@@ -23,7 +23,11 @@ function getSkeletonCap() {
  * shrink on its own (live refreshes) so those updates don't wipe the grid.
  */
 export function usePaginatedCards(allCards, resetKey) {
-  const [visibleCount, setVisibleCount] = useState(0);
+  // Cards already in hand (e.g. coming back to the list) show right away;
+  // the paging delay only applies to pages loaded while scrolling.
+  const [visibleCount, setVisibleCount] = useState(() =>
+    Math.min(getSkeletonCap(), allCards.length),
+  );
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef(null);
   const timerRef = useRef(null);
@@ -33,6 +37,17 @@ export function usePaginatedCards(allCards, resetKey) {
 
   const total = allCards.length;
   const hasMore = visibleCount < total;
+
+  // The first batch of data replaces the loading placeholders directly,
+  // without another paging delay on top of the network wait.
+  const hadCardsRef = useRef(total > 0);
+  useEffect(() => {
+    if (hadCardsRef.current || total === 0) return;
+    hadCardsRef.current = true;
+    clearTimeout(timerRef.current);
+    setLoading(false);
+    setVisibleCount(Math.min(getSkeletonCap(), total));
+  }, [total]);
 
   // Reset pagination when the filtered list changes
   const key = resetKey === undefined ? total : resetKey;

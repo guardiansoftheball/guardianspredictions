@@ -349,9 +349,12 @@ const buildSaleSuccessMessage = (data) => {
 };
 
 // ─── BUY TAB ──────────────────────────────────────────────────────────────────
-const BuyTab = ({ marketId, market, token, currentProbability, username, onSuccess }) => {
+const BuyTab = ({ marketId, market, token, currentProbability, username, onSuccess, onSideChange }) => {
   const { t } = useTranslation();
   const [side, setSide]       = useState(null);   // 'YES' | 'NO'
+  // Lets the page highlight the chosen side on the chart.
+  useEffect(() => { onSideChange?.(side); }, [side, onSideChange]);
+  useEffect(() => () => onSideChange?.(null), [onSideChange]);
   const [amount, setAmount]   = useState(10);
   const [projection, setProjection] = useState(null);
   const [projLoading, setProjLoading] = useState(false);
@@ -387,7 +390,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const yesLabel = market?.yesLabel || 'Yes';
   const noLabel  = market?.noLabel  || 'No';
 
-  // Fetch projection whenever side or amount changes
+  // Fetch projection whenever side, amount or the live price changes
   useEffect(() => {
     if (!side || !amount || amount < 1) {
       setProjection(null);
@@ -411,7 +414,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [side, amount, marketId]);
+  }, [side, amount, marketId, currentProbability]);
 
   const handleSubmit = () => {
     setError('');
@@ -522,7 +525,7 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 };
 
 // ─── SELL TAB ─────────────────────────────────────────────────────────────────
-const SellTab = ({ marketId, market, token, onSuccess }) => {
+const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const [shares, setShares]           = useState({ noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 });
@@ -602,6 +605,26 @@ const SellTab = ({ marketId, market, token, onSuccess }) => {
       })
       .finally(() => setSharesLoading(false));
   }, [marketId, token]);
+
+  // When the live price moves, refresh the shares' value and any quote on
+  // screen without touching the outcome or amount the user picked.
+  const priceRef = useRef(currentProbability);
+  useEffect(() => {
+    if (priceRef.current === currentProbability) return undefined;
+    priceRef.current = currentProbability;
+    if (!token) return undefined;
+    let cancelled = false;
+    fetchUserShares(marketId, token)
+      .then(data => { if (!cancelled) setShares(normalizeShares(data)); })
+      .catch(() => {});
+    if (saleQuote && selectedOutcome && !isSubmitting) {
+      fetchSaleQuote({ marketId, outcome: selectedOutcome, amount: sellAmount }, token)
+        .then(quote => { if (!cancelled) setSaleQuote(quote); })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProbability]);
 
   const handleSellAmountChange = (e) => {
     const newAmount = parseInt(e.target.value, 10) || 0;
@@ -866,7 +889,7 @@ const SellActionGroup = ({ outcome, label, disabled, isQuoteLoading, onTerms, on
 };
 
 // ─── MAIN PANEL ───────────────────────────────────────────────────────────────
-const NewTradePanel = ({ marketId, market, token, currentProbability, username, onSuccess }) => {
+const NewTradePanel = ({ marketId, market, token, currentProbability, username, onSuccess, onSideChange }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState('buy');
 
@@ -954,12 +977,14 @@ const NewTradePanel = ({ marketId, market, token, currentProbability, username, 
           currentProbability={currentProbability}
           username={username}
           onSuccess={onSuccess}
+          onSideChange={onSideChange}
         />
       ) : (
         <SellTab
           marketId={marketId}
           market={market}
           token={token}
+          currentProbability={currentProbability}
           onSuccess={onSuccess}
         />
       )}

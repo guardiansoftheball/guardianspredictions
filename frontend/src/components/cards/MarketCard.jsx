@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import MatchCard from "./MatchCard";
 import QuestionCard from "./QuestionCard";
 import PredictionCard from "./PredictionCard";
+import { marketLocation } from "../../helpers/marketPreview";
 
 // Picks the card component for a market from useMarkets() and links it to its page.
 const MarketCard = ({ card, transparent = true }) => {
@@ -17,7 +18,7 @@ const MarketCard = ({ card, transparent = true }) => {
     );
 
   return (
-    <Link to={`/markets/${card.id}`} style={{ textDecoration: "none", display: "contents" }}>
+    <Link to={marketLocation(card)} style={{ textDecoration: "none", display: "contents" }}>
       {cardEl}
     </Link>
   );

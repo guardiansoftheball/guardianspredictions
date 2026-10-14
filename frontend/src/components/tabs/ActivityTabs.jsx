@@ -9,9 +9,9 @@ import DarkPositionsActivity from '../layouts/activity/dark/DarkPositionsActivit
 import DarkLeaderboardActivity from '../layouts/activity/dark/DarkLeaderboardActivity';
 import DarkCommentsActivity from '../layouts/activity/dark/DarkCommentsActivity';
 
-const ActivityTabs = ({ marketId, market, refreshTrigger, variant, activeTab, onTabChange }) => {
+const ActivityTabs = ({ marketId, market, refreshTrigger, liveTick, variant, activeTab, onTabChange }) => {
     const { t } = useTranslation();
-    const props = { marketId, market, refreshTrigger };
+    const props = { marketId, market, refreshTrigger, liveTick };
 
     const tabsData = variant === 'dark'
         ? [

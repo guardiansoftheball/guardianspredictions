@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMarketDetails } from '../../hooks/useMarketDetails';
 import { useAuth } from '../../helpers/AuthContent';
-import LoadingSpinner from '../../components/loaders/LoadingSpinner';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
 import TestMarketDetailsLayout from '../../components/testmarketdetails/TestMarketDetailsLayout';
@@ -12,6 +11,10 @@ const TestMarketDetails = () => {
   const { t } = useTranslation();
   const { username, usertype, moderatorStatus } = useAuth();
   const { details, error, isLoggedIn, token, refetchData, currentProbability } = useMarketDetails();
+  const { marketId } = useParams();
+  const location = useLocation();
+  const statePreview = location.state?.preview;
+  const preview = statePreview && String(statePreview.id) === String(marketId) ? statePreview : null;
 
   useEffect(() => {
     if (error) {
@@ -81,10 +84,24 @@ const TestMarketDetails = () => {
     </div>
   );
 
-  if (!details) return <LoadingSpinner />;
+  // Render right away: the card's preview (when we came from one) fills the
+  // header, skeletons cover the rest until the market loads.
+  if (!details) {
+    return (
+      <TestMarketDetailsLayout
+        skeleton
+        marketId={marketId}
+        preview={preview}
+        username={username}
+        isLoggedIn={isLoggedIn}
+        token={token}
+      />
+    );
+  }
 
   return (
     <TestMarketDetailsLayout
+      preview={preview}
       market={details.market}
       creator={details.creator}
       numUsers={details.numUsers}

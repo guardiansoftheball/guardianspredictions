@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../../../config';
 import { unwrapApiResponse } from '../../../../utils/apiResponse';
@@ -10,7 +10,7 @@ import {
 
 const PAGE_SIZE = 20;
 
-const DarkBetsActivity = ({ marketId, market, refreshTrigger }) => {
+const DarkBetsActivity = ({ marketId, market, refreshTrigger, liveTick = 0 }) => {
     const { t, i18n } = useTranslation();
     const { username: me } = useAuth();
     const locale = i18n.language || 'en';
@@ -19,12 +19,18 @@ const DarkBetsActivity = ({ marketId, market, refreshTrigger }) => {
     const [page, setPage] = useState(0);
     const [hasNext, setHasNext] = useState(false);
     const [status, setStatus] = useState('loading');
+    const lastTickRef = useRef(liveTick);
 
     useEffect(() => { setPage(0); }, [marketId, refreshTrigger]);
 
     useEffect(() => {
+        // Live ticks refresh silently and only on the first page, so older
+        // pages don't shift under the reader as new bets arrive.
+        const isLiveTick = lastTickRef.current !== liveTick;
+        lastTickRef.current = liveTick;
+        if (isLiveTick && page !== 0) return undefined;
         let cancelled = false;
-        setStatus('loading');
+        if (!isLiveTick) setStatus('loading');
         fetch(`${API_URL}/v0/markets/bets/${marketId}?limit=${PAGE_SIZE + 1}&offset=${page * PAGE_SIZE}`)
             .then(async (res) => {
                 if (!res.ok) throw new Error(res.statusText);
@@ -35,9 +41,9 @@ const DarkBetsActivity = ({ marketId, market, refreshTrigger }) => {
                 setHasNext(rows.length > PAGE_SIZE);
                 setStatus('ready');
             })
-            .catch(() => { if (!cancelled) setStatus('error'); });
+            .catch(() => { if (!cancelled && !isLiveTick) setStatus('error'); });
         return () => { cancelled = true; };
-    }, [marketId, refreshTrigger, page]);
+    }, [marketId, refreshTrigger, page, liveTick]);
 
     if (status === 'loading' && bets.length === 0) return <SkeletonRows />;
     if (status === 'error') return <EmptyState title={t('activity.loadError')} hint={t('activity.loadErrorHint')} />;
