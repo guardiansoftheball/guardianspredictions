@@ -140,7 +140,10 @@ const NewMarkets = () => {
   const location = useLocation();
   const history = useHistory();
   const { ids: watchedIds } = useWatchlist();
-  const { cards: apiCards, loading: marketsLoading } = useMarkets();
+  const statusParam = new URLSearchParams(location.search).get(URL_KEYS.status);
+  const { cards: apiCards, loading: marketsLoading } = useMarkets({
+    status: statusParam === "resolved" ? "resolved" : "active",
+  });
   const [marketTags, setMarketTags] = useState([]);
 
   // Every filter lives in the query string, so links are shareable and Back

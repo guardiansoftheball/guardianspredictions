@@ -150,7 +150,12 @@
     "credits": "credits",
     "language": "Language",
     "helpFaq": "Help / FAQ",
-    "watchlist": "Following"
+    "watchlist": "Following",
+    "home": "Home",
+    "search": "Search",
+    "searchPlaceholder": "Search markets...",
+    "browse": "Browse",
+    "leagues": "Leagues"
   },
   "error": {
     "title": "Oops! Something went wrong.",

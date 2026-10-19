@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import logo from "../../assets/logo/logo.png";
@@ -7,13 +7,13 @@ import {
   MarketsSVG,
   PollsSVG,
   StatsSVG,
-  MenuGrowSVG,
-  MenuShrinkSVG,
 } from "../../assets/components/SvgIcons";
 import LoginModal from "../modals/login/LoginModal";
 import RegisterModal from "../modals/register/RegisterModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import MyBetsPanel from "../panels/MyBetsPanel";
+import MobileSearchSheet from "./MobileSearchSheet";
+import BottomSheet from "./BottomSheet";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
@@ -38,15 +38,24 @@ const linkStyle = {
   textDecoration: "none",
 };
 
+const BOTTOM_ICONS = {
+  home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /></>,
+  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
+  markets: <><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="7" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" /><rect x="13.5" y="13.5" width="7" height="7" rx="2" /></>,
+  more: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+};
+
+const BottomNavIcon = ({ d }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {d}
+  </svg>
+);
+
 const BOTTOM_NAV = [
-  { labelKey: "nav.trending", to: "/", activeOn: "/", Icon: HomeSVG },
-  {
-    labelKey: "nav.markets",
-    to: "/new-markets",
-    activeOn: "/new-markets",
-    Icon: MarketsSVG,
-  },
-  { labelKey: "nav.stats", to: "/stats", activeOn: "/stats", Icon: StatsSVG },
+  { key: "home", labelKey: "nav.home", to: "/", icon: BOTTOM_ICONS.home },
+  { key: "search", labelKey: "nav.search", onClick: "search", icon: BOTTOM_ICONS.search },
+  { key: "markets", labelKey: "nav.markets", to: "/new-markets", icon: BOTTOM_ICONS.markets },
+  { key: "more", labelKey: "nav.more", onClick: "more", icon: BOTTOM_ICONS.more },
 ];
 
 // ── User chip with dropdown ────────────────────────────────────────────────────
@@ -479,6 +488,19 @@ const LanguageDropdown = ({ i18n }) => {
   );
 };
 
+// One row of the mobile "More" sheet.
+const MoreRow = ({ icon, label, onClick, trailing }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-[15px] font-medium text-white/90 active:bg-white/[0.05]"
+  >
+    <span className="flex w-5 justify-center text-white/55">{icon}</span>
+    <span className="flex-1 min-w-0 truncate">{label}</span>
+    {trailing}
+  </button>
+);
+
 const AdminIcon = () => (
   <svg
     width="15"
@@ -580,6 +602,9 @@ const LogoutIcon = () => (
 const NAV_HEIGHT = 80; // px — matches padding-top + height
 const SCROLL_THRESHOLD = 80; // px before switching to fixed mode
 
+// Cached across pages so the Markets chevron doesn't flicker.
+let marketTagsCache = null;
+
 /**
  * @param {string} [contentWidth] - When set (e.g. "1400px"), the nav keeps its full-width
  *   background but aligns its content to a centered column of that width (40px gutters).
@@ -590,6 +615,9 @@ const Navbar = ({ contentWidth } = {}) => {
     : "80px";
   const { t, i18n } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
   const { pathname } = useLocation();
   const { login, logout, username, token, usertype, moderatorStatus, changePasswordNeeded } = useAuth();
@@ -604,15 +632,14 @@ const Navbar = ({ contentWidth } = {}) => {
   const history = useHistory();
 
   // ── market tags for dropdown ─────────────────────────────────────────────────
-  const [marketTags, setMarketTags] = useState([]);
+  const [marketTags, setMarketTags] = useState(() => marketTagsCache ?? []);
   useEffect(() => {
     listMarketTags()
       .then((res) => {
         const tags = res?.tags || res;
         if (Array.isArray(tags)) {
-          setMarketTags(
-            tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug),
-          );
+          marketTagsCache = tags.map((t) => t.displayName || t.DisplayName || t.slug || t.Slug);
+          setMarketTags(marketTagsCache);
         }
       })
       .catch(() => {});
@@ -661,17 +688,11 @@ const Navbar = ({ contentWidth } = {}) => {
   const openForgotPasswordModal = () => setAuthModal("forgot");
   const closeAuthModal = () => setAuthModal(null);
 
-  // Close sidebar on outside click
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const handler = (e) => {
-      if (!document.getElementById("mobile-sidebar")?.contains(e.target)) {
-        setSidebarOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [sidebarOpen]);
+  const closeMore = useCallback(() => setSidebarOpen(false), []);
+  const goMore = (to) => {
+    setSidebarOpen(false);
+    history.push(to);
+  };
 
   const desktopNavStyle = navFixed
     ? {
@@ -955,342 +976,105 @@ const Navbar = ({ contentWidth } = {}) => {
         </Link>
       </div>
 
-      {/* ── MOBILE SIDEBAR BACKDROP ── */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* ── MOBILE SIDEBAR ── */}
-      <aside
-        id="mobile-sidebar"
-        className={`fixed top-0 left-0 z-50 w-64 h-full bg-gray-900 text-white flex flex-col
-          transition-transform duration-300 ease-in-out lg:hidden
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
-          <img
-            src={logo}
-            alt="Guardians Predict"
-            className="h-8 object-contain"
-          />
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="text-gray-300 hover:text-white"
-            aria-label="Close menu"
-          >
-            <MenuShrinkSVG className="w-6 h-6" />
-          </button>
-        </div>
-
-        <nav className="flex-grow overflow-y-auto px-4 py-4">
-          <div className="flex flex-col gap-3">
-            {isLoggedIn ? (
-              <div style={{ padding: "8px 4px" }}>
-                {/* User info */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "6px 3px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "34px",
-                      height: "34px",
-                      borderRadius: "999px",
-                      flexShrink: 0,
-                      background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
-                      border: "1.5px solid rgba(156,201,241,0.35)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: FONT,
-                      fontWeight: 800,
-                      fontSize: "12px",
-                      color: COLOR.accent,
-                    }}
-                  >
-                    {(username || "?").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div style={{ lineHeight: 1.2 }}>
-                    <div
-                      style={{
-                        fontFamily: FONT,
-                        fontWeight: 700,
-                        fontSize: "13px",
-                        color: COLOR.text,
-                      }}
-                    >
-                      @{username}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: FONT,
-                        fontWeight: 600,
-                        fontSize: "11px",
-                        color: COLOR.accent,
-                      }}
-                    >
-                      🪙{" "}
-                      {userCredit != null
-                        ? userCredit >= 1000
-                          ? (userCredit / 1000).toFixed(1) + "k"
-                          : String(Math.round(userCredit))
-                        : "—"}
-                    </div>
-                  </div>
-                </div>
-                {/* Actions */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  {usertype === "ADMIN" && (
-                    <button
-                      onClick={() => {
-                        setSidebarOpen(false);
-                        history.push("/admin/markets/review");
-                      }}
-                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                      style={{
-                        fontFamily: "'Roboto', sans-serif",
-                        fontSize: "16px",
-                        textAlign: "left",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <AdminIcon /> {t('nav.reviewMarkets')}
-                    </button>
-                  )}
-                  {canCreateMarket && (
-                    <button
-                      onClick={() => {
-                        setSidebarOpen(false);
-                        history.push("/create");
-                      }}
-                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                      style={{
-                        fontFamily: "'Roboto', sans-serif",
-                        fontSize: "16px",
-                        textAlign: "left",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <CreateIcon /> {t('nav.create')}
-                    </button>
-                  )}
-                  {usertype !== "ADMIN" && (
-                    <button
-                      onClick={() => {
-                        setSidebarOpen(false);
-                        handleProfile();
-                      }}
-                      className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                      style={{
-                        fontFamily: "'Roboto', sans-serif",
-                        fontSize: "16px",
-                        textAlign: "left",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <PersonIcon /> {t('nav.myProfile')}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setSidebarOpen(false);
-                      handleMyBets();
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <BetsIcon /> {t('nav.myBets')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSidebarOpen(false);
-                      handleWatchlist();
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <WatchlistIcon /> {t('nav.watchlist')}
-                    {watchedIds.length > 0 && (
-                      <span className="ml-auto rounded-full bg-white/10 px-2 text-[12px] leading-[20px] tabular-nums">{watchedIds.length}</span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSidebarOpen(false);
-                      history.push("/faq");
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <HelpIcon /> {t('nav.helpFaq')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      const next = (i18n.language || "en").startsWith("es") ? "en" : "es";
-                      i18n.changeLanguage(next);
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <GlobeIcon /> {t('nav.language')} — {(i18n.language || "en").startsWith("es") ? "Español" : "English"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSidebarOpen(false);
-                      handleLogout();
-                    }}
-                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    style={{
-                      fontFamily: "'Roboto', sans-serif",
-                      fontSize: "16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <LogoutIcon /> {t('nav.signOut')}
-                  </button>
-                </div>
+      {/* ── MOBILE "MORE" MENU ── */}
+      <BottomSheet open={sidebarOpen} onClose={closeMore} label={t('nav.more')}>
+        {isLoggedIn ? (
+          <div className="mb-4 flex items-center gap-3 px-1">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-[13px] font-bold text-white">
+              {(username || "?").slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 leading-tight">
+              <div className="truncate text-[15px] font-semibold text-white">@{username}</div>
+              <div className="text-[13px] text-white/50">
+                {userCredit != null
+                  ? (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit))) + " " + t('nav.credits')
+                  : "—"}
               </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSidebarOpen(false);
-                    openLoginModal();
-                  }}
-                  className="block py-2 px-3 text-center rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                  style={{
-                    fontFamily: "'Roboto', sans-serif",
-                    fontSize: "16px",
-                  }}
-                >
-                  {t('nav.signIn')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSidebarOpen(false);
-                    openRegisterModal();
-                  }}
-                  className="block py-2 px-3 text-center rounded-lg text-white transition-colors"
-                  style={{
-                    background: "#34425F",
-                    fontFamily: "'Roboto', sans-serif",
-                    fontSize: "16px",
-                    borderRadius: "20px",
-                  }}
-                >
-                  {t('nav.createAccount')}
-                </button>
-              </>
-            )}
+            </div>
           </div>
-        </nav>
-      </aside>
+        ) : (
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => { closeMore(); openRegisterModal(); }} className="h-11 rounded-full bg-white text-[15px] font-medium text-[#0b0f1a]">
+              {t('nav.createAccount')}
+            </button>
+            <button type="button" onClick={() => { closeMore(); openLoginModal(); }} className="h-11 rounded-full border border-white/15 text-[15px] font-medium text-white">
+              {t('nav.signIn')}
+            </button>
+          </div>
+        )}
+
+        <div className="flex flex-col">
+          {isLoggedIn && usertype === "ADMIN" && (
+            <MoreRow icon={<AdminIcon />} label={t('nav.reviewMarkets')} onClick={() => goMore("/admin/markets/review")} />
+          )}
+          {isLoggedIn && canCreateMarket && (
+            <MoreRow icon={<CreateIcon />} label={t('nav.create')} onClick={() => goMore("/create")} />
+          )}
+          {isLoggedIn && usertype !== "ADMIN" && (
+            <MoreRow icon={<PersonIcon />} label={t('nav.myProfile')} onClick={() => { closeMore(); handleProfile(); }} />
+          )}
+          {isLoggedIn && (
+            <MoreRow icon={<BetsIcon />} label={t('nav.myBets')} onClick={() => { closeMore(); handleMyBets(); }} />
+          )}
+          {isLoggedIn && (
+            <MoreRow
+              icon={<WatchlistIcon />}
+              label={t('nav.watchlist')}
+              onClick={() => { closeMore(); handleWatchlist(); }}
+              trailing={watchedIds.length > 0 ? <span className="rounded-full bg-white/10 px-2 text-[12px] leading-[20px] tabular-nums text-white/70">{watchedIds.length}</span> : null}
+            />
+          )}
+          {isLoggedIn && <div className="my-2 h-px bg-white/[0.06]" />}
+          <MoreRow icon={<StatsSVG className="h-[15px] w-[15px]" />} label={t('nav.stats')} onClick={() => goMore("/stats")} />
+          <MoreRow icon={<HelpIcon />} label={t('nav.helpFaq')} onClick={() => goMore("/faq")} />
+          <MoreRow
+            icon={<GlobeIcon />}
+            label={t('nav.language')}
+            onClick={() => i18n.changeLanguage((i18n.language || "en").startsWith("es") ? "en" : "es")}
+            trailing={<span className="text-[13px] text-white/45">{(i18n.language || "en").startsWith("es") ? "Español" : "English"}</span>}
+          />
+          {isLoggedIn && (
+            <>
+              <div className="my-2 h-px bg-white/[0.06]" />
+              <MoreRow icon={<LogoutIcon />} label={t('nav.signOut')} onClick={() => { closeMore(); handleLogout(); }} />
+            </>
+          )}
+        </div>
+      </BottomSheet>
 
       {/* ── MOBILE BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-gray-900 border-t border-gray-700 flex justify-around items-center lg:hidden">
-        {BOTTOM_NAV.map(({ labelKey, to, activeOn, Icon }) => {
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-white/[0.06] bg-[#050811]/90 backdrop-blur-md lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {BOTTOM_NAV.map(({ key, labelKey, to, icon, onClick }) => {
           const label = t(labelKey);
-          const active = activeOn != null && pathname === activeOn;
-          return (
-            <Link
-              key={labelKey}
-              to={to}
-              className={`flex flex-col items-center gap-0.5 transition-colors rounded-lg px-3 py-1 ${active ? "bg-white/10 text-white" : "text-gray-300 hover:text-white"}`}
-              aria-label={label}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px]">{label}</span>
+          const active = key === "search" ? searchOpen : to != null && pathname === to && !searchOpen;
+          const className = `flex h-16 flex-col items-center justify-center gap-1 transition-colors ${active ? "text-white" : "text-white/45"}`;
+          const content = (
+            <>
+              <BottomNavIcon d={icon} />
+              <span className="text-[11px] font-medium">{label}</span>
+            </>
+          );
+          return to ? (
+            <Link key={key} to={to} aria-current={active ? "page" : undefined} className={className}>
+              {content}
             </Link>
+          ) : (
+            <button key={key} type="button" onClick={onClick === "search" ? openSearch : () => setSidebarOpen(true)} className={className}>
+              {content}
+            </button>
           );
         })}
+      </nav>
 
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="flex flex-col items-center gap-0.5 text-gray-300 hover:text-white transition-colors"
-          aria-label="Open menu"
-        >
-          <MenuGrowSVG className="w-5 h-5" />
-          <span className="text-[10px]">{t('nav.more')}</span>
-        </button>
-      </div>
+      <MobileSearchSheet
+        open={searchOpen}
+        onClose={closeSearch}
+        leagues={marketTags}
+        t={t}
+      />
 
       {authModal === "login" && (
         <LoginModal

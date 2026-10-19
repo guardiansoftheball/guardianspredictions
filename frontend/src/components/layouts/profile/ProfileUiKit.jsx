@@ -79,7 +79,9 @@ export const PillTabs = ({ tabs, active, onChange }) => (
       background: "rgba(0,0,0,0.25)",
       borderRadius: "999px",
       padding: "3px",
-      flexWrap: "wrap",
+      maxWidth: "100%",
+      overflowX: "auto",
+      scrollbarWidth: "none",
     }}
   >
     {tabs.map((tab) => (
@@ -90,6 +92,8 @@ export const PillTabs = ({ tabs, active, onChange }) => (
           padding: "7px 18px",
           borderRadius: "999px",
           border: "none",
+          flexShrink: 0,
+          whiteSpace: "nowrap",
           font: `700 12.5px ${FONT}`,
           cursor: "pointer",
           background: active === tab ? "rgba(255,255,255,0.10)" : "transparent",
@@ -114,8 +118,8 @@ export const SectionLabel = ({ children, color = MUTED2 }) => (
 );
 
 export const StatCard = ({ label, value, valueColor = TEXT }) => (
-  <div style={{ ...CARD, padding: "14px 16px" }}>
-    <div style={{ font: `600 11px ${FONT}`, letterSpacing: ".06em", color: MUTED2, textTransform: "uppercase" }}>
+  <div className="max-sm:!px-3 max-sm:!py-3" style={{ ...CARD, padding: "14px 16px", minWidth: 0 }}>
+    <div className="max-sm:!text-[10px] max-sm:!tracking-[.04em]" style={{ font: `600 11px ${FONT}`, letterSpacing: ".06em", color: MUTED2, textTransform: "uppercase" }}>
       {label}
     </div>
     <div style={{ font: `800 20px ${FONT_HEAD}`, marginTop: "4px", color: valueColor }}>{value}</div>

@@ -13,28 +13,30 @@ const REFRESH_MS = 20000;
 
 // Last good list, so coming back to a markets page renders the cards at once
 // (and the back transition has a card to land on) while a refresh runs.
-let cardsCache = null;
+const cardsCache = {}; // status → cards
 
-export function useMarkets({ refreshMs = REFRESH_MS } = {}) {
-  const [cards, setCards] = useState(() => cardsCache ?? []);
-  const [loading, setLoading] = useState(() => cardsCache == null);
+export function useMarkets({ refreshMs = REFRESH_MS, status = "active" } = {}) {
+  const [cards, setCards] = useState(() => cardsCache[status] ?? []);
+  const [loading, setLoading] = useState(() => cardsCache[status] == null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    let hasData = cardsCache != null;
+    let hasData = cardsCache[status] != null;
+    setCards(cardsCache[status] ?? []);
+    setLoading(cardsCache[status] == null);
     let timer = null;
 
     async function fetchMarkets() {
       try {
-        const res = await fetch(`${API_URL}/v0/markets?status=active`);
+        const res = await fetch(`${API_URL}/v0/markets?status=${status}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
         const rawMarkets = data?.markets ?? data?.result ?? [];
         if (cancelled) return;
-        cardsCache = Array.isArray(rawMarkets) ? transformMarkets(rawMarkets) : [];
-        setCards(cardsCache);
+        cardsCache[status] = Array.isArray(rawMarkets) ? transformMarkets(rawMarkets, status) : [];
+        setCards(cardsCache[status]);
         setError(null);
         hasData = true;
       } catch (err) {
@@ -74,12 +76,12 @@ export function useMarkets({ refreshMs = REFRESH_MS } = {}) {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [refreshMs]);
+  }, [refreshMs, status]);
 
   return { cards, loading, error };
 }
 
-function transformMarkets(rawMarkets) {
+function transformMarkets(rawMarkets, status = "active") {
   // Separate standalone markets from group children
   const standalone = [];
   const groupChildren = new Map(); // groupId → [market overviews]
@@ -101,10 +103,11 @@ function transformMarkets(rawMarkets) {
         marketId: market.id,
         totalVolume: item.totalVolume ?? 0,
         numUsers: item.numUsers ?? 0,
+        won: market.isResolved && market.resolutionResult === "YES",
         page: pageFields(market),
       });
     } else {
-      standalone.push(toQuestionCard(item));
+      standalone.push(toQuestionCard(item, status));
     }
   }
 
@@ -147,11 +150,12 @@ function transformMarkets(rawMarkets) {
         options: children.map((c) => ({
           label: c.answerLabel,
           marketId: c.marketId,
+          won: c.won,
           pct: Math.round((c.lastProbability ?? 0) * 100),
         })),
         pool,
         volume: totalVolume,
-        status: "active",
+        status,
         event: "matches",
         league: group.questionTitle,
         teams: [home?.answerLabel, away?.answerLabel].filter(Boolean),
@@ -167,6 +171,7 @@ function transformMarkets(rawMarkets) {
       const options = children.map((c) => ({
         label: c.answerLabel,
         marketId: c.marketId,
+        won: c.won,
         pct: Math.round((c.lastProbability ?? 0) * 100),
       }));
 
@@ -180,7 +185,7 @@ function transformMarkets(rawMarkets) {
         pool,
         volume: totalVolume,
         logo,
-        status: "active",
+        status,
         event: "knockouts",
         league: group.questionTitle,
         teams: children.map((c) => c.answerLabel),
@@ -213,7 +218,7 @@ function pageFields(market) {
   };
 }
 
-function toQuestionCard(item) {
+function toQuestionCard(item, status = "active") {
   const market = item?.market ?? item;
   const pct = Math.round((item.lastProbability ?? 0) * 100);
   const title = market.questionTitle ?? "";
@@ -225,7 +230,8 @@ function toQuestionCard(item) {
     pool: formatPool(item.totalVolume ?? 0),
     volume: item.totalVolume ?? 0,
     logo: getFlagFromText(title),
-    status: "active",
+    status,
+    result: market.isResolved ? market.resolutionResult : null,
     event: "standings",
     league: (market.tags ?? [])[0]?.displayName ?? "",
     teams: [],

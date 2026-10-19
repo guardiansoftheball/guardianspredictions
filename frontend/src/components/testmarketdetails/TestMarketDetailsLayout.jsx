@@ -48,6 +48,7 @@ import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
 import { SkeletonRows } from "../layouts/activity/dark/activityKit";
+import { OPTION_THEMES, getOptionTheme } from "../../styles/optionThemes";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT_BODY = FONT;
@@ -252,72 +253,6 @@ function TradePanelSkeleton({ options, binary }) {
 }
 // Borderless layout: sections are separated by spacing + hairlines instead of boxes.
 const HAIRLINE = { height: "1px", background: "rgba(255,255,255,0.07)", flexShrink: 0 };
-
-// Per-option theme: first=green, last=red, middles=neutral/purple/orange/teal…
-const OPTION_THEMES = [
-  {
-    color: "#BAD659",
-    text: "#C6E06C",
-    bg: "rgba(186,214,89,0.10)",
-    border: "rgba(186,214,89,0.28)",
-    activeBorder: "rgba(186,214,89,0.55)",
-    gradient: "linear-gradient(180deg,#BAD659,#AABA49)",
-    shadow: "0 8px 22px rgba(186,214,89,0.30)",
-  },
-  {
-    color: "#fb5b6b",
-    text: "#fb8b96",
-    bg: "rgba(251,91,107,0.10)",
-    border: "rgba(251,91,107,0.25)",
-    activeBorder: "rgba(251,91,107,0.55)",
-    gradient: "linear-gradient(180deg,#fb5b6b,#e11d48)",
-    shadow: "0 8px 22px rgba(244,63,94,0.28)",
-  },
-  {
-    color: "#6b7f96",
-    text: "#8ca0b6",
-    bg: "rgba(107,127,150,0.09)",
-    border: "rgba(107,127,150,0.22)",
-    activeBorder: "rgba(107,127,150,0.50)",
-    gradient: "linear-gradient(180deg,#6b7f96,#4a5e72)",
-    shadow: "0 8px 22px rgba(107,127,150,0.22)",
-  },
-  {
-    color: "#a78bfa",
-    text: "#c4b5fd",
-    bg: "rgba(167,139,250,0.10)",
-    border: "rgba(167,139,250,0.26)",
-    activeBorder: "rgba(167,139,250,0.52)",
-    gradient: "linear-gradient(180deg,#a78bfa,#7c3aed)",
-    shadow: "0 8px 22px rgba(167,139,250,0.28)",
-  },
-  {
-    color: "#f6ad55",
-    text: "#fbd38d",
-    bg: "rgba(246,173,85,0.10)",
-    border: "rgba(246,173,85,0.24)",
-    activeBorder: "rgba(246,173,85,0.50)",
-    gradient: "linear-gradient(180deg,#f6ad55,#d97706)",
-    shadow: "0 8px 22px rgba(246,173,85,0.26)",
-  },
-  {
-    color: "#4fd1c5",
-    text: "#81e6d9",
-    bg: "rgba(79,209,197,0.10)",
-    border: "rgba(79,209,197,0.24)",
-    activeBorder: "rgba(79,209,197,0.50)",
-    gradient: "linear-gradient(180deg,#4fd1c5,#0d9488)",
-    shadow: "0 8px 22px rgba(79,209,197,0.24)",
-  },
-];
-
-function getOptionTheme(index, total) {
-  if (total === 1) return OPTION_THEMES[0];
-  if (index === 0) return OPTION_THEMES[0];
-  if (index === total - 1) return OPTION_THEMES[1];
-  const midSlot = ((index - 1) % (OPTION_THEMES.length - 2)) + 2;
-  return OPTION_THEMES[midSlot];
-}
 
 const PRESETS = [10, 50, 100];
 
@@ -1540,6 +1475,10 @@ function MultiChoiceTradePanel({
   const potReturn =
     amount > 0 && outcomeProb > 0 ? (amount / outcomeProb).toFixed(2) : "—";
 
+  if (answers.some((a) => a.market?.market?.isResolved)) {
+    return <GroupResolvedPanel answers={answers} t={t} />;
+  }
+
   if (!isLoggedIn) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -2237,6 +2176,63 @@ function MultiChoiceTradePanel({
   );
 }
 
+function GroupResolvedPanel({ answers, t }) {
+  const isWinner = (a) =>
+    a.market?.market?.isResolved &&
+    String(a.market?.market?.resolutionResult || "").toUpperCase() === "YES";
+  const winner = answers.find(isWinner);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {answers.map((a, i) => {
+        const won = isWinner(a);
+        const theme = getOptionTheme(i, answers.length);
+        return (
+          <div
+            key={a.marketId || i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "13px 20px",
+              borderRadius: "999px",
+              border: won ? `1px solid ${theme.activeBorder}` : "1px solid rgba(255,255,255,0.06)",
+              background: won ? theme.bg : "transparent",
+              font: `600 14px ${FONT_BODY}`,
+              color: won ? TEXT : MUTED3,
+            }}
+          >
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {a.answerLabel}
+            </span>
+            {won ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            ) : null}
+          </div>
+        );
+      })}
+      <div
+        style={{
+          marginTop: "8px",
+          padding: "16px",
+          borderRadius: "14px",
+          background: "rgba(255,255,255,0.04)",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ font: `700 14px ${FONT_BODY}`, color: TEXT, marginBottom: "4px" }}>
+          {t("marketDetails.groupResolvedTitle")}
+        </div>
+        <div style={{ font: `500 12px ${FONT_BODY}`, color: MUTED3 }}>
+          {winner ? `${t("marketDetails.groupWinner")} ${winner.answerLabel}` : t("marketDetails.groupNoWinner")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OptionRow({ answer, index, total, selected, onClick }) {
   const prob = getAnswerProb(answer);
   const priceCents = Math.round(prob * 100);
@@ -2380,6 +2376,14 @@ function MatchBanner({ title, answers, marketId, isMobile }) {
 
   const flagSize = isMobile ? 40 : 48;
 
+  // PLACEHOLDER score: the backend only knows the winner, not the real result.
+  const isFinal = (answers || []).some((a) => a.market?.market?.isResolved);
+  const winnerLabel = (answers || []).find(
+    (a) => a.market?.market?.isResolved && String(a.market?.market?.resolutionResult || "").toUpperCase() === "YES",
+  )?.answerLabel;
+  const score = winnerLabel === teamA ? "2 - 0" : winnerLabel === teamB ? "0 - 2" : "0 - 0";
+  const lostTeam = (name) => isFinal && (winnerLabel === teamA || winnerLabel === teamB) && winnerLabel !== name;
+
   const TeamBadge = ({ name, code, align }) => (
     <div style={{
       display: "flex",
@@ -2389,6 +2393,7 @@ function MatchBanner({ title, answers, marketId, isMobile }) {
       flex: "1 1 0px",
       minWidth: 0,
       justifyContent: "center",
+      opacity: lostTeam(name) ? 0.45 : 1,
     }}>
       {code ? (
         <img
@@ -2455,13 +2460,14 @@ function MatchBanner({ title, answers, marketId, isMobile }) {
           letterSpacing: ".06em",
           textTransform: "uppercase",
         }}>
-          {dayLabel}
+          {isFinal ? "Final" : dayLabel}
         </span>
         <span style={{
-          font: `600 ${isMobile ? "13px" : "15px"} ${FONT_BODY}`,
+          font: isFinal ? `700 ${isMobile ? "20px" : "24px"} ${FONT_HEAD}` : `600 ${isMobile ? "13px" : "15px"} ${FONT_BODY}`,
           color: TEXT,
+          letterSpacing: isFinal ? ".02em" : undefined,
         }}>
-          16:00
+          {isFinal ? score : "16:00"}
         </span>
       </div>
 
@@ -2510,12 +2516,18 @@ function GroupResolutionAlert({ options }) {
   } else if (cancelled) {
     body = t("marketDetails.groupCancelled");
   } else if (winners.length > 0) {
-    tone = "winner";
-    body = (
-      <>
-        {t("marketDetails.groupWinner")}{" "}
-        <strong className="text-green-300">{winners.map((w) => w.label).join(", ")}</strong>
-      </>
+    const theme = getOptionTheme(options.indexOf(winners[0]), options.length);
+    return (
+      <div
+        role="status"
+        className="mb-4 inline-flex w-fit self-start items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium"
+        style={{ background: theme.bg, border: `1px solid ${theme.activeBorder}`, color: theme.text }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        {title} · {t("marketDetails.groupWinner")} {winners.map((w) => w.label).join(", ")}
+      </div>
     );
   } else {
     body = t("marketDetails.groupNoWinner");
@@ -2963,7 +2975,9 @@ function MarketLayout({
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
               </svg>
-              {t('marketDetails.closes')} {closesLabel}
+              {closesLabel === "Closed"
+                ? t('marketDetails.groupResolvedTitle')
+                : `${t('marketDetails.closes')} ${closesLabel}`}
             </span>
           )}
           <span style={{ opacity: 0.3 }}>·</span>

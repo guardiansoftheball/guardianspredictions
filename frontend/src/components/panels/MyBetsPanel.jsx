@@ -4,9 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../helpers/AuthContent";
 import { API_URL } from "../../config";
 import LoadingSpinner from "../loaders/LoadingSpinner";
-import { FONT, FONT_HEAD, COLOR, CARD } from "../../styles/darkTokens";
-
-const PANEL_WIDTH = 400;
+import { useSwipeToClose } from "../../hooks/useSwipeToClose";
 
 const MyBetsPanel = ({ isOpen, onClose, username }) => {
   const { t } = useTranslation();
@@ -14,6 +12,7 @@ const MyBetsPanel = ({ isOpen, onClose, username }) => {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const panelRef = useSwipeToClose(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen || !username || !token) return;
@@ -61,178 +60,68 @@ const MyBetsPanel = ({ isOpen, onClose, username }) => {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  // Bottom sheet on phones, right drawer from lg.
   return (
     <>
       {/* Backdrop */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 300,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-            transition: "opacity 0.2s",
-          }}
-        />
-      )}
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className={`fixed inset-0 z-[300] bg-black/60 transition-opacity duration-300 ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      />
 
       {/* Panel */}
       <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: `min(${PANEL_WIDTH}px, 92vw)`,
-          zIndex: 301,
-          background: "linear-gradient(180deg, #0f1e30 0%, #0a1420 100%)",
-          borderLeft: "1px solid rgba(255,255,255,0.09)",
-          boxShadow: "-8px 0 40px rgba(0,0,0,0.5)",
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("nav.myBets")}
+        className={`fixed z-[301] flex flex-col overflow-hidden border-white/[0.08] bg-[#0b0f1a] transition-transform duration-300 ease-out
+          inset-x-0 bottom-0 max-h-[85vh] rounded-t-3xl border-t
+          lg:inset-x-auto lg:inset-y-0 lg:right-0 lg:w-[420px] lg:max-h-none lg:rounded-none lg:border-t-0 lg:border-l
+          ${isOpen ? "translate-y-0 lg:translate-x-0" : "translate-y-full lg:translate-y-0 lg:translate-x-full"}`}
       >
+        {/* Handle (phones) */}
+        <button type="button" data-sheet-handle onClick={onClose} aria-label="Close" className="mx-auto mt-3 block h-1 w-10 shrink-0 rounded-full bg-white/20 lg:hidden" />
+
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "20px 20px 16px",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-            flexShrink: 0,
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: FONT_HEAD,
-              fontWeight: 700,
-              fontSize: "18px",
-              color: COLOR.text,
-            }}
-          >
-            {t("nav.myBets")}
-          </h2>
+        <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4 lg:pt-6">
+          <div>
+            <h2 className="m-0 text-lg font-bold text-white">{t("nav.myBets")}</h2>
+            {!loading && !error && positions.length > 0 && (
+              <p className="m-0 mt-0.5 text-[13px] text-white/45">
+                {t("profile.totalMarkets")}: {positions.length}
+              </p>
+            )}
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "10px",
-              width: "34px",
-              height: "34px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: COLOR.muted,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-            }}
+            aria-label="Close"
+            className="hidden h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white lg:flex"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M1 1l12 12M13 1L1 13"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "16px 16px 32px",
-          }}
-        >
+        <div data-sheet-scroll className="flex-1 overflow-y-auto px-5" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>
           {loading ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}>
+            <div className="py-10 text-center">
               <LoadingSpinner />
             </div>
           ) : error ? (
-            <div
-              style={{
-                ...CARD,
-                padding: "16px",
-                textAlign: "center",
-                fontFamily: FONT,
-                fontSize: "13px",
-                color: COLOR.noText,
-              }}
-            >
-              Error: {error}
-            </div>
+            <p className="py-10 text-center text-sm text-[#fb8b96]">Error: {error}</p>
           ) : positions.length === 0 ? (
-            <div
-              style={{
-                ...CARD,
-                padding: "32px 16px",
-                textAlign: "center",
-                fontFamily: FONT,
-                fontSize: "13px",
-                color: COLOR.muted,
-              }}
-            >
-              {t("profile.noBets")}
-            </div>
+            <p className="py-12 text-center text-sm text-white/45">{t("profile.noBets")}</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {/* Summary */}
-              <div
-                style={{
-                  ...CARD,
-                  padding: "12px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: FONT,
-                    fontWeight: 600,
-                    fontSize: "12px",
-                    color: COLOR.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {t("profile.totalMarkets")}
-                </span>
-                <span
-                  style={{
-                    fontFamily: FONT_HEAD,
-                    fontWeight: 700,
-                    fontSize: "18px",
-                    color: COLOR.text,
-                  }}
-                >
-                  {positions.length}
-                </span>
-              </div>
-
-              {/* Position cards */}
+            <ul className="m-0 list-none p-0">
               {positions.map((pos, i) => (
-                <PositionCard key={pos.marketId || i} position={pos} t={t} onClose={onClose} />
+                <PositionRow key={pos.marketId || i} position={pos} t={t} onClose={onClose} />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
@@ -240,119 +129,39 @@ const MyBetsPanel = ({ isOpen, onClose, username }) => {
   );
 };
 
-const PositionCard = ({ position, t, onClose }) => {
+const PositionRow = ({ position, t, onClose }) => {
   const totalShares = position.yesSharesOwned + position.noSharesOwned;
 
   return (
-    <div
-      style={{
-        ...CARD,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.07)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = CARD.background;
-      }}
-    >
-      {/* Market title */}
+    <li className="border-t border-white/[0.06] first:border-t-0">
       <Link
         to={`/markets/${position.marketId}`}
         onClick={onClose}
-        style={{
-          fontFamily: FONT,
-          fontWeight: 600,
-          fontSize: "13.5px",
-          color: COLOR.text,
-          textDecoration: "none",
-          lineHeight: 1.35,
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = COLOR.accent)}
-        onMouseLeave={(e) => (e.currentTarget.style.color = COLOR.text)}
+        className="-mx-2 flex flex-col gap-2 rounded-xl px-2 py-3.5 no-underline transition-colors hover:bg-white/[0.03]"
       >
-        {position.questionTitle || `Market #${position.marketId}`}
+        <span className="text-[14px] font-semibold leading-snug text-white">
+          {position.questionTitle || `Market #${position.marketId}`}
+        </span>
+        <span className="flex flex-wrap items-center gap-2">
+          {position.yesSharesOwned > 0 && (
+            <span className="inline-flex items-center rounded-full bg-[rgba(186,214,89,0.10)] px-2.5 py-0.5 text-[11px] font-bold tracking-[0.04em] text-[#C6E06C]">
+              {position.yesSharesOwned} YES
+            </span>
+          )}
+          {position.noSharesOwned > 0 && (
+            <span className="inline-flex items-center rounded-full bg-[rgba(251,91,107,0.10)] px-2.5 py-0.5 text-[11px] font-bold tracking-[0.04em] text-[#fb8b96]">
+              {position.noSharesOwned} NO
+            </span>
+          )}
+          <span className="text-[12px] font-medium text-white/45">
+            {t("profile.total")}: {totalShares}
+          </span>
+          <span className="ml-auto text-[12px] text-white/35">
+            {new Date(position.lastBetPlaced).toLocaleDateString()}
+          </span>
+        </span>
       </Link>
-
-      {/* Details row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* YES shares */}
-        {position.yesSharesOwned > 0 && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "3px 10px",
-              borderRadius: "999px",
-              background: "rgba(186,214,89,0.10)",
-              fontFamily: FONT,
-              fontWeight: 700,
-              fontSize: "11px",
-              color: COLOR.yesText,
-              letterSpacing: "0.04em",
-            }}
-          >
-            {position.yesSharesOwned} YES
-          </span>
-        )}
-
-        {/* NO shares */}
-        {position.noSharesOwned > 0 && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "3px 10px",
-              borderRadius: "999px",
-              background: "rgba(251,91,107,0.10)",
-              fontFamily: FONT,
-              fontWeight: 700,
-              fontSize: "11px",
-              color: COLOR.noText,
-              letterSpacing: "0.04em",
-            }}
-          >
-            {position.noSharesOwned} NO
-          </span>
-        )}
-
-        {/* Total */}
-        <span
-          style={{
-            fontFamily: FONT,
-            fontWeight: 600,
-            fontSize: "12px",
-            color: COLOR.muted,
-          }}
-        >
-          {t("profile.total")}: {totalShares}
-        </span>
-
-        {/* Date — pushed to right */}
-        <span
-          style={{
-            marginLeft: "auto",
-            fontFamily: FONT,
-            fontWeight: 500,
-            fontSize: "11.5px",
-            color: COLOR.muted2,
-          }}
-        >
-          {new Date(position.lastBetPlaced).toLocaleDateString()}
-        </span>
-      </div>
-    </div>
+    </li>
   );
 };
 

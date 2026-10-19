@@ -10,7 +10,7 @@ const formatNow = () => {
     return `${year}-${formattedMonth}-${formattedDay}T23:59`;
 };
 
-const DatetimeSelector = ({ value, onChange, id = 'datetime-selector', label = 'Select Date and Time:' }) => {
+const DatetimeSelector = ({ value, onChange, id = 'datetime-selector', label = 'Select Date and Time:', variant }) => {
     const [internalValue, setInternalValue] = useState(() => value ?? formatNow());
 
     useEffect(() => {
@@ -27,6 +27,24 @@ const DatetimeSelector = ({ value, onChange, id = 'datetime-selector', label = '
             onChange(event);
         }
     };
+
+    if (variant === 'dark') {
+        return (
+            <div>
+                <label htmlFor={id} className="block mb-2 text-[13px] font-medium text-white/70">
+                    {label}
+                </label>
+                <input
+                    id={id}
+                    type="datetime-local"
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] text-white focus:border-white/25 focus:outline-none"
+                    style={{ colorScheme: 'dark' }}
+                    value={internalValue}
+                    onChange={handleChange}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 bg-custom-gray-light text-white rounded-lg shadow-md max-w-md mx-auto my-4">

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { resolveMarket, resolveMarketGroup } from './ResolveUtils';
 import { useMarketLabels } from '../../../hooks/useMarketLabels';
 import { FONT, FONT_HEAD, COLOR } from '../../../styles/darkTokens';
+import { getOptionTheme } from '../../../styles/optionThemes';
 
 const TEXT   = COLOR.text;
 const MUTED  = COLOR.muted;
@@ -86,17 +87,31 @@ const ResolveModalDark = ({ marketId, token, market, onResolved, answers, groupI
     const isYes = winnerMode ? Boolean(target) : selected === 'YES';
     const isNo  = !winnerMode && selected === 'NO';
 
-    const btnGradient = isYes
-        ? 'linear-gradient(180deg,#26d365,#16a34a)'
-        : isNo
-            ? 'linear-gradient(180deg,#fb5b6b,#e11d48)'
-            : 'rgba(255,255,255,0.08)';
-    const btnShadow = isYes
-        ? '0 8px 22px rgba(34,197,94,0.30)'
-        : isNo
-            ? '0 8px 22px rgba(244,63,94,0.26)'
-            : 'none';
-    const btnTextColor = isYes ? '#04140a' : isNo ? '#fff' : MUTED2;
+    // Same option colors as the chart.
+    const themeFor = (marketIdValue) => {
+        const idx = (answers || []).findIndex(a => String(a.marketId) === String(marketIdValue));
+        return idx >= 0 ? getOptionTheme(idx, answers.length) : null;
+    };
+    const winnerTheme = winnerMode && target ? themeFor(target.marketId) : null;
+    const winnerTextColor = winnerTheme && answers.findIndex(a => String(a.marketId) === String(target.marketId)) === 0
+        ? '#04140a'
+        : '#fff';
+
+    const btnGradient = winnerTheme
+        ? winnerTheme.gradient
+        : isYes
+            ? 'linear-gradient(180deg,#26d365,#16a34a)'
+            : isNo
+                ? 'linear-gradient(180deg,#fb5b6b,#e11d48)'
+                : 'rgba(255,255,255,0.08)';
+    const btnShadow = winnerTheme
+        ? winnerTheme.shadow
+        : isYes
+            ? '0 8px 22px rgba(34,197,94,0.30)'
+            : isNo
+                ? '0 8px 22px rgba(244,63,94,0.26)'
+                : 'none';
+    const btnTextColor = winnerTheme ? winnerTextColor : isYes ? '#04140a' : isNo ? '#fff' : MUTED2;
 
     return (
         <>
@@ -183,8 +198,9 @@ const ResolveModalDark = ({ marketId, token, market, onResolved, answers, groupI
                                     </div>
                                 )}
                                 <div role="radiogroup" aria-label={winnerMode ? 'Winning option' : 'Option to resolve'} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    {answers.map(a => {
+                                    {answers.map((a, idx) => {
                                         const active = String(a.marketId) === String(targetId);
+                                        const theme = getOptionTheme(idx, answers.length);
                                         return (
                                             <button
                                                 key={a.marketId}
@@ -196,16 +212,19 @@ const ResolveModalDark = ({ marketId, token, market, onResolved, answers, groupI
                                                 style={{
                                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
                                                     padding: '10px 12px', borderRadius: '10px', textAlign: 'left',
-                                                    border: `1px solid ${active ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.08)'}`,
-                                                    background: active ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-                                                    color: a.isResolved ? MUTED2 : TEXT,
+                                                    border: `1px solid ${active ? theme.activeBorder : 'rgba(255,255,255,0.08)'}`,
+                                                    background: active ? theme.bg : 'rgba(255,255,255,0.03)',
+                                                    color: a.isResolved ? MUTED2 : active ? theme.text : TEXT,
                                                     font: `700 13px ${FONT}`,
                                                     cursor: a.isResolved ? 'not-allowed' : 'pointer',
                                                     transition: 'all .15s',
                                                 }}
                                             >
-                                                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {a.label}
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: theme.color, flexShrink: 0, opacity: a.isResolved ? 0.4 : 1 }} />
+                                                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {a.label}
+                                                    </span>
                                                 </span>
                                                 <span style={{ font: `600 11px ${FONT}`, color: MUTED2, flexShrink: 0 }}>
                                                     {a.isResolved

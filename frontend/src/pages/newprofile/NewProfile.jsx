@@ -86,11 +86,12 @@ const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
   const moderatorStatus = String(userData?.moderatorStatus || "").toLowerCase();
 
   return (
-    <SectionCard>
+    <div className="sm:rounded-2xl sm:border sm:border-white/[0.09] sm:bg-white/[0.045] sm:px-5 sm:py-[18px]">
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexWrap: "wrap" }}>
           {/* Avatar */}
           <div
+            className="max-sm:!h-14 max-sm:!w-14 max-sm:!rounded-2xl max-sm:!text-[28px]"
             style={{
               width: "72px",
               height: "72px",
@@ -187,7 +188,7 @@ const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
 
         {/* Edit actions — mobile only (row, below content) */}
         {isOwnProfile && (
-          <div className="flex flex-wrap gap-2 sm:hidden">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:hidden [&>*]:shrink-0" style={{ scrollbarWidth: "none" }}>
             <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
             <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
             <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
@@ -234,7 +235,7 @@ const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
           )}
         </ProfileModal>
       )}
-    </SectionCard>
+    </div>
   );
 };
 
@@ -301,7 +302,7 @@ const PortfolioSection = ({ username, t }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <StatCard label={t('profile.totalMarkets')} value={positions.length} />
         <StatCard label={t('profile.yesShares')} value={totalYes} valueColor={YES_TEXT} />
         <StatCard label={t('profile.noShares')} value={totalNo} valueColor={NO_TEXT} />
@@ -309,7 +310,30 @@ const PortfolioSection = ({ username, t }) => {
 
       <Pagination label={t('profile.portfolio')} pageInfo={pageInfo} onPageChange={setPage} />
 
-      <div style={{ ...CARD, overflow: "hidden" }}>
+      {/* Phones: list instead of table */}
+      <ul className="m-0 list-none p-0 sm:hidden">
+        {pageInfo.rows.map((position, index) => (
+          <li key={position.marketId || index} className="border-t border-white/[0.06] first:border-t-0">
+            <Link to={`/markets/${position.marketId}`} className="flex flex-col gap-2 py-3.5 no-underline">
+              <span className="text-[14px] font-semibold leading-snug text-white">
+                {position.questionTitle || t('profile.unknownMarket')}
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                {position.yesSharesOwned > 0 && <Chip tone="green">{position.yesSharesOwned} YES</Chip>}
+                {position.noSharesOwned > 0 && <Chip tone="red">{position.noSharesOwned} NO</Chip>}
+                <span className="text-[12px] font-medium text-white/45">
+                  {t('profile.total')}: {position.yesSharesOwned + position.noSharesOwned}
+                </span>
+                <span className="ml-auto text-[12px] text-white/35">
+                  {new Date(position.lastBetPlaced).toLocaleDateString()}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden sm:block" style={{ ...CARD, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -412,7 +436,7 @@ const FinancialsSection = ({ username, t }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <StatCard
           label={t('profile.accountBalance')}
           value={financialData.accountBalance?.toLocaleString() ?? "N/A"}

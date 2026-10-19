@@ -5,7 +5,6 @@ import { useAuth } from '../../helpers/AuthContent';
 import { getEndofDayDateTime } from '../../components/utils/dateTimeTools/FormDateTimeTools';
 import DatetimeSelector from '../../components/datetimeSelector/DatetimeSelector';
 import EmojiPickerInput from '../../components/inputs/EmojiPicker';
-import { Button } from '../../components/ui/Button';
 import { USER_CREDIT_REFRESH_EVENT } from '../../components/utils/userFinanceTools/FetchUserCredit';
 import { apiRequest, authenticatedApiRequest } from '../../api/httpClient';
 import { listMarketTags } from '../../api/marketTagsApi';
@@ -13,12 +12,16 @@ import { createMarketGroup } from '../../api/marketsApi';
 import MarketTagChips from '../../components/markets/MarketTagChips';
 import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
+import { TopGlow } from '../../components/ui/BlueGlow';
 
 const GlassCard = ({ children, className = '' }) => (
-  <div className={`rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 ${className}`}>
+  <section className={`border-t border-white/[0.06] pt-6 ${className}`}>
     {children}
-  </div>
+  </section>
 );
+
+const INPUT_CLASS =
+  'w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] text-white placeholder-white/30 focus:border-white/25 focus:outline-none';
 
 const ErrorBanner = ({ msg }) => msg ? (
   <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{msg}</div>
@@ -195,24 +198,24 @@ function TestAdminCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-primary-background relative overflow-x-hidden">
-      {/* Background glow */}
-      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(233,30,140,0.08) 0%, rgba(81,173,246,0.05) 40%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
-
+    <div className="min-h-screen bg-[#050811] relative overflow-x-hidden">
+      {/* Light coming down from the top edge */}
+      <div className="relative">
+      <TopGlow />
       <Navbar />
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-[#9CC9F1] mb-1">{t('createMarket.eyebrow')}</p>
-          <h1 className="text-4xl font-bold text-white">{t('createMarket.heading')}</h1>
-          <p className="mt-2 text-sm text-gray-400 max-w-2xl">{t('createMarket.description')}</p>
+          <p className="text-[13px] font-medium text-white/50 mb-2">{t('createMarket.eyebrow')}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">{t('createMarket.heading')}</h1>
+          <p className="mt-2 text-[15px] text-white/55 max-w-2xl">{t('createMarket.description')}</p>
         </div>
 
         {/* Proposal cost */}
-        <GlassCard className="mb-6 border-[#9CC9F1]/20">
-          <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">{t('createMarket.proposalCost')}</p>
-          <p className="mt-2 text-2xl font-bold text-white">
+        <GlassCard className="mb-8 border-t-0 pt-0">
+          <p className="text-[13px] font-medium text-white/70">{t('createMarket.proposalCost')}</p>
+          <p className="mt-1 text-2xl font-bold text-white">
             {marketCreationCost === null ? t('createMarket.loading') : t('createMarket.credits', { cost: marketCreationCost })}
           </p>
           <p className="mt-2 text-sm text-gray-400">
@@ -225,7 +228,7 @@ function TestAdminCreate() {
           )}
         </GlassCard>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           {/* Market type */}
           <GlassCard>
             <p className="text-sm font-semibold text-white">{t('createMarket.marketType')}</p>
@@ -238,8 +241,8 @@ function TestAdminCreate() {
                 onClick={() => setMarketType('binary')}
                 className={`rounded-xl border p-4 text-left transition ${
                   marketType === 'binary'
-                    ? 'border-[#9CC9F1]/60 bg-[#9CC9F1]/10 text-white shadow-lg shadow-[#9CC9F1]/10'
-                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-[#9CC9F1]/40'
+                    ? 'border-white/40 bg-white/[0.06] text-white'
+                    : 'border-white/[0.08] text-white/70 hover:border-white/20'
                 }`}
               >
                 <span className="block text-sm font-semibold">{t('createMarket.binaryMarket')}</span>
@@ -250,8 +253,8 @@ function TestAdminCreate() {
                 onClick={() => setMarketType('group')}
                 className={`rounded-xl border p-4 text-left transition ${
                   marketType === 'group'
-                    ? 'border-[#9CC9F1]/60 bg-[#9CC9F1]/10 text-white shadow-lg shadow-[#9CC9F1]/10'
-                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-[#9CC9F1]/40'
+                    ? 'border-white/40 bg-white/[0.06] text-white'
+                    : 'border-white/[0.08] text-white/70 hover:border-white/20'
                 }`}
               >
                 <span className="block text-sm font-semibold">{t('createMarket.multipleChoiceGroup')}</span>
@@ -264,7 +267,7 @@ function TestAdminCreate() {
 
           {/* Question title */}
           <GlassCard>
-            <label htmlFor="market-question-title" className="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
+            <label htmlFor="market-question-title" className="block text-[13px] font-medium text-white/70 mb-2">
               {t('createMarket.questionTitle')}
             </label>
             <EmojiPickerInput
@@ -273,13 +276,13 @@ function TestAdminCreate() {
               value={questionTitle}
               onChange={(e) => setQuestionTitle(e.target.value)}
               placeholder={t('createMarket.questionPlaceholder')}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
+              className={INPUT_CLASS}
             />
           </GlassCard>
 
           {/* Description */}
           <GlassCard>
-            <label htmlFor="market-description" className="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
+            <label htmlFor="market-description" className="block text-[13px] font-medium text-white/70 mb-2">
               {t('createMarket.descriptionLabel')}
             </label>
             <EmojiPickerInput
@@ -288,7 +291,7 @@ function TestAdminCreate() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('createMarket.descriptionPlaceholder')}
-              className="w-full h-32 resize-y rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
+              className={`${INPUT_CLASS} h-32 resize-y`}
             />
           </GlassCard>
 
@@ -316,8 +319,8 @@ function TestAdminCreate() {
                       onClick={() => toggleTagSlug(tag.slug)}
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                         selected
-                          ? 'border-[#9CC9F1] bg-[#9CC9F1]/20 text-white'
-                          : 'border-white/20 bg-white/5 text-gray-300 hover:border-white/40'
+                          ? 'border-white/60 bg-white/10 text-white'
+                          : 'border-white/[0.12] text-white/70 hover:border-white/30'
                       }`}
                     >
                       {selected ? '\u2713 ' : ''}{tag.displayName || tag.slug}
@@ -336,7 +339,7 @@ function TestAdminCreate() {
           {marketType === 'binary' ? (
             <>
               <GlassCard>
-                <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-3">{t('createMarket.outcomeLabels')}</p>
+                <p className="text-[13px] font-medium text-white/70 mb-3">{t('createMarket.outcomeLabels')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="market-yes-label" className="block text-sm font-medium text-gray-300 mb-1">{t('createMarket.yesLabel')}</label>
@@ -347,7 +350,7 @@ function TestAdminCreate() {
                       onChange={(e) => setYesLabel(e.target.value)}
                       placeholder={t('createMarket.yesPlaceholder')}
                       maxLength={20}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
+                      className={INPUT_CLASS}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('createMarket.yesLabelDesc')}</p>
                   </div>
@@ -360,14 +363,14 @@ function TestAdminCreate() {
                       onChange={(e) => setNoLabel(e.target.value)}
                       placeholder={t('createMarket.noPlaceholder')}
                       maxLength={20}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
+                      className={INPUT_CLASS}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('createMarket.noLabelDesc')}</p>
                   </div>
                 </div>
                 {(yesLabel.trim() || noLabel.trim()) && (
                   <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">{t('createMarket.preview')}</p>
+                    <p className="text-[13px] font-medium text-white/70 mb-2">{t('createMarket.preview')}</p>
                     <div className="flex items-center gap-3">
                       <span className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-sm font-semibold text-emerald-300">
                         {yesLabel.trim() || 'YES'}
@@ -409,7 +412,7 @@ function TestAdminCreate() {
                       onChange={(e) => updateAnswerLabel(index, e.target.value)}
                       placeholder={t('createMarket.answerPlaceholder', { number: index + 1 })}
                       maxLength={160}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#9CC9F1]/50 focus:outline-none focus:ring-1 focus:ring-[#9CC9F1]/30"
+                      className={INPUT_CLASS}
                     />
                     <button
                       type="button"
@@ -425,7 +428,7 @@ function TestAdminCreate() {
               <button
                 type="button"
                 onClick={addAnswerLabel}
-                className="mt-3 rounded-lg border border-[#9CC9F1]/40 px-4 py-2 text-sm font-semibold text-[#9CC9F1] transition hover:bg-[#9CC9F1]/10"
+                className="mt-3 rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/85 transition hover:border-white/30"
               >
                 {t('createMarket.addAnswer')}
               </button>
@@ -460,6 +463,7 @@ function TestAdminCreate() {
           <GlassCard>
             <DatetimeSelector
               id="market-resolution-date-time"
+              variant="dark"
               label={t('createMarket.resolutionDateTime')}
               value={resolutionDateTime}
               onChange={(e) => setResolutionDateTime(e.target.value)}
@@ -471,8 +475,8 @@ function TestAdminCreate() {
           <ErrorBanner msg={error} />
 
           {createdMarket && (
-            <GlassCard className="border-[#9CC9F1]/20">
-              <p className="text-xs font-mono uppercase tracking-widest text-[#9CC9F1]">{t('createMarket.proposedMarketCreated')}</p>
+            <GlassCard>
+              <p className="text-[13px] font-medium text-white/70">{t('createMarket.proposedMarketCreated')}</p>
               <h2 className="mt-2 text-lg font-semibold text-white">{createdMarket.questionTitle}</h2>
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 <p><span className="text-gray-400">{t('createMarket.marketId')}</span> <span className="font-mono text-white">{createdMarket.id}</span></p>
@@ -485,10 +489,14 @@ function TestAdminCreate() {
           )}
 
           {/* Submit */}
-          <Button variant="celeste" type="submit" className="w-full">
+          <button
+            type="submit"
+            className="h-12 w-full rounded-full bg-white text-[15px] font-medium text-[#0b0f1a] transition-transform hover:scale-[1.01]"
+          >
             {marketType === 'group' ? t('createMarket.createMarketGroup') : t('createMarket.createMarketBtn')}
-          </Button>
+          </button>
         </form>
+      </div>
       </div>
 
       <Footer />

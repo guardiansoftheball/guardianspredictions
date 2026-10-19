@@ -170,8 +170,7 @@ const NewHome = () => {
           <button
             type="button"
             onClick={() => history.push("/new-markets")}
-            className="group flex items-center gap-2 px-8 py-3 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all duration-200 hover:scale-105"
-            style={{ backdropFilter: "blur(12px)", background: "rgba(255,255,255,0.06)" }}
+            className="group flex items-center gap-2 px-7 py-3 rounded-full bg-white text-[#0b0f1a] transition-transform duration-200 hover:scale-[1.03]"
           >
             <span className="text-[15px] font-medium">{t('home.showMoreMarkets')}</span>
             <svg

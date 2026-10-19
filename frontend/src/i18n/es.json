@@ -150,7 +150,12 @@
     "credits": "creditos",
     "language": "Idioma",
     "helpFaq": "Ayuda / FAQ",
-    "watchlist": "Siguiendo"
+    "watchlist": "Siguiendo",
+    "home": "Inicio",
+    "search": "Buscar",
+    "searchPlaceholder": "Buscar mercados...",
+    "browse": "Navegar",
+    "leagues": "Ligas"
   },
   "error": {
     "title": "Algo salio mal.",
