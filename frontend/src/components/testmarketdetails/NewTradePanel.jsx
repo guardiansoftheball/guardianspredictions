@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import PositionSummary, { normalizePosition } from './PositionSummary';
 import { submitBet, fetchUserShares, fetchSaleQuote, submitSale, NO_SELLABLE_SHARES_MESSAGE } from '../layouts/trade/TradeUtils';
 import { API_URL } from '../../config';
 import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCredit';
@@ -54,7 +55,10 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
 
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${label} ${pct}%`}
       style={{
         flex: 1,
         padding: '11px 8px',
@@ -364,6 +368,8 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const [successBtnLabel, setSuccessBtnLabel] = useState('');
   const [fees, setFees]           = useState(null);
   const [hasBetBefore, setHasBetBefore] = useState(false);
+  const [position, setPosition] = useState(null);
+  const [positionTick, setPositionTick] = useState(0);
   const debounceRef = useRef(null);
 
   useEffect(() => {
@@ -379,10 +385,12 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
     fetchUserShares(marketId, token)
       .then(data => {
         const normalized = normalizeShares(data);
-        setHasBetBefore(normalized.yesSharesOwned > 0 || normalized.noSharesOwned > 0);
+        const spent = Number(data?.TotalSpent ?? data?.totalSpent ?? 0);
+        setHasBetBefore(spent > 0 || normalized.yesSharesOwned > 0 || normalized.noSharesOwned > 0);
+        setPosition(normalizePosition(data));
       })
       .catch(() => {});
-  }, [marketId, token]);
+  }, [marketId, token, positionTick]);
 
   const yesPct = Math.round(currentProbability * 100);
   const noPct  = 100 - yesPct;
@@ -419,22 +427,24 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const handleSubmit = () => {
     setError('');
     setSuccess('');
-    if (!side) { setError('Select YES or NO first.'); return; }
-    if (!amount || amount < 1) { setError('Minimum amount is 1.'); return; }
+    if (!side) { setError(t('marketDetails.selectSideFirst')); return; }
+    if (!amount || amount < 1) { setError(t('marketDetails.minAmount')); return; }
     setSubmitting(true);
     submitBet(
       { marketId, amount, outcome: side },
       token,
       (data) => {
         setSubmitting(false);
-        setSuccess(`Bet placed! $${data.amount} on ${side === 'YES' ? yesLabel : noLabel}.`);
-        setSuccessBtnLabel(`Purchased ${side === 'YES' ? yesLabel : noLabel}!`);
+        setHasBetBefore(true);
+        setPositionTick((n) => n + 1);
+        setSuccess(t('marketDetails.betPlaced', { amount: `$${data.amount}`, label: side === 'YES' ? yesLabel : noLabel }));
+        setSuccessBtnLabel(t('marketDetails.purchasedLabel', { label: side === 'YES' ? yesLabel : noLabel }));
         window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
         onSuccess?.();
       },
       (err) => {
         setSubmitting(false);
-        setError(err.message || 'Error placing the bet.');
+        setError(err.message || t('marketDetails.betError'));
       },
     );
   };
@@ -451,6 +461,8 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <PositionSummary position={position} yesLabel={yesLabel} noLabel={noLabel} />
+
       {/* YES / NO selector */}
       <div style={{ display: 'flex', gap: '9px' }}>
         <SidePill label={yesLabel} pct={yesPct} variant="yes" active={side === 'YES'} onClick={() => { setSide('YES'); setError(''); setSuccess(''); }} />
@@ -485,22 +497,13 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
           flexDirection: 'column',
           gap: '9px',
         }}>
-          <Row label="Average price" value={side === 'YES' ? `${yesPct}¢` : `${noPct}¢`} />
-          <Row label="Odds" value={side === 'YES' ? `${yesPct}%` : `${noPct}%`} valueFont={`500 20px ${FONT_HEAD}`} />
-          <Row
-            label="To win"
-            value={(() => {
-              const price = side === 'YES' ? yesPct : noPct;
-              return price > 0 ? `$${(amount / (price / 100)).toFixed(2)}` : '$0.00';
-            })()}
-            valueColor={YES_TEXT}
-            valueFont={`600 26px ${FONT_HEAD}`}
-          />
+          <Row label={t('marketDetails.avgPrice')} value={side === 'YES' ? `${yesPct}¢` : `${noPct}¢`} />
+          <Row label={t('marketDetails.odds')} value={side === 'YES' ? `${yesPct}%` : `${noPct}%`} valueFont={`500 20px ${FONT_HEAD}`} />
           {fees?.initialBetFee > 0 && !hasBetBefore && (
-            <Row label="First bet fee" value={`$${fees.initialBetFee}`} valueColor={NO_TEXT} />
+            <Row label={t('marketDetails.firstBetFee')} value={`$${fees.initialBetFee}`} valueColor={NO_TEXT} />
           )}
           {fees?.buySharesFee > 0 && (
-            <Row label="Trade fee" value={`$${fees.buySharesFee}`} valueColor={NO_TEXT} />
+            <Row label={t('marketDetails.tradeFee')} value={`$${fees.buySharesFee}`} valueColor={NO_TEXT} />
           )}
         </div>
       )}
@@ -638,7 +641,7 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
   const requestSaleQuote = (outcomeOverride, amountOverride = sellAmount) => {
     const outcomeToUse = outcomeOverride || selectedOutcome;
     if (!outcomeToUse) {
-      toast.error('Please select which shares you would like to sell.');
+      toast.error(t('marketDetails.selectSharesToSell'));
       return Promise.resolve(null);
     }
     const saleData = { marketId, outcome: outcomeToUse, amount: amountOverride };
@@ -654,7 +657,7 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
   const handleSaleSubmission = (outcomeOverride) => {
     const outcomeToUse = outcomeOverride || selectedOutcome;
     if (!outcomeToUse) {
-      toast.error('Please select which shares you would like to sell.');
+      toast.error(t('marketDetails.selectSharesToSell'));
       return;
     }
     const saleData = { marketId, outcome: outcomeToUse, amount: sellAmount };
@@ -663,7 +666,7 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
       .then(quote => {
         setSaleQuote(quote);
         if (!quote.allowed) {
-          toast.error(quote.message || 'Sale preview is not allowed. Try a different Sale Order amount.');
+          toast.error(quote.message || t('marketDetails.saleNotAllowed'));
           setIsSubmitting(false);
           return;
         }
@@ -679,13 +682,13 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
             onSuccess?.();
           },
           (error) => {
-            toast.error(`Sale failed: ${error.message}`);
+            toast.error(t('marketDetails.saleFailed', { message: error.message }));
             setIsSubmitting(false);
           }
         );
       })
       .catch(error => {
-        toast.error(`Sale quote failed: ${error.message}`);
+        toast.error(t('marketDetails.saleQuoteFailed', { message: error.message }));
         setIsSubmitting(false);
       });
   };
@@ -697,7 +700,7 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
   }
 
   if (shares.noSharesOwned < 1 && shares.yesSharesOwned < 1) {
-    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px ${FONT}`, color: MUTED2 }}>{t('marketDetails.selectOption')}</div>;
+    return <div style={{ padding: '24px 0', textAlign: 'center', font: `500 13px/1.5 ${FONT}`, color: MUTED2 }}>{t('marketDetails.noSellableShares')}</div>;
   }
 
   return (

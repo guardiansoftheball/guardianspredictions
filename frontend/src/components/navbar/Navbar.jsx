@@ -5,7 +5,6 @@ import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
   MarketsSVG,
-  PollsSVG,
   StatsSVG,
 } from "../../assets/components/SvgIcons";
 import LoginModal from "../modals/login/LoginModal";
@@ -24,7 +23,6 @@ import { WATCHLIST_PATH } from "../../hooks/useWatchToggle";
 const NAV_LINKS = [
   { labelKey: "nav.trending", to: "/", Icon: HomeSVG },
   { labelKey: "nav.markets", to: "/new-markets", Icon: MarketsSVG },
-  { labelKey: "nav.polls", to: "/", Icon: PollsSVG },
   { labelKey: "nav.stats", to: "/stats", Icon: StatsSVG },
 ];
 
@@ -189,7 +187,7 @@ const UserChip = ({
               color: COLOR.accent,
             }}
           >
-            🪙 {fmt(credit)}
+            ${fmt(credit)}
           </span>
         </div>
 
@@ -256,7 +254,7 @@ const UserChip = ({
                 marginTop: "3px",
               }}
             >
-              🪙 {fmt(credit)} {t('nav.credits')}
+              ${fmt(credit)}
             </div>
           </div>
 
@@ -657,6 +655,7 @@ const Navbar = ({ contentWidth } = {}) => {
 
       if (current > SCROLL_THRESHOLD) {
         setNavFixed(true);
+        if (Math.abs(current - prev) < 4) return;
         // scrolling down → hide, scrolling up → show
         setNavVisible(current < prev);
       } else {
@@ -676,7 +675,13 @@ const Navbar = ({ contentWidth } = {}) => {
 
   const handleLogout = () => {
     logout();
-    history.push("/");
+    const path = history.location.pathname;
+    const isPrivate =
+      path === "/newprofile" ||
+      ["/create", "/admin", "/changepassword", "/notifications", "/profile"].some(
+        (p) => path === p || path.startsWith(`${p}/`),
+      );
+    if (isPrivate) history.push("/");
   };
   const handleProfile = () => history.push("/newprofile");
   const handleMyBets = () => setBetsOpen(true);
@@ -966,14 +971,40 @@ const Navbar = ({ contentWidth } = {}) => {
       </nav>
 
       {/* ── MOBILE TOP BAR ── */}
-      <div className="relative z-20 flex lg:hidden items-center justify-center h-14 bg-transparent w-full">
+      <div className="relative z-20 flex lg:hidden items-center justify-between h-16 px-4 bg-transparent w-full">
         <Link to="/">
           <img
             src={logo}
             alt="Guardians Predict"
-            className="h-9 object-contain"
+            className="h-10 object-contain"
           />
         </Link>
+        {isLoggedIn ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleMyBets}
+              aria-label={`${t('nav.myBets')}: $${userCredit != null ? Math.round(userCredit) : "—"}`}
+              className="rounded-full px-2.5 py-1.5 text-[16px] font-semibold tabular-nums text-white"
+            >
+              {userCredit != null
+                ? "$" + (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit)))
+                : "—"}
+            </button>
+            <button
+              type="button"
+              onClick={handleProfile}
+              aria-label={t('nav.myProfile')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-[12px] font-bold text-white"
+            >
+              {(username || "?").slice(0, 2).toUpperCase()}
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={openLoginModal} className="text-[14px] font-medium text-white/85">
+            {t('nav.signIn')}
+          </button>
+        )}
       </div>
 
       {/* ── MOBILE "MORE" MENU ── */}
@@ -987,7 +1018,7 @@ const Navbar = ({ contentWidth } = {}) => {
               <div className="truncate text-[15px] font-semibold text-white">@{username}</div>
               <div className="text-[13px] text-white/50">
                 {userCredit != null
-                  ? (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit))) + " " + t('nav.credits')
+                  ? "$" + (userCredit >= 1000 ? (userCredit / 1000).toFixed(1) + "k" : String(Math.round(userCredit)))
                   : "—"}
               </div>
             </div>
@@ -1081,7 +1112,6 @@ const Navbar = ({ contentWidth } = {}) => {
           isOpen
           onClose={closeAuthModal}
           onLogin={login}
-          redirectAfterLogin={history.location.pathname}
           onSwitchToRegister={openRegisterModal}
           onForgotPassword={openForgotPasswordModal}
         />

@@ -48,7 +48,33 @@
     "max": "Max",
     "sharesSold": "Acciones vendidas",
     "loading": "Cargando...",
-    "loadingChart": "Cargando grafico..."
+    "loadingChart": "Cargando grafico...",
+    "noSellableShares": "Todavía no tenés acciones para vender. Se habilitan cuando otro usuario haga una orden después de la tuya.",
+    "signInToTrade": "Iniciá sesión para operar",
+    "needAccount": "Necesitás una cuenta para participar",
+    "odds": "Probabilidad",
+    "firstBetFee": "Comisión primera apuesta",
+    "tradeFee": "Comisión",
+    "betPlaced": "¡Listo! Apostaste {{amount}} a {{label}}.",
+    "tradersCount_one": "{{value}} trader",
+    "tradersCount_other": "{{value}} traders",
+    "selectSideFirst": "Elegí YES o NO primero.",
+    "minAmount": "El monto mínimo es 1.",
+    "purchasedLabel": "¡Compraste {{label}}!",
+    "betError": "No se pudo hacer la apuesta.",
+    "yourPosition": "Tu posición",
+    "invested": "Invertido {{amount}}",
+    "positionValue": "Valor {{value}}",
+    "sharesPending": "Tus acciones se asignan a medida que el mercado se mueve.",
+    "saleNotAllowed": "No se puede vender ese monto. Probá con otro.",
+    "saleFailed": "No se pudo vender: {{message}}",
+    "saleQuoteFailed": "No se pudo cotizar la venta: {{message}}",
+    "selectSharesToSell": "Elegí qué acciones querés vender.",
+    "sellable": "vendible",
+    "positionHelpLabel": "Cómo se calcula tu posición",
+    "positionHelp": "Tus acciones se recalculan con cada apuesta del mercado.",
+    "investedOf": "de {{amount}} invertidos",
+    "sharesPendingShort": "Acciones en cálculo"
   },
   "activity": {
     "bets": "Apuestas",
@@ -132,7 +158,8 @@
     "standings": "Posiciones",
     "knockouts": "Eliminatorias",
     "filtersTitle": "Filtros",
-    "all": "Todos los Mercados"
+    "all": "Todos los Mercados",
+    "allEvents": "Todos los eventos"
   },
   "nav": {
     "trending": "Tendencias",
@@ -247,7 +274,10 @@
     "decisionReasonPlaceholder": "Se requiere razon para el rechazo",
     "approveAnswer": "Aprobar respuesta",
     "reject": "Rechazar",
-    "performance": "Rendimiento"
+    "performance": "Rendimiento",
+    "pageInfo": "{{label}} · página {{page}} ({{from}}-{{to}} de {{total}})",
+    "previous": "Anterior",
+    "next": "Siguiente"
   },
   "auth": {
     "login": {
@@ -685,5 +715,18 @@
     "view": "Ver",
     "browse": "Explorar mercados",
     "mine": "Mis mercados"
+  },
+  "share": {
+    "title": "Compartir mercado",
+    "copyLink": "Copiar link",
+    "copyImage": "Copiar imagen",
+    "share": "Compartir",
+    "linkCopied": "¡Link copiado!",
+    "linkCopyFailed": "No se pudo copiar el link",
+    "imageCopied": "¡Imagen copiada!",
+    "imageCopyFailed": "No se pudo copiar la imagen",
+    "imageFailed": "No se pudo generar la imagen",
+    "tradersCount_one": "{{count}} trader",
+    "tradersCount_other": "{{count}} traders"
   }
 }

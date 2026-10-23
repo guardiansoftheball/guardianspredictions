@@ -49,6 +49,7 @@ import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
 import { SkeletonRows } from "../layouts/activity/dark/activityKit";
 import { OPTION_THEMES, getOptionTheme } from "../../styles/optionThemes";
+import PositionSummary, { normalizePosition } from "./PositionSummary";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT_BODY = FONT;
@@ -971,7 +972,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
               const prob = probs[item.idx];
               // Counts up with the entry animation (hover is off until then).
               const shown = prob * reveal;
-              const pctStr = shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
+              const pctStr = reveal < 1 || shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
               const delta = useRange ? rangeInfo.deltas[item.idx].delta : null;
               const deltaPct = delta != null ? Math.round(delta * 1000) / 10 : null;
               return (
@@ -1054,12 +1055,17 @@ function buildMCSaleSuccessMessage(data) {
   return `${base} Dust assessed: ${dust} credit${dust === 1 ? "" : "s"} retained by the market due to whole-share rounding.`;
 }
 
+const EMPTY_MC_SHARES = { yesSharesOwned: 0, noSharesOwned: 0, value: 0, yesSellableValue: 0, noSellableValue: 0 };
+
 function MCNormalizeShares(data) {
-  if (!data) return { yesSharesOwned: 0, value: 0 };
+  if (!data) return EMPTY_MC_SHARES;
   if (Array.isArray(data)) return MCNormalizeShares(data[0]);
   return {
     yesSharesOwned: data.yesSharesOwned ?? data.YesSharesOwned ?? 0,
+    noSharesOwned: data.noSharesOwned ?? data.NoSharesOwned ?? 0,
     value: data.value ?? data.Value ?? 0,
+    yesSellableValue: data.yesSellableValue ?? 0,
+    noSellableValue: data.noSellableValue ?? 0,
   };
 }
 
@@ -1279,8 +1285,11 @@ function MultiChoiceTradePanel({
   const buyTimers = useRef({});
 
   // sell state
-  const [sellShares, setSellShares] = useState({ yesSharesOwned: 0, value: 0 });
+  const [sellShares, setSellShares] = useState(EMPTY_MC_SHARES);
+  const [sellOutcome, setSellOutcome] = useState("YES");
   const [sellSharesLoading, setSellSharesLoading] = useState(false);
+  const [position, setPosition] = useState(null);
+  const [positionTick, setPositionTick] = useState(0);
   const [sellAmount, setSellAmount] = useState(1);
   const [saleQuote, setSaleQuote] = useState(null);
   const [quoteError, setQuoteError] = useState("");
@@ -1293,6 +1302,18 @@ function MultiChoiceTradePanel({
   const selectedMarketId = selectedAnswer?.marketId;
   const currentProb = selectedAnswer ? getAnswerProb(selectedAnswer) : 0.5;
   const priceCents = Math.round(currentProb * 100);
+
+  useEffect(() => {
+    if (!token || !selectedMarketId) {
+      setPosition(null);
+      return undefined;
+    }
+    let cancelled = false;
+    fetchUserShares(selectedMarketId, token)
+      .then((data) => { if (!cancelled) setPosition(normalizePosition(data)); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [token, selectedMarketId, positionTick]);
 
   // Fetch projection on answer, amount or live price change
   useEffect(() => {
@@ -1321,7 +1342,7 @@ function MultiChoiceTradePanel({
   // Load shares for selected answer when switching to sell tab
   useEffect(() => {
     if (tab !== "sell" || !token || !selectedMarketId) {
-      setSellShares({ yesSharesOwned: 0, value: 0 });
+      setSellShares(EMPTY_MC_SHARES);
       setSaleQuote(null);
       setQuoteError("");
       return;
@@ -1329,13 +1350,17 @@ function MultiChoiceTradePanel({
     setSellSharesLoading(true);
     fetchUserShares(selectedMarketId, token)
       .then((data) => {
-        setSellShares(MCNormalizeShares(data));
-        setSellAmount(Math.max(1, Number(MCNormalizeShares(data).value) || 1));
+        const normalized = MCNormalizeShares(data);
+        const outcome = normalized.yesSharesOwned >= 1 || normalized.noSharesOwned < 1 ? "YES" : "NO";
+        setSellShares(normalized);
+        setSellOutcome(outcome);
+        const sellable = outcome === "YES" ? normalized.yesSellableValue : normalized.noSellableValue;
+        setSellAmount(Math.max(1, Number(sellable || normalized.value) || 1));
         setSaleQuote(null);
         setQuoteError("");
       })
       .catch(() => {
-        setSellShares({ yesSharesOwned: 0, value: 0 });
+        setSellShares(EMPTY_MC_SHARES);
       })
       .finally(() => setSellSharesLoading(false));
   }, [tab, selectedMarketId, token]);
@@ -1354,7 +1379,7 @@ function MultiChoiceTradePanel({
       .then((data) => { if (!cancelled) setSellShares(MCNormalizeShares(data)); })
       .catch(() => {});
     if (saleQuote && !isSellSubmitting) {
-      fetchSaleQuote({ marketId: selectedMarketId, outcome: "YES", amount: sellAmount }, token)
+      fetchSaleQuote({ marketId: selectedMarketId, outcome: sellOutcome, amount: sellAmount }, token)
         .then((q) => { if (!cancelled) setSaleQuote(q); })
         .catch(() => {});
     }
@@ -1367,7 +1392,7 @@ function MultiChoiceTradePanel({
     setIsQuoteLoading(true);
     setQuoteError("");
     fetchSaleQuote(
-      { marketId: selectedAnswer.marketId, outcome: "YES", amount: sellAmount },
+      { marketId: selectedAnswer.marketId, outcome: sellOutcome, amount: sellAmount },
       token,
     )
       .then((q) => setSaleQuote(q))
@@ -1383,14 +1408,14 @@ function MultiChoiceTradePanel({
     setIsSellSubmitting(true);
     const saleData = {
       marketId: selectedAnswer.marketId,
-      outcome: "YES",
+      outcome: sellOutcome,
       amount: sellAmount,
     };
     fetchSaleQuote(saleData, token)
       .then((quote) => {
         setSaleQuote(quote);
         if (!quote.allowed) {
-          toast.error(quote.message || "Sale not allowed. Try a different amount.");
+          toast.error(quote.message || t("marketDetails.saleNotAllowed"));
           setIsSellSubmitting(false);
           return;
         }
@@ -1399,7 +1424,8 @@ function MultiChoiceTradePanel({
           token,
           (data) => {
             toast.success(buildMCSaleSuccessMessage(data));
-            setSellShares({ yesSharesOwned: 0, value: 0 });
+            setSellShares(EMPTY_MC_SHARES);
+            setPositionTick((n) => n + 1);
             setSellAmount(1);
             setSaleQuote(null);
             setIsSellSubmitting(false);
@@ -1407,13 +1433,13 @@ function MultiChoiceTradePanel({
             onSuccess?.();
           },
           (err) => {
-            toast.error(`Sale failed: ${err.message}`);
+            toast.error(t("marketDetails.saleFailed", { message: err.message }));
             setIsSellSubmitting(false);
           },
         );
       })
       .catch((err) => {
-        toast.error(`Sale quote failed: ${err.message}`);
+        toast.error(t("marketDetails.saleQuoteFailed", { message: err.message }));
         setIsSellSubmitting(false);
       });
   };
@@ -1452,6 +1478,7 @@ function MultiChoiceTradePanel({
         setBuyPhase("success");
         clearTimeout(buyTimers.current.reset);
         buyTimers.current.reset = setTimeout(() => setBuyPhase("idle"), 2800);
+        setPositionTick((n) => n + 1);
         window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
         onSuccess?.();
       },
@@ -1470,10 +1497,6 @@ function MultiChoiceTradePanel({
   // Stats — adjust for YES vs NO
   const outcomeProb = buyOutcome === "YES" ? currentProb : 1 - currentProb;
   const priceCentsOutcome = Math.round(outcomeProb * 100);
-  const shares =
-    amount > 0 && outcomeProb > 0 ? (amount / outcomeProb).toFixed(2) : "—";
-  const potReturn =
-    amount > 0 && outcomeProb > 0 ? (amount / outcomeProb).toFixed(2) : "—";
 
   if (answers.some((a) => a.market?.market?.isResolved)) {
     return <GroupResolvedPanel answers={answers} t={t} />;
@@ -1522,10 +1545,10 @@ function MultiChoiceTradePanel({
               transition: "color .15s",
             }}
           >
-            Sign in to trade
+            {t('marketDetails.signInToTrade')}
           </div>
           <div style={{ font: `500 12px ${FONT_BODY}`, color: MUTED3 }}>
-            You need an account to participate
+            {t('marketDetails.needAccount')}
           </div>
         </div>
         <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} onForgotPassword={() => { setIsLoginModalOpen(false); setIsForgotPasswordOpen(true); }} />
@@ -1565,7 +1588,9 @@ function MultiChoiceTradePanel({
     );
   }
 
-  const maxSellCredits = Math.max(0, Number(sellShares.value) || 0);
+  const sideSellable = sellOutcome === "YES" ? sellShares.yesSellableValue : sellShares.noSellableValue;
+  const maxSellCredits = Math.max(0, Number(sideSellable || sellShares.value) || 0);
+  const sideShares = sellOutcome === "YES" ? sellShares.yesSharesOwned : sellShares.noSharesOwned;
   const isSellActionDisabled =
     sellSharesLoading || isSellSubmitting || isQuoteLoading;
 
@@ -1582,6 +1607,8 @@ function MultiChoiceTradePanel({
           onClick={() => handleSelect(i)}
         />
       ))}
+
+      <PositionSummary position={position} optionLabel={selectedAnswer?.answerLabel} dotColor={selectedTheme.color} />
 
       {/* Buy / Sell tab bar */}
       <div
@@ -1777,12 +1804,6 @@ function MultiChoiceTradePanel({
                     : "—"
               }
             />
-            <StatRow label={t('marketDetails.shares')} value={shares} />
-            <StatRow
-              label={t('marketDetails.potentialReturn')}
-              value={potReturn !== "—" ? `$${potReturn}` : "—"}
-              valueColor={YES_TEXT}
-            />
           </div>
 
           {error && (
@@ -1950,7 +1971,7 @@ function MultiChoiceTradePanel({
             >
               {t('marketDetails.loadingPositions')}
             </div>
-          ) : sellShares.yesSharesOwned < 1 ? (
+          ) : sellShares.yesSharesOwned < 1 && sellShares.noSharesOwned < 1 ? (
             <div
               style={{
                 textAlign: "center",
@@ -1959,10 +1980,39 @@ function MultiChoiceTradePanel({
                 padding: "16px 0",
               }}
             >
-              {t('marketDetails.noShares', { label: selectedAnswer.answerLabel })}
+              {t('marketDetails.noSellableShares')}
             </div>
           ) : (
             <>
+              {sellShares.yesSharesOwned >= 1 && sellShares.noSharesOwned >= 1 && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {["YES", "NO"].map((side) => (
+                    <button
+                      key={side}
+                      type="button"
+                      onClick={() => {
+                        setSellOutcome(side);
+                        setSaleQuote(null);
+                        setQuoteError("");
+                        setSellAmount(1);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "9px",
+                        borderRadius: "999px",
+                        font: `700 13px ${FONT_BODY}`,
+                        cursor: "pointer",
+                        border: `1px solid ${sellOutcome === side ? (side === "YES" ? "rgba(186,214,89,0.55)" : "rgba(251,91,107,0.55)") : "rgba(255,255,255,0.08)"}`,
+                        background: sellOutcome === side ? (side === "YES" ? "rgba(186,214,89,0.10)" : "rgba(251,91,107,0.10)") : "transparent",
+                        color: sellOutcome === side ? (side === "YES" ? YES_TEXT : NO_TEXT) : MUTED,
+                      }}
+                    >
+                      {side}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Shares badge */}
               <div
                 style={{
@@ -1971,8 +2021,8 @@ function MultiChoiceTradePanel({
                   justifyContent: "space-between",
                   padding: "12px 16px",
                   borderRadius: "12px",
-                  background: "rgba(186,214,89,0.08)",
-                  border: "1px solid rgba(186,214,89,0.20)",
+                  background: sellOutcome === "YES" ? "rgba(186,214,89,0.08)" : "rgba(251,91,107,0.08)",
+                  border: sellOutcome === "YES" ? "1px solid rgba(186,214,89,0.20)" : "1px solid rgba(251,91,107,0.20)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1981,24 +2031,24 @@ function MultiChoiceTradePanel({
                       width: "8px",
                       height: "8px",
                       borderRadius: "50%",
-                      background: YES_GREEN,
+                      background: sellOutcome === "YES" ? YES_GREEN : NO_RED,
                       flexShrink: 0,
                     }}
                   />
                   <span style={{ font: `600 14px ${FONT_BODY}`, color: TEXT }}>
-                    {selectedAnswer.answerLabel}
+                    {selectedAnswer.answerLabel} · {sellOutcome}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ font: `800 16px ${FONT_HEAD}`, color: TEXT }}>
-                      {sellShares.yesSharesOwned} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>shares</span>
+                      {sideShares} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>{t("marketDetails.shares").toLowerCase()}</span>
                     </div>
                   </div>
                   <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.10)" }} />
                   <div style={{ textAlign: "right" }}>
                     <div style={{ font: `800 16px ${FONT_HEAD}`, color: YES_TEXT }}>
-                      {sellShares.value} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>value</span>
+                      ${maxSellCredits} <span style={{ font: `500 11px ${FONT_BODY}`, color: MUTED }}>{t("marketDetails.sellable")}</span>
                     </div>
                   </div>
                 </div>
@@ -2780,6 +2830,7 @@ function MarketLayout({
   // becomes a horizontal chip row and the trade panel narrows. Its column is
   // reserved while tags load so the layout doesn't shift when they arrive.
   const isCompact = useIsMobile(1280);
+  const hasMobileNav = useIsMobile(1024);
   const showTagSidebar = !isMobile && !isCompact && (allTags.length > 0 || !tagsLoaded);
   const [activityTab, setActivityTab] = useState(null);
   const activityRef = useRef(null);
@@ -2838,7 +2889,7 @@ function MarketLayout({
               strokeLinejoin="round"
             />
           </svg>
-          Markets
+          {t('nav.markets')}
         </Link>
       </div>
 
@@ -2854,15 +2905,16 @@ function MarketLayout({
       )}
 
       {/* ── Header ── */}
-      <div style={{ marginBottom: isMobile ? "16px" : "24px" }}>
+      <div style={{ marginBottom: isMobile ? "20px" : "24px" }}>
         <div style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: "16px",
-          marginBottom: "12px",
+          gap: isMobile ? "14px" : "16px",
+          marginBottom: isMobile ? "16px" : "12px",
         }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : undefined }}>
             <h1
               style={{
                 margin: 0,
@@ -2882,6 +2934,8 @@ function MarketLayout({
                 setActivityTab(t('activity.comments'));
                 setTimeout(() => activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
               }}
+              aria-label={t('activity.comments')}
+              title={t('activity.comments')}
               style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
               onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
@@ -2893,6 +2947,8 @@ function MarketLayout({
             {/* Share */}
             <button
               onClick={() => setShowShareModal(true)}
+              aria-label={t('share.share')}
+              title={t('share.share')}
               style={{ background: "none", border: "none", padding: "4px", cursor: "pointer", display: "flex", opacity: 0.7 }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
               onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
@@ -3003,7 +3059,7 @@ function MarketLayout({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                {fmt(numUsers)} {t('marketDetails.traders')}
+                {t('marketDetails.tradersCount', { count: numUsers, value: fmt(numUsers) })}
               </span>
             </>
           )}
@@ -3019,7 +3075,7 @@ function MarketLayout({
             gap: "8px",
             overflowX: "auto",
             scrollbarWidth: "none",
-            margin: isMobile ? "0 0 16px" : "0 0 24px",
+            margin: isMobile ? "0 0 28px" : "0 0 24px",
             paddingBottom: "2px",
           }}
         >
@@ -3157,10 +3213,10 @@ function MarketLayout({
         )}
 
         {/* CENTER */}
-        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "22px" : "30px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "36px" : "30px" }}>
           {/* Trade panel on mobile */}
           {isMobile && (
-            <div style={{ ...MARKET_CARD, padding: "16px" }}>
+            <div style={{ ...MARKET_CARD, padding: 0 }}>
               {loading ? (previewTradePanel ?? <TradePanelSkeleton options={previewOptions} binary={previewBinary} />) : tradePanelContent}
             </div>
           )}
@@ -3251,7 +3307,7 @@ function MarketLayout({
               ...MARKET_CARD,
               border: "none",
               padding: "0",
-              position: "sticky",
+              position: hasMobileNav ? "static" : "sticky",
               top: "100px",
             }}
           >
@@ -3926,7 +3982,7 @@ function BinaryChart({
               const prob = probs[item.idx];
               // Counts up with the entry animation (hover is off until then).
               const shown = prob * reveal;
-              const pctStr = shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
+              const pctStr = reveal < 1 || shown >= 0.01 ? `${Math.round(shown * 100)}%` : `${(shown * 100).toFixed(1)}%`;
               const deltaPct = deltas ? Math.round(deltas[item.idx] * 1000) / 10 : null;
               return (
                 <div key={item.idx} style={{
@@ -4329,6 +4385,7 @@ function ClosedPanel({ yesLabel, noLabel, yesPct, noPct }) {
 
 // ─── Not logged in panel ──────────────────────────────────────────────────────
 function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -4402,10 +4459,10 @@ function NotLoggedInPanel({ yesLabel, noLabel, yesPct, noPct }) {
             transition: "color .15s",
           }}
         >
-          Sign in to trade
+          {t('marketDetails.signInToTrade')}
         </div>
         <div style={{ font: `500 12px ${FONT_BODY}`, color: MUTED3 }}>
-          You need an account to participate
+          {t('marketDetails.needAccount')}
         </div>
       </div>
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={login} onForgotPassword={() => { setIsLoginModalOpen(false); setIsForgotPasswordOpen(true); }} />

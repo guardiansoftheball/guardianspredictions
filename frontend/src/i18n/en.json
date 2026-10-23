@@ -48,7 +48,33 @@
     "max": "Max",
     "sharesSold": "Shares sold",
     "loading": "Loading...",
-    "loadingChart": "Loading chart..."
+    "loadingChart": "Loading chart...",
+    "noSellableShares": "No sellable shares yet. They become available once another user places an order after yours.",
+    "signInToTrade": "Sign in to trade",
+    "needAccount": "You need an account to participate",
+    "odds": "Odds",
+    "firstBetFee": "First bet fee",
+    "tradeFee": "Trade fee",
+    "betPlaced": "Bet placed! {{amount}} on {{label}}.",
+    "tradersCount_one": "{{value}} trader",
+    "tradersCount_other": "{{value}} traders",
+    "selectSideFirst": "Select YES or NO first.",
+    "minAmount": "Minimum amount is 1.",
+    "purchasedLabel": "Purchased {{label}}!",
+    "betError": "Error placing the bet.",
+    "yourPosition": "Your position",
+    "invested": "Invested {{amount}}",
+    "positionValue": "Value {{value}}",
+    "sharesPending": "Your shares are assigned as the market moves.",
+    "saleNotAllowed": "Sale not allowed. Try a different amount.",
+    "saleFailed": "Sale failed: {{message}}",
+    "saleQuoteFailed": "Sale quote failed: {{message}}",
+    "selectSharesToSell": "Please select which shares you would like to sell.",
+    "sellable": "sellable",
+    "positionHelpLabel": "How your position is calculated",
+    "positionHelp": "Your shares are recalculated with every bet in the market.",
+    "investedOf": "of {{amount}} invested",
+    "sharesPendingShort": "Shares pending"
   },
   "activity": {
     "bets": "Bets",
@@ -132,7 +158,8 @@
     "standings": "Standings",
     "knockouts": "Knockouts",
     "filtersTitle": "Filters",
-    "all": "All Markets"
+    "all": "All Markets",
+    "allEvents": "All Events"
   },
   "nav": {
     "trending": "Trending",
@@ -247,7 +274,10 @@
     "decisionReasonPlaceholder": "Decision reason required for rejection",
     "approveAnswer": "Approve answer",
     "reject": "Reject",
-    "performance": "Performance"
+    "performance": "Performance",
+    "pageInfo": "{{label}} · page {{page}} ({{from}}-{{to}} of {{total}})",
+    "previous": "Previous",
+    "next": "Next"
   },
   "auth": {
     "login": {
@@ -685,5 +715,18 @@
     "view": "View",
     "browse": "Browse markets",
     "mine": "My markets"
+  },
+  "share": {
+    "title": "Share market",
+    "copyLink": "Copy link",
+    "copyImage": "Copy image",
+    "share": "Share",
+    "linkCopied": "Link copied!",
+    "linkCopyFailed": "Failed to copy link",
+    "imageCopied": "Image copied!",
+    "imageCopyFailed": "Failed to copy image",
+    "imageFailed": "Failed to generate image",
+    "tradersCount_one": "{{count}} trader",
+    "tradersCount_other": "{{count}} traders"
   }
 }

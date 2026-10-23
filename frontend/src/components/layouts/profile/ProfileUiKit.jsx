@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { CARD, FONT, FONT_HEAD, COLOR } from "../../../styles/darkTokens";
 
 // Shared building blocks for the dark / glassmorphism profile UI, used by both
@@ -221,6 +222,7 @@ export const pagedRows = (rows = [], page = 0, pageSize = PAGE_SIZE) => {
 };
 
 export const Pagination = ({ label, pageInfo, onPageChange }) => {
+  const { t } = useTranslation();
   if (!pageInfo.total) return null;
   return (
     <div
@@ -233,7 +235,7 @@ export const Pagination = ({ label, pageInfo, onPageChange }) => {
       }}
     >
       <div style={{ font: `600 11px ${FONT}`, letterSpacing: ".08em", color: MUTED2, textTransform: "uppercase" }}>
-        {label} · page {pageInfo.currentPage + 1} ({pageInfo.start + 1}-{pageInfo.start + pageInfo.rows.length} of {pageInfo.total})
+        {t('profile.pageInfo', { label, page: pageInfo.currentPage + 1, from: pageInfo.start + 1, to: pageInfo.start + pageInfo.rows.length, total: pageInfo.total })}
       </div>
       <div style={{ display: "flex", gap: "6px" }}>
         <GhostButton
@@ -241,14 +243,14 @@ export const Pagination = ({ label, pageInfo, onPageChange }) => {
           disabled={!pageInfo.hasPrevious}
           onClick={() => onPageChange((current) => Math.max(0, current - 1))}
         >
-          Previous
+          {t('profile.previous')}
         </GhostButton>
         <GhostButton
           tone="neutral"
           disabled={!pageInfo.hasNext}
           onClick={() => onPageChange((current) => current + 1)}
         >
-          Next
+          {t('profile.next')}
         </GhostButton>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useToast } from "../../../hooks/useToast";
 import { FONT, FONT_HEAD, COLOR } from "../../../styles/darkTokens";
 import logoSrc from "../../../assets/logo/logo.png";
@@ -313,6 +314,7 @@ export default function ShareModal({
   probabilityChanges,
   marketId,
 }) {
+  const { t } = useTranslation();
   const toast = useToast();
   const cardRef = useRef(null);
 
@@ -323,10 +325,10 @@ export default function ShareModal({
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(marketUrl).then(
-      () => toast.success("Link copied!"),
-      () => toast.error("Failed to copy link"),
+      () => toast.success(t('share.linkCopied')),
+      () => toast.error(t('share.linkCopyFailed')),
     );
-  }, [marketUrl, toast]);
+  }, [marketUrl, toast, t]);
 
   const handleCopyImage = useCallback(async () => {
     const el = cardRef.current;
@@ -339,20 +341,20 @@ export default function ShareModal({
         useCORS: true,
       });
       canvas.toBlob(async (blob) => {
-        if (!blob) { toast.error("Failed to generate image"); return; }
+        if (!blob) { toast.error(t('share.imageFailed')); return; }
         try {
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          toast.success("Image copied!");
+          toast.success(t('share.imageCopied'));
         } catch {
-          toast.error("Failed to copy image");
+          toast.error(t('share.imageCopyFailed'));
         }
       }, "image/png");
     } catch {
-      toast.error("Failed to generate image");
+      toast.error(t('share.imageFailed'));
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleShareX = useCallback(() => {
     const probText = answers.length > 0
@@ -404,7 +406,7 @@ export default function ShareModal({
             font: `700 18px ${FONT_HEAD}`,
             color: COLOR.text,
           }}>
-            Share Market
+            {t('share.title')}
           </h2>
           <button
             onClick={onClose}
@@ -514,7 +516,7 @@ export default function ShareModal({
                 {numUsers > 0 && (
                   <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
-                    {numUsers} traders
+                    {t('share.tradersCount', { count: numUsers })}
                   </span>
                 )}
                 {totalVolume > 0 && (
@@ -569,20 +571,20 @@ export default function ShareModal({
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
-            Copy Link
+            {t('share.copyLink')}
           </ShareButton>
           <ShareButton onClick={handleCopyImage} variant="secondary">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
-            Copy Image
+            {t('share.copyImage')}
           </ShareButton>
           <ShareButton onClick={handleShareX} variant="primary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
             </svg>
-            Share
+            {t('share.share')}
           </ShareButton>
         </div>
       </div>

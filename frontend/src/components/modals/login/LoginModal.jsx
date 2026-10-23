@@ -27,10 +27,13 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
   const [loading, setLoading]   = useState(false);
   const history = useHistory();
 
+  const currentPath = () => history.location.pathname + history.location.search;
+
   const getPostLoginDestination = (mustChangePassword) => {
     if (mustChangePassword) return "/changepassword";
-    const safeRedirects = new Set(["/", "/about", "/markets", "/polls", "/stats", "/style", "/new-markets"]);
-    return safeRedirects.has(redirectAfterLogin) ? redirectAfterLogin : "/new-markets";
+    const target = redirectAfterLogin || currentPath();
+    const isInternal = typeof target === "string" && target.startsWith("/") && !target.startsWith("//");
+    return isInternal ? target : "/new-markets";
   };
 
   const handleSubmit = async (e) => {
@@ -41,7 +44,8 @@ const LoginModal = ({ isOpen, onClose, onLogin, redirectAfterLogin, onSwitchToRe
       const result = await onLogin(username.trim(), password);
       if (result?.success) {
         onClose();
-        history.push(getPostLoginDestination(result.mustChangePassword));
+        const destination = getPostLoginDestination(result.mustChangePassword);
+        if (destination !== currentPath()) history.push(destination);
       }
     } catch (err) {
       setError(err.message || t('auth.login.loginError'));

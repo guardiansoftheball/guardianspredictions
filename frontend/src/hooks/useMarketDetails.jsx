@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom/cjs/react-router-dom';
 import { API_URL } from '../config';
 import { usePollWhileVisible } from './usePollWhileVisible';
+import { useAuth } from '../helpers/AuthContent';
 
 // How often the open market page re-fetches so the chart and price follow
 // other users' trades without a reload.
@@ -256,8 +257,7 @@ const calculateCurrentProbability = (details) => {
 export const useMarketDetails = () => {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [token, setToken] = useState(null);
+  const { isLoggedIn, token } = useAuth();
   const [currentProbability, setCurrentProbability] = useState(0);
   const { marketId } = useParams();
   const [triggerRefresh, setTriggerRefresh] = useState(0);
@@ -270,12 +270,6 @@ export const useMarketDetails = () => {
     pollingRef.current = true;
     setTriggerRefresh((prev) => prev + 1);
   }, LIVE_REFRESH_MS);
-
-  useEffect(() => {
-    const fetchedToken = localStorage.getItem('token');
-    setToken(fetchedToken);
-    setIsLoggedIn(!!fetchedToken);
-  }, []);
 
   // Clear details only when navigating to a different market
   useEffect(() => {
