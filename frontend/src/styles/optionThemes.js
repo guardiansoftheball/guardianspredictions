@@ -1,22 +1,22 @@
-// Per-option colors: first=green, last=red, middles=neutral/purple/orange/teal.
+// Per-option colors: first=blue, last=red, middles=neutral/purple/orange/teal.
 export const OPTION_THEMES = [
   {
-    color: "#BAD659",
-    text: "#C6E06C",
-    bg: "rgba(186,214,89,0.10)",
-    border: "rgba(186,214,89,0.28)",
-    activeBorder: "rgba(186,214,89,0.55)",
-    gradient: "linear-gradient(180deg,#BAD659,#AABA49)",
-    shadow: "0 8px 22px rgba(186,214,89,0.30)",
+    color: "#60a5fa",
+    text: "#93c5fd",
+    bg: "rgba(96,165,250,0.10)",
+    border: "rgba(96,165,250,0.26)",
+    activeBorder: "rgba(96,165,250,0.55)",
+    gradient: "linear-gradient(180deg,#60a5fa,#2563eb)",
+    shadow: "0 8px 22px rgba(96,165,250,0.28)",
   },
   {
-    color: "#fb5b6b",
-    text: "#fb8b96",
-    bg: "rgba(251,91,107,0.10)",
-    border: "rgba(251,91,107,0.25)",
-    activeBorder: "rgba(251,91,107,0.55)",
-    gradient: "linear-gradient(180deg,#fb5b6b,#e11d48)",
-    shadow: "0 8px 22px rgba(244,63,94,0.28)",
+    color: "#e0605a",
+    text: "#eb8a84",
+    bg: "rgba(224,96,90,0.10)",
+    border: "rgba(224,96,90,0.25)",
+    activeBorder: "rgba(224,96,90,0.55)",
+    gradient: "linear-gradient(180deg,#e0605a,#c2443e)",
+    shadow: "0 8px 22px rgba(224,96,90,0.26)",
   },
   {
     color: "#6b7f96",
@@ -55,6 +55,26 @@ export const OPTION_THEMES = [
     shadow: "0 8px 22px rgba(79,209,197,0.24)",
   },
 ];
+
+// YES/NO keep green/red.
+export const YES_THEME = {
+  color: "#BAD659",
+  text: "#C6E06C",
+  bg: "rgba(186,214,89,0.10)",
+  border: "rgba(186,214,89,0.28)",
+  activeBorder: "rgba(186,214,89,0.55)",
+  gradient: "linear-gradient(180deg,#BAD659,#AABA49)",
+  shadow: "0 8px 22px rgba(186,214,89,0.30)",
+};
+export const NO_THEME = {
+  color: "#fb5b6b",
+  text: "#fb8b96",
+  bg: "rgba(251,91,107,0.10)",
+  border: "rgba(251,91,107,0.25)",
+  activeBorder: "rgba(251,91,107,0.55)",
+  gradient: "linear-gradient(180deg,#fb5b6b,#e11d48)",
+  shadow: "0 8px 22px rgba(244,63,94,0.28)",
+};
 
 export function getOptionTheme(index, total) {
   if (total === 1) return OPTION_THEMES[0];

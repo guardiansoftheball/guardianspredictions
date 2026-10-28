@@ -24,7 +24,6 @@ import {
   thinXLabels,
 } from "../charts/chartUtils";
 import ActivityTabs from "../tabs/ActivityTabs";
-import NewTradePanel from "./NewTradePanel";
 import ResolveModalButton from "../modals/resolution/ResolveModalDark";
 import ResolutionAlert from "../resolutions/ResolutionAlert";
 import { stewardUsernameFor } from "../markets/StewardTag";
@@ -48,8 +47,10 @@ import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
 import { useAuth } from "../../helpers/AuthContent";
 import { listMarketTags } from "../../api/marketTagsApi";
 import { SkeletonRows } from "../layouts/activity/dark/activityKit";
-import { OPTION_THEMES, getOptionTheme } from "../../styles/optionThemes";
+import { YES_THEME, NO_THEME, getOptionTheme } from "../../styles/optionThemes";
 import PositionSummary, { normalizePosition } from "./PositionSummary";
+import RelatedMarkets from "./RelatedMarkets";
+import AmountInput from "./AmountInput";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT_BODY = FONT;
@@ -81,12 +82,28 @@ function SkelBar({ w = "100%", h = 12, r = 6, style }) {
   );
 }
 
+const TRADE_KEYFRAMES = `
+      @keyframes gp-pulse { 0%,100%{opacity:.7;transform:scale(.9)} 50%{opacity:1;transform:scale(1)} }
+      @keyframes gp-pulse-ring { 0%{opacity:.6;transform:scale(.8)} 100%{opacity:0;transform:scale(2)} }
+      @keyframes mcPulse { 0%,100%{width:10px;height:10px;opacity:0.55} 50%{width:30px;height:30px;opacity:0} }
+      @keyframes btn-shine{0%{transform:translateX(-160%) skewX(-18deg)}100%{transform:translateX(220%) skewX(-18deg)}}
+      @keyframes btn-ripple{0%{transform:scale(0);opacity:.55}100%{transform:scale(1);opacity:0}}
+      @keyframes btn-bounce{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+      @keyframes btn-check-draw{0%{stroke-dashoffset:26}100%{stroke-dashoffset:0}}
+      @keyframes btn-circle-draw{0%{stroke-dashoffset:63}100%{stroke-dashoffset:0}}
+      @keyframes btn-label-in{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+      @keyframes btn-success-pop{0%{transform:scale(.97)}45%{transform:scale(1.03)}100%{transform:scale(1)}}
+`;
+
 // Entry animation for a chart: progress 0 → 1 over `ms`, eased out. Lines are
 // revealed left to right and the end percentages count up with it; hover is
-// off until it finishes. Reduced motion skips straight to the end.
-function useChartReveal(ms = 900) {
+// off until it finishes. Reduced motion skips straight to the end. It only
+// plays once per market: refetches that remount the chart don't replay it.
+let revealedChartKey = null;
+function useChartReveal(key, ms = 900) {
   const [progress, setProgress] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 1 : 0,
+    (key != null && revealedChartKey === key) ||
+    (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) ? 1 : 0,
   );
   useEffect(() => {
     if (progress === 1) return undefined;
@@ -96,6 +113,7 @@ function useChartReveal(ms = 900) {
       const x = Math.min(1, (now - start) / ms);
       setProgress(1 - Math.pow(1 - x, 3));
       if (x < 1) raf = requestAnimationFrame(tick);
+      else revealedChartKey = key;
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -405,19 +423,7 @@ const LivePulse = () => (
       }} />
     </span>
     <span style={{ font: `600 11px ${FONT_BODY}`, color: "#4ade80", letterSpacing: ".04em" }}>LIVE</span>
-    <style>{`
-      @keyframes gp-pulse { 0%,100%{opacity:.7;transform:scale(.9)} 50%{opacity:1;transform:scale(1)} }
-      @keyframes gp-pulse-ring { 0%{opacity:.6;transform:scale(.8)} 100%{opacity:0;transform:scale(2)} }
-      @keyframes gp-mcBrandPulse { 0%,100%{box-shadow:0 0 20px rgba(156,201,241,0.35),0 4px 12px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 28px rgba(156,201,241,0.5),0 6px 16px rgba(0,0,0,0.3)} }
-      @keyframes mcPulse { 0%,100%{width:10px;height:10px;opacity:0.55} 50%{width:30px;height:30px;opacity:0} }
-      @keyframes btn-shine{0%{transform:translateX(-160%) skewX(-18deg)}100%{transform:translateX(220%) skewX(-18deg)}}
-      @keyframes btn-ripple{0%{transform:scale(0);opacity:.55}100%{transform:scale(1);opacity:0}}
-      @keyframes btn-bounce{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
-      @keyframes btn-check-draw{0%{stroke-dashoffset:26}100%{stroke-dashoffset:0}}
-      @keyframes btn-check-ring{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
-      @keyframes btn-label-in{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
-      @keyframes btn-success-pop{0%{transform:scale(.97)}45%{transform:scale(1.03)}100%{transform:scale(1)}}
-    `}</style>
+    <style>{TRADE_KEYFRAMES}</style>
   </span>
 );
 
@@ -656,7 +662,7 @@ function MultiOptionChart({ answers, selectedIdx, onSelectIdx }) {
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
-  const reveal = useChartReveal();
+  const reveal = useChartReveal(answers.map((a) => a.marketId).join(","));
   const revealing = reveal < 1;
 
   const onMove = (e) => {
@@ -1224,8 +1230,8 @@ function MCSellQuotePanel({ quote, quoteError, isLoading, onSelectAmount }) {
   );
 }
 
-function MCYesNoButton({ label, active, onClick }) {
-  const isYes = label === "YES";
+function MCYesNoButton({ outcome, label, price, active, onClick }) {
+  const isYes = outcome === "YES";
   const accentText = isYes ? "#C6E06C" : "#fb8b96";
 
   return (
@@ -1249,7 +1255,7 @@ function MCYesNoButton({ label, active, onClick }) {
         color: active ? "#000" : accentText,
       }}
     >
-      {label}
+      {label}{price != null && ` ${price}¢`}
     </button>
   );
 }
@@ -1263,9 +1269,18 @@ function MultiChoiceTradePanel({
   isLoggedIn,
   isMarketOpen,
   onSuccess,
+  binary = false,
+  yesLabel,
+  noLabel,
+  onSideChange,
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const sideLabel = (o) => {
+    const custom = o === "YES" ? yesLabel : noLabel;
+    const key = o === "YES" ? "yes" : "no";
+    return !custom || custom.toLowerCase() === key ? t(`activity.${key}`) : custom;
+  };
   const { login } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -1300,6 +1315,9 @@ function MultiChoiceTradePanel({
   // Answer objects are replaced on every live poll; effects key off the id so
   // a poll alone doesn't reset what the user typed.
   const selectedMarketId = selectedAnswer?.marketId;
+  const optionSuffix = binary ? "" : ` — ${selectedAnswer?.answerLabel || "Option"}`;
+
+  useEffect(() => { onSideChange?.(buyOutcome); }, [buyOutcome, onSideChange]);
   const currentProb = selectedAnswer ? getAnswerProb(selectedAnswer) : 0.5;
   const priceCents = Math.round(currentProb * 100);
 
@@ -1597,7 +1615,7 @@ function MultiChoiceTradePanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       {/* Option rows */}
-      {answers.map((a, i) => (
+      {!binary && answers.map((a, i) => (
         <OptionRow
           key={a.marketId || i}
           answer={a}
@@ -1608,7 +1626,7 @@ function MultiChoiceTradePanel({
         />
       ))}
 
-      <PositionSummary position={position} optionLabel={selectedAnswer?.answerLabel} dotColor={selectedTheme.color} />
+      <PositionSummary position={position} optionLabel={binary ? undefined : selectedAnswer?.answerLabel} yesLabel={sideLabel("YES")} noLabel={sideLabel("NO")} dotColor={selectedTheme.color} />
 
       {/* Buy / Sell tab bar */}
       <div
@@ -1662,7 +1680,9 @@ function MultiChoiceTradePanel({
             {["YES", "NO"].map((o) => (
               <MCYesNoButton
                 key={o}
-                label={o}
+                outcome={o}
+                label={sideLabel(o)}
+                price={o === "YES" ? priceCents : 100 - priceCents}
                 active={buyOutcome === o}
                 onClick={() => setBuyOutcome(o)}
               />
@@ -1679,85 +1699,15 @@ function MultiChoiceTradePanel({
             >
               {t('marketDetails.amount')}
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "stretch",
-                background: "rgba(0,0,0,0.28)",
-                borderRadius: "11px",
-                overflow: "hidden",
+            <AmountInput
+              value={amount}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setAmount(isNaN(v) ? "" : v);
               }}
-            >
-              <button
-                onClick={() =>
-                  setAmount((v) => clamp((parseInt(v) || 0) - 10, 1, 99999))
-                }
-                style={{
-                  width: "44px",
-                  border: "none",
-                  background: "transparent",
-                  color: MUTED,
-                  font: `700 20px ${FONT_BODY}`,
-                  cursor: "pointer",
-                  transition: "all .15s",
-                  borderRight: "1px solid rgba(255,255,255,0.06)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
-              >
-                −
-              </button>
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "2px",
-                  padding: "10px 0",
-                }}
-              >
-                <span style={{ font: `700 17px ${FONT_BODY}`, color: MUTED }}>
-                  $
-                </span>
-                <input
-                  type="number"
-                  min="1"
-                  value={amount}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    setAmount(isNaN(v) ? "" : v);
-                  }}
-                  style={{
-                    width: "72px",
-                    background: "transparent",
-                    border: "none",
-                    color: TEXT,
-                    font: `800 22px ${FONT_HEAD}`,
-                    textAlign: "center",
-                    outline: "none",
-                    MozAppearance: "textfield",
-                  }}
-                />
-              </div>
-              <button
-                onClick={() => setAmount((v) => (parseInt(v) || 0) + 10)}
-                style={{
-                  width: "44px",
-                  border: "none",
-                  background: "transparent",
-                  color: MUTED,
-                  font: `700 20px ${FONT_BODY}`,
-                  cursor: "pointer",
-                  transition: "all .15s",
-                  borderLeft: "1px solid rgba(255,255,255,0.06)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
-              >
-                +
-              </button>
-            </div>
+              onMinus={() => setAmount((v) => clamp((parseInt(v) || 0) - 10, 1, 99999))}
+              onPlus={() => setAmount((v) => (parseInt(v) || 0) + 10)}
+            />
             <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
               {PRESETS.map((p) => (
                 <button
@@ -1859,7 +1809,7 @@ function MultiChoiceTradePanel({
                     : "linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)",
               color:
                 buyPhase === "success"
-                  ? buyOutcome === "NO" ? "#fff" : "#1a2e05"
+                  ? buyOutcome === "NO" ? "#1f0508" : "#1a2e05"
                   : submitting || !amount
                     ? MUTED2
                     : "#0a1628",
@@ -1869,21 +1819,15 @@ function MultiChoiceTradePanel({
               whiteSpace: "nowrap",
               transition: "transform 0.18s ease, box-shadow 0.25s ease, background 0.3s ease",
               transform: buyPhase === "success" ? "none" : buyHover && !(submitting || !amount) ? "translateY(-1px) scale(1.01)" : "none",
-              boxShadow: buyPhase === "success"
-                ? buyOutcome === "NO"
-                  ? "0 6px 20px -6px rgba(251,91,107,0.5)"
-                  : "0 6px 20px -6px rgba(186,214,89,0.5)"
-                : buyHover && !(submitting || !amount)
-                  ? "0 8px 20px -6px rgba(156,201,241,0.5)"
-                  : "0 3px 10px -4px rgba(156,201,241,0.3)",
+              boxShadow: "none",
               animation: buyPhase === "success"
                 ? "btn-success-pop 0.4s cubic-bezier(0.34,1.4,0.64,1)"
                 : buyBouncing
                   ? "btn-bounce 0.32s ease"
-                  : submitting || !amount ? "none" : "gp-mcBrandPulse 3s ease-in-out infinite",
+                  : "none",
               filter: buyHover && !(submitting || !amount) && buyPhase !== "success" ? "brightness(0.93)" : "",
             }}
-            title={submitting ? undefined : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+            title={submitting ? undefined : `${t('marketDetails.buy')} ${sideLabel(buyOutcome)}${optionSuffix}`}
           >
             {/* Shine sweep */}
             <span style={{
@@ -1910,31 +1854,27 @@ function MultiChoiceTradePanel({
             {/* Content */}
             {buyPhase === "success" ? (
               <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", maxWidth: "100%", overflow: "hidden" }}>
-                <span style={{
-                  width: 22, height: 22, minWidth: 22, borderRadius: "50%",
-                  background: buyOutcome === "NO" ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  animation: "btn-check-ring 0.42s cubic-bezier(0.34,1.5,0.64,1) both",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12.5L10 17.5L19 7" stroke={buyOutcome === "NO" ? "#e11d48" : "#BAD659"} strokeWidth="3.2"
-                      strokeLinecap="round" strokeLinejoin="round"
-                      strokeDasharray="26"
-                      style={{ animation: "btn-check-draw 0.34s ease-out 0.16s both" }} />
-                  </svg>
-                </span>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ minWidth: 22 }}>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.2"
+                    strokeDasharray="63" transform="rotate(-90 12 12)"
+                    style={{ animation: "btn-circle-draw 0.45s cubic-bezier(.65,0,.35,1) both" }} />
+                  <path d="M7.5 12.5L10.8 15.8L16.8 9" stroke="currentColor" strokeWidth="2.4"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    strokeDasharray="26"
+                    style={{ animation: "btn-check-draw 0.3s ease-out 0.38s both" }} />
+                </svg>
                 <span style={{
                   animation: "btn-label-in 0.3s ease-out 0.1s both",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
-                  {t('marketDetails.purchased')} {buyOutcome} — {selectedAnswer?.answerLabel || "Option"}
+                  {t('marketDetails.purchased')} {sideLabel(buyOutcome)}{optionSuffix}
                 </span>
               </span>
             ) : (
               <span style={{ position: "relative", zIndex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                 {submitting
                   ? t('marketDetails.processing')
-                  : `${t('marketDetails.buy')} ${buyOutcome} — ${selectedAnswer?.answerLabel || "Option"}`}
+                  : `${t('marketDetails.buy')} ${sideLabel(buyOutcome)}${optionSuffix}`}
               </span>
             )}
           </button>
@@ -2007,7 +1947,7 @@ function MultiChoiceTradePanel({
                         color: sellOutcome === side ? (side === "YES" ? YES_TEXT : NO_TEXT) : MUTED,
                       }}
                     >
-                      {side}
+                      {sideLabel(side)}
                     </button>
                   ))}
                 </div>
@@ -2036,7 +1976,7 @@ function MultiChoiceTradePanel({
                     }}
                   />
                   <span style={{ font: `600 14px ${FONT_BODY}`, color: TEXT }}>
-                    {selectedAnswer.answerLabel} · {sellOutcome}
+                    {binary ? sideLabel(sellOutcome) : `${selectedAnswer.answerLabel} · ${sideLabel(sellOutcome)}`}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -2065,97 +2005,23 @@ function MultiChoiceTradePanel({
                 >
                   {t('marketDetails.saleOrder')}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "stretch",
-                    background: "rgba(0,0,0,0.28)",
-                    borderRadius: "11px",
-                    overflow: "hidden",
+                <AmountInput
+                  value={sellAmount}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10) || 0;
+                    setSaleQuote(null);
+                    setQuoteError("");
+                    setSellAmount(maxSellCredits > 0 ? Math.min(v, maxSellCredits) : v);
                   }}
-                >
-                  <button
-                    onClick={() =>
-                      setSellAmount((v) => Math.max(1, (parseInt(v) || 0) - 1))
-                    }
-                    style={{
-                      width: "44px",
-                      border: "none",
-                      background: "transparent",
-                      color: MUTED,
-                      font: `700 20px ${FONT_BODY}`,
-                      cursor: "pointer",
-                      transition: "all .15s",
-                      borderRight: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
-                  >
-                    −
-                  </button>
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "2px",
-                      padding: "10px 0",
-                    }}
-                  >
-                    <span
-                      style={{ font: `700 17px ${FONT_BODY}`, color: MUTED }}
-                    >
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={sellAmount}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10) || 0;
-                        setSaleQuote(null);
-                        setQuoteError("");
-                        setSellAmount(
-                          maxSellCredits > 0 ? Math.min(v, maxSellCredits) : v,
-                        );
-                      }}
-                      style={{
-                        width: "72px",
-                        background: "transparent",
-                        border: "none",
-                        color: TEXT,
-                        font: `800 22px ${FONT_HEAD}`,
-                        textAlign: "center",
-                        outline: "none",
-                        MozAppearance: "textfield",
-                      }}
-                    />
-                  </div>
-                  <button
-                    onClick={() =>
-                      setSellAmount((v) =>
-                        maxSellCredits > 0
-                          ? Math.min((parseInt(v) || 0) + 1, maxSellCredits)
-                          : (parseInt(v) || 0) + 1,
-                      )
-                    }
-                    style={{
-                      width: "44px",
-                      border: "none",
-                      background: "transparent",
-                      color: MUTED,
-                      font: `700 20px ${FONT_BODY}`,
-                      cursor: "pointer",
-                      transition: "all .15s",
-                      borderLeft: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = TEXT; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = MUTED; }}
-                  >
-                    +
-                  </button>
-                </div>
+                  onMinus={() => setSellAmount((v) => Math.max(1, (parseInt(v) || 0) - 1))}
+                  onPlus={() =>
+                    setSellAmount((v) =>
+                      maxSellCredits > 0
+                        ? Math.min((parseInt(v) || 0) + 1, maxSellCredits)
+                        : (parseInt(v) || 0) + 1,
+                    )
+                  }
+                />
               </div>
 
               <MCSellQuotePanel
@@ -2197,7 +2063,7 @@ function MultiChoiceTradePanel({
                 >
                   {isSellSubmitting
                     ? t('marketDetails.processing')
-                    : t('marketDetails.confirmSale', { label: selectedAnswer.answerLabel })}
+                    : t('marketDetails.confirmSale', { label: binary ? sideLabel(sellOutcome) : selectedAnswer.answerLabel })}
                 </button>
                 <button
                   onClick={handleRequestQuote}
@@ -2292,10 +2158,10 @@ function OptionRow({ answer, index, total, selected, onClick }) {
     <button
       onClick={onClick}
       onMouseEnter={(e) => {
-        if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+        if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
       }}
       onMouseLeave={(e) => {
-        if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+        if (!selected) e.currentTarget.style.background = "transparent";
       }}
       style={{
         display: "flex",
@@ -2304,10 +2170,8 @@ function OptionRow({ answer, index, total, selected, onClick }) {
         width: "100%",
         padding: "13px 20px",
         borderRadius: "999px",
-        border: selected
-          ? `1px solid ${theme.activeBorder}`
-          : `1px solid ${theme.border}`,
-        background: selected ? theme.bg : "rgba(255,255,255,0.02)",
+        border: `1px solid ${selected ? theme.activeBorder : "rgba(255,255,255,0.07)"}`,
+        background: selected ? `${theme.color}59` : "transparent",
         cursor: "pointer",
         transition: "all .2s cubic-bezier(.4,0,.2,1)",
         textAlign: "left",
@@ -2327,7 +2191,7 @@ function OptionRow({ answer, index, total, selected, onClick }) {
           title={answer.answerLabel}
           style={{
             font: `600 14px ${FONT_BODY}`,
-            color: selected ? theme.text : TEXT,
+            color: selected ? TEXT : MUTED,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -2340,7 +2204,7 @@ function OptionRow({ answer, index, total, selected, onClick }) {
       <span
         style={{
           font: `700 14px ${FONT_HEAD}`,
-          color: selected ? theme.color : TEXT,
+          color: selected ? theme.text : MUTED,
         }}
       >
         {priceCents}¢
@@ -2830,7 +2694,6 @@ function MarketLayout({
   // becomes a horizontal chip row and the trade panel narrows. Its column is
   // reserved while tags load so the layout doesn't shift when they arrive.
   const isCompact = useIsMobile(1280);
-  const hasMobileNav = useIsMobile(1024);
   const showTagSidebar = !isMobile && !isCompact && (allTags.length > 0 || !tagsLoaded);
   const [activityTab, setActivityTab] = useState(null);
   const activityRef = useRef(null);
@@ -2855,6 +2718,7 @@ function MarketLayout({
 
   return (
     <div style={isMobile ? {} : { display: "flex", flexDirection: "column", gap: "20px" }}>
+      <style>{TRADE_KEYFRAMES}</style>
       {/* Breadcrumb */}
       <div
         style={{
@@ -3298,6 +3162,8 @@ function MarketLayout({
               onTabChange={setActivityTab}
             />}
           </div>
+
+          {!skeleton && isMobile && <RelatedMarkets marketId={marketId} />}
         </div>
 
         {/* MIDDLE — trade panel (desktop) */}
@@ -3307,11 +3173,10 @@ function MarketLayout({
               ...MARKET_CARD,
               border: "none",
               padding: "0",
-              position: hasMobileNav ? "static" : "sticky",
-              top: "100px",
             }}
           >
             {loading ? (previewTradePanel ?? <TradePanelSkeleton options={previewOptions} binary={previewBinary} />) : tradePanelContent}
+            {!skeleton && <div style={{ marginTop: "48px" }}><RelatedMarkets marketId={marketId} /></div>}
           </div>
         )}
 
@@ -3350,6 +3215,7 @@ function MultiChoiceLayout({
 }) {
   const [groupData, setGroupData] = useState(null);
   const [groupLoading, setGroupLoading] = useState(true);
+  const loadedGroupRef = useRef(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activityIdx, setActivityIdx] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -3391,13 +3257,16 @@ function MultiChoiceLayout({
       return;
     }
     let cancelled = false;
-    setGroupLoading(true);
+    // Refreshes after a trade keep the current data on screen.
+    if (loadedGroupRef.current !== groupId) setGroupLoading(true);
     getMarketGroupDetails(groupId)
       .then((data) => {
-        if (!cancelled) setGroupData(data);
+        if (cancelled) return;
+        setGroupData(data);
+        loadedGroupRef.current = groupId;
       })
       .catch(() => {
-        if (!cancelled) setGroupData(null);
+        if (!cancelled && loadedGroupRef.current !== groupId) setGroupData(null);
       })
       .finally(() => {
         if (!cancelled) setGroupLoading(false);
@@ -3637,7 +3506,7 @@ function BinaryChart({
   const yesLast = [xOf(liveNow), yOf(curP)];
   const noLast = [xOf(liveNow), yOf(1 - curP)];
 
-  const themes = [OPTION_THEMES[0], OPTION_THEMES[1]];
+  const themes = [YES_THEME, NO_THEME];
 
   // Hover + drag-select
   const getValAt = (series, t) => {
@@ -3663,7 +3532,7 @@ function BinaryChart({
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
-  const reveal = useChartReveal();
+  const reveal = useChartReveal(typeof window !== "undefined" ? window.location.pathname : null);
   const revealing = reveal < 1;
 
   const onMove = (e) => {
@@ -4203,13 +4072,21 @@ function BinaryTradePanelContent({
   }
   if (isLoggedIn) {
     return (
-      <NewTradePanel
-        marketId={marketId}
-        market={safeMarket}
+      <MultiChoiceTradePanel
+        binary
+        answers={[{
+          marketId,
+          answerLabel: safeMarket.questionTitle,
+          market: { lastProbability: currentProbability, market: safeMarket },
+        }]}
+        selectedIdx={0}
+        onSelectIdx={() => {}}
         token={token}
-        currentProbability={currentProbability}
-        username={username}
+        isLoggedIn={isLoggedIn}
+        isMarketOpen={isMarketOpen}
         onSuccess={onSuccess}
+        yesLabel={yesLabel}
+        noLabel={noLabel}
         onSideChange={onSideChange}
       />
     );

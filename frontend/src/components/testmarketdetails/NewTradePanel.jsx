@@ -5,6 +5,7 @@ import { submitBet, fetchUserShares, fetchSaleQuote, submitSale, NO_SELLABLE_SHA
 import { API_URL } from '../../config';
 import { USER_CREDIT_REFRESH_EVENT } from '../utils/userFinanceTools/FetchUserCredit';
 import { useToast } from '../../hooks/useToast';
+import AmountInput from './AmountInput';
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const FONT      = 'Manrope,system-ui,sans-serif';
@@ -47,10 +48,12 @@ function buildStops(color) {
 
 let _pillCounter = 0;
 
+const outcomeLabel = (label, side, t) =>
+  !label || label.toLowerCase() === side ? t(`activity.${side}`) : label;
+
 // ─── sub-components ───────────────────────────────────────────────────────────
 const SidePill = ({ label, pct, variant, active, onClick }) => {
   const isYes = variant === 'yes';
-  const accentColor = isYes ? YES_COLOR : NO_COLOR;
   const accentText  = isYes ? YES_TEXT  : NO_TEXT;
 
   return (
@@ -58,96 +61,27 @@ const SidePill = ({ label, pct, variant, active, onClick }) => {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      aria-label={`${label} ${pct}%`}
+      aria-label={`${label} ${pct}¢`}
       style={{
         flex: 1,
-        padding: '11px 8px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '2px',
+        padding: '11px 16px',
         cursor: 'pointer',
+        font: `700 14px ${FONT}`,
         transition: 'all .15s',
+        border: 'none',
         borderRadius: '999px',
         background: active
           ? (isYes
               ? 'linear-gradient(180deg,#BAD659,#AABA49)'
               : 'linear-gradient(180deg,#fb5b6b,#e11d48)')
-          : 'rgba(255,255,255,0.04)',
-        border: `1.5px solid ${active ? 'transparent' : (isYes ? 'rgba(186,214,89,0.30)' : 'rgba(251,91,107,0.25)')}`,
+          : (isYes ? 'rgba(186,214,89,0.08)' : 'rgba(244,63,94,0.08)'),
+        color: active ? '#000' : accentText,
       }}
     >
-      <span style={{
-        font: `700 14px ${FONT}`,
-        color: active ? '#000' : accentText,
-      }}>
-        {label}
-      </span>
-      <span style={{
-        font: `800 17px ${FONT_HEAD}`,
-        color: active ? '#000' : accentText,
-      }}>
-        {pct}%
-      </span>
+      {label} {pct}¢
     </button>
   );
 };
-
-const AmountInput = ({ value, onChange, onPlus, onMinus }) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'stretch',
-    background: 'rgba(0,0,0,0.28)',
-    borderRadius: '11px',
-    overflow: 'hidden',
-  }}>
-    <button
-      onClick={onMinus}
-      style={{
-        width: '44px',
-        border: 'none',
-        background: 'transparent',
-        color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
-        transition: 'all .15s',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = TEXT; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = MUTED; }}
-    >−</button>
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '10px 0' }}>
-      <span style={{ font: `700 17px ${FONT}`, color: MUTED }}>$</span>
-      <input
-        type="number"
-        min="1"
-        value={value}
-        onChange={onChange}
-        style={{
-          width: '72px',
-          background: 'transparent',
-          border: 'none',
-          color: TEXT,
-          font: `800 22px ${FONT_HEAD}`,
-          textAlign: 'center',
-          outline: 'none',
-          MozAppearance: 'textfield',
-        }}
-      />
-    </div>
-    <button
-      onClick={onPlus}
-      style={{
-        width: '44px',
-        border: 'none',
-        background: 'transparent',
-        color: MUTED, font: `700 20px ${FONT}`, cursor: 'pointer',
-        transition: 'all .15s',
-        borderLeft: '1px solid rgba(255,255,255,0.06)',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = TEXT; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = MUTED; }}
-    >+</button>
-  </div>
-);
 
 const PresetBtn = ({ label, onClick }) => (
   <button
@@ -316,19 +250,6 @@ const ErrorMsg = ({ msg }) => msg ? (
   </div>
 ) : null;
 
-const SuccessMsg = ({ msg }) => msg ? (
-  <div style={{
-    background: 'rgba(186,214,89,0.12)',
-    border: '1px solid rgba(186,214,89,0.3)',
-    borderRadius: '8px',
-    padding: '10px 12px',
-    font: `600 13px ${FONT}`,
-    color: YES_TEXT,
-  }}>
-    {msg}
-  </div>
-) : null;
-
 // ─── shared helpers ───────────────────────────────────────────────────────────
 const normalizeShares = (data) => {
   if (!data) return { noSharesOwned: 0, yesSharesOwned: 0, value: 0, noSellableValue: 0, yesSellableValue: 0 };
@@ -364,7 +285,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const [projLoading, setProjLoading] = useState(false);
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]     = useState('');
-  const [success, setSuccess] = useState('');
   const [successBtnLabel, setSuccessBtnLabel] = useState('');
   const [fees, setFees]           = useState(null);
   const [hasBetBefore, setHasBetBefore] = useState(false);
@@ -395,8 +315,8 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
   const yesPct = Math.round(currentProbability * 100);
   const noPct  = 100 - yesPct;
 
-  const yesLabel = market?.yesLabel || 'Yes';
-  const noLabel  = market?.noLabel  || 'No';
+  const yesLabel = outcomeLabel(market?.yesLabel, 'yes', t);
+  const noLabel  = outcomeLabel(market?.noLabel, 'no', t);
 
   // Fetch projection whenever side, amount or the live price changes
   useEffect(() => {
@@ -426,7 +346,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
 
   const handleSubmit = () => {
     setError('');
-    setSuccess('');
     if (!side) { setError(t('marketDetails.selectSideFirst')); return; }
     if (!amount || amount < 1) { setError(t('marketDetails.minAmount')); return; }
     setSubmitting(true);
@@ -437,7 +356,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
         setSubmitting(false);
         setHasBetBefore(true);
         setPositionTick((n) => n + 1);
-        setSuccess(t('marketDetails.betPlaced', { amount: `$${data.amount}`, label: side === 'YES' ? yesLabel : noLabel }));
         setSuccessBtnLabel(t('marketDetails.purchasedLabel', { label: side === 'YES' ? yesLabel : noLabel }));
         window.dispatchEvent(new Event(USER_CREDIT_REFRESH_EVENT));
         onSuccess?.();
@@ -464,9 +382,9 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
       <PositionSummary position={position} yesLabel={yesLabel} noLabel={noLabel} />
 
       {/* YES / NO selector */}
-      <div style={{ display: 'flex', gap: '9px' }}>
-        <SidePill label={yesLabel} pct={yesPct} variant="yes" active={side === 'YES'} onClick={() => { setSide('YES'); setError(''); setSuccess(''); }} />
-        <SidePill label={noLabel}  pct={noPct}  variant="no"  active={side === 'NO'}  onClick={() => { setSide('NO');  setError(''); setSuccess(''); }} />
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <SidePill label={yesLabel} pct={yesPct} variant="yes" active={side === 'YES'} onClick={() => { setSide('YES'); setError(''); }} />
+        <SidePill label={noLabel}  pct={noPct}  variant="no"  active={side === 'NO'}  onClick={() => { setSide('NO');  setError(''); }} />
       </div>
 
       {/* Amount */}
@@ -509,7 +427,6 @@ const BuyTab = ({ marketId, market, token, currentProbability, username, onSucce
       )}
 
       <ErrorMsg msg={error} />
-      <SuccessMsg msg={success} />
 
       <ActionBtn
         onClick={handleSubmit}
@@ -543,8 +460,8 @@ const SellTab = ({ marketId, market, token, currentProbability, onSuccess }) => 
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const [sharesNotice, setSharesNotice] = useState('');
 
-  const yesLabel = market?.yesLabel || 'Yes';
-  const noLabel  = market?.noLabel  || 'No';
+  const yesLabel = outcomeLabel(market?.yesLabel, 'yes', t);
+  const noLabel  = outcomeLabel(market?.noLabel, 'no', t);
   const showFeeSection = !isLoading && Number(feeData?.sellSharesFee) > 0;
   const selectedSellableValue = selectedOutcome === 'YES'
     ? Math.max(0, Number(shares.yesSellableValue) || 0)

@@ -74,7 +74,9 @@
     "positionHelpLabel": "Cómo se calcula tu posición",
     "positionHelp": "Tus acciones se recalculan con cada apuesta del mercado.",
     "investedOf": "de {{amount}} invertidos",
-    "sharesPendingShort": "Acciones en cálculo"
+    "sharesPendingShort": "Acciones en cálculo",
+    "relatedMarkets": "Mercados relacionados",
+    "volShort": "Vol."
   },
   "activity": {
     "bets": "Apuestas",

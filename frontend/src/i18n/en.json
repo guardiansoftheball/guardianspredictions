@@ -74,7 +74,9 @@
     "positionHelpLabel": "How your position is calculated",
     "positionHelp": "Your shares are recalculated with every bet in the market.",
     "investedOf": "of {{amount}} invested",
-    "sharesPendingShort": "Shares pending"
+    "sharesPendingShort": "Shares pending",
+    "relatedMarkets": "Related markets",
+    "volShort": "Vol."
   },
   "activity": {
     "bets": "Bets",

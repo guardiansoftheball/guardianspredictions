@@ -2103,6 +2103,64 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReasonResponse'
 
+  /v0/markets/{id}/related:
+    get:
+      tags: [Markets]
+      operationId: getRelatedMarkets
+      summary: Get related markets
+      description: >-
+        Active markets related to the given market, ranked by shared tags and then
+        traded volume. The market itself and its market group are excluded. Grouped
+        markets are returned with all their child markets; `limit` counts groups once.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Numeric identifier of the market.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - in: query
+          name: limit
+          required: false
+          description: Maximum number of related markets (groups count once). Defaults to 4, maximum 12.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        '200':
+          description: Related markets returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListMarketsResponse'
+        '400':
+          description: Invalid market ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReasonResponse'
+        '404':
+          description: Market not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReasonResponse'
+        '500':
+          description: Unexpected server error while listing related markets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReasonResponse'
+        '429':
+          description: Rate limit exceeded by shared security middleware.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReasonResponse'
+
   /v0/markets/{id}/projection:
     get:
       tags: [Markets]

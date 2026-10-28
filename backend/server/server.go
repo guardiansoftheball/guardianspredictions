@@ -488,6 +488,7 @@ func registerApplicationRoutes(router *mux.Router, db *gorm.DB, configService co
 	router.Handle("/v0/markets/{id}/resolve", securityMiddleware(http.HandlerFunc(marketsHandler.ResolveMarket))).Methods("POST")
 	router.Handle("/v0/markets/{id}/description-amendments", privateActionMiddleware(http.HandlerFunc(marketsHandler.ProposeDescriptionAmendment))).Methods("POST")
 	router.Handle("/v0/markets/{id}/leaderboard", securityMiddleware(http.HandlerFunc(marketsHandler.MarketLeaderboard))).Methods("GET")
+	router.Handle("/v0/markets/{id}/related", securityMiddleware(http.HandlerFunc(marketsHandler.RelatedMarkets))).Methods("GET")
 	router.Handle("/v0/markets/{id}/projection", securityMiddleware(http.HandlerFunc(marketsHandler.ProjectProbability))).Methods("GET")
 	router.Handle("/v0/market-tags", securityMiddleware(marketshandlers.ListMarketTagsHandler(marketsService))).Methods("GET")
 	router.Handle("/v0/marketprojection/{marketId}/{amount}/{outcome}", securityMiddleware(marketshandlers.ProjectNewProbabilityHandler(marketsService))).Methods("GET")

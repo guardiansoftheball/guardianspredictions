@@ -81,7 +81,7 @@ export function useMarkets({ refreshMs = REFRESH_MS, status = "active" } = {}) {
   return { cards, loading, error };
 }
 
-function transformMarkets(rawMarkets, status = "active") {
+export function transformMarkets(rawMarkets, status = "active") {
   // Separate standalone markets from group children
   const standalone = [];
   const groupChildren = new Map(); // groupId → [market overviews]
