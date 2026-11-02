@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useHistory, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
@@ -15,6 +15,13 @@ import { groupLifecycleMarketRows } from "../../components/layouts/profile/Marke
 import useUserData from "../../hooks/useUserData";
 import PerformanceSection from "../../components/layouts/profile/PerformanceSection";
 import { useAuth } from "../../helpers/AuthContent";
+import ProfileSidebar from "../../components/profile/account/ProfileSidebar";
+import ProfileOverview from "../../components/profile/account/ProfileOverview";
+import ProfileFavorites from "../../components/profile/account/ProfileFavorites";
+import ProfileActivity from "../../components/profile/account/ProfileActivity";
+import ProfilePositions from "../../components/profile/account/ProfilePositions";
+import ProfileSettings from "../../components/profile/account/ProfileSettings";
+import ProfileFinancials from "../../components/profile/account/ProfileFinancials";
 import { API_URL } from "../../config";
 import { listMyLifecycleMarkets } from "../../api/lifecycleMarketsApi";
 import { listMyMarketDescriptionAmendments } from "../../api/marketDescriptionAmendmentsApi";
@@ -40,8 +47,6 @@ import {
   statusTone,
   formatDate,
   LifecycleMarketCard,
-  FinancialGroup,
-  buildFinancialItemGroups,
 } from "../../components/layouts/profile/ProfileUiKit";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
@@ -395,70 +400,6 @@ const PortfolioSection = ({ username, t }) => {
 };
 
 // ─── financials ───────────────────────────────────────────────────────────────
-const FinancialsSection = ({ username, t }) => {
-  const { token } = useAuth();
-  const [financialData, setFinancialData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchFinancialData = async () => {
-      try {
-        const response = await fetch(`${API_URL}/v0/users/${username}/financial`, {
-          headers: token
-            ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-            : {},
-        });
-        if (!response.ok) throw new Error(`Error fetching financial data: ${response.statusText}`);
-        const data = await response.json();
-        setFinancialData(data.financial);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (username && token) {
-      fetchFinancialData();
-    } else {
-      setFinancialData(null);
-      setLoading(false);
-    }
-  }, [username, token]);
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorBanner message={`Error loading financial data: ${error}`} />;
-  if (!financialData) return <EmptyState>{t('profile.noFinancialData')}</EmptyState>;
-
-  const { balanceSheetItems, incomeStatementItems, cashFlowItems, marketPositionItems } =
-    buildFinancialItemGroups(financialData);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatCard
-          label={t('profile.accountBalance')}
-          value={financialData.accountBalance?.toLocaleString() ?? "N/A"}
-          valueColor={(financialData.accountBalance ?? 0) >= 0 ? YES_TEXT : NO_TEXT}
-        />
-        <StatCard label={t('profile.amountInPlay')} value={financialData.amountInPlay?.toLocaleString() ?? "N/A"} />
-        <StatCard
-          label={t('profile.totalProfits')}
-          value={financialData.totalProfits?.toLocaleString() ?? "N/A"}
-          valueColor={(financialData.totalProfits ?? 0) >= 0 ? YES_TEXT : NO_TEXT}
-        />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-        <FinancialGroup title={t('profile.balanceSheet')} accent="#9cc9f1" items={balanceSheetItems} />
-        <FinancialGroup title={t('profile.incomeStatement')} accent="#C6E06C" items={incomeStatementItems} />
-        <FinancialGroup title={t('profile.cashFlow')} accent="#ffc107" items={cashFlowItems} />
-        <FinancialGroup title={t('profile.marketPosition')} accent="#c4b5fd" items={marketPositionItems} />
-      </div>
-    </div>
-  );
-};
-
 // ─── my markets (lifecycle) ───────────────────────────────────────────────────
 const LIFECYCLE_STATUSES = { proposed: "Proposed", published: "Published", rejected: "Rejected" };
 
@@ -1098,7 +1039,8 @@ const MarketChangesSection = () => {
 // ─── page ─────────────────────────────────────────────────────────────────────
 const NewProfile = () => {
   const { t } = useTranslation();
-  const { username: authUsername } = useAuth();
+  const { username: authUsername, logout } = useAuth();
+  const history = useHistory();
   const { username: paramUsername } = useParams();
   const location = useLocation();
   const username = paramUsername || authUsername;
@@ -1107,15 +1049,34 @@ const NewProfile = () => {
   const [mainTab, setMainTab] = useState(() => t('profile.portfolio'));
 
   useEffect(() => {
-    document.title = "Profile | Guardians Predictions";
+    document.title = "Portfolio | Guardians Predictions";
   }, []);
 
   const isActiveModerator =
     String(userData?.usertype || "").toUpperCase() === "MODERATOR" &&
     String(userData?.moderatorStatus || "").toLowerCase() === "active";
 
-  const mainTabs = [t('profile.portfolio'), t('profile.performance'), ...(isOwnProfile ? [t('profile.financials')] : []), ...(isOwnProfile && isActiveModerator ? [t('profile.myMarkets'), t('profile.marketChanges')] : [])];
+  const mainTabs = [t('profile.portfolio'), t('profile.performance')];
   const activeTab = mainTabs.includes(mainTab) ? mainTab : t('profile.portfolio');
+
+  const accountSections = [
+    { key: "overview", label: t("account.overview") },
+    { key: "positions", label: t("account.positions") },
+    { key: "favorites", label: t("account.favorites") },
+    { key: "activity", label: t("account.activity") },
+    { key: "financials", label: t("profile.financials") },
+    ...(isActiveModerator
+      ? [{ key: "myMarkets", label: t("profile.myMarkets") }, { key: "marketChanges", label: t("profile.marketChanges") }]
+      : []),
+    { key: "settings", label: t("account.settings") },
+  ];
+  const requestedSection = new URLSearchParams(location.search).get("section");
+  const section = accountSections.some((s) => s.key === requestedSection) ? requestedSection : "overview";
+  const setSection = (key) => history.replace({ search: key === "overview" ? "" : `?section=${key}` });
+  const handleLogout = () => {
+    logout();
+    history.push("/");
+  };
 
   const proposedMarket = location.state?.proposedMarket;
   const marketCreationCost = location.state?.marketCreationCost;
@@ -1131,7 +1092,7 @@ const NewProfile = () => {
           style={{
             position: "relative",
             zIndex: 10,
-            maxWidth: "1080px",
+            maxWidth: isOwnProfile ? "1240px" : "1080px",
             margin: "0 auto",
             padding: "32px 20px 120px",
             display: "flex",
@@ -1143,31 +1104,64 @@ const NewProfile = () => {
             <LoadingSpinner />
           ) : userError ? (
             <ErrorBanner message={`Error loading user data: ${userError}`} />
+          ) : isOwnProfile ? (
+            <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+              <ProfileSidebar
+                sections={accountSections}
+                active={section}
+                onChange={setSection}
+                onLogout={handleLogout}
+                logoutLabel={t("nav.signOut")}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
+                <div className="hidden items-center justify-between gap-3 lg:flex">
+                  <h1 className="m-0 text-[24px] font-bold text-white">
+                    {accountSections.find((s) => s.key === section)?.label}
+                  </h1>
+                  <Link
+                    to={`/newprofile/${username}`}
+                    className="flex items-center gap-2 rounded-full bg-white/[0.06] py-1.5 pl-1.5 pr-3.5 text-[13px] text-white/80 no-underline hover:bg-white/[0.1] hover:text-white"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.08] text-[15px]">
+                      {userData?.personalEmoji || "🙂"}
+                    </span>
+                    @{username}
+                  </Link>
+                </div>
+                {isActiveModerator && proposedMarket && (
+                  <div
+                    style={{
+                      borderRadius: "14px",
+                      border: "1px solid rgba(255,193,7,0.35)",
+                      background: "rgba(255,193,7,0.07)",
+                      padding: "16px 18px",
+                    }}
+                  >
+                    <SectionLabel color="#ffc107">{t('profile.proposedMarketCreated')}</SectionLabel>
+                    <div style={{ marginTop: "6px", font: `700 16px ${FONT_HEAD}`, color: TEXT }}>
+                      {proposedMarket.questionTitle}
+                    </div>
+                    <p style={{ margin: "6px 0 0", font: `500 13px ${FONT}`, color: MUTED }}>
+                      Market ID <span style={{ fontFamily: "monospace", color: TEXT }}>{proposedMarket.id}</span> is awaiting admin review.
+                      {marketCreationCost !== undefined && marketCreationCost !== null && (
+                        <> The proposal cost was <span style={{ color: TEXT, fontWeight: 700 }}>{marketCreationCost}</span> credits.</>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {section === "overview" && <ProfileOverview username={username} />}
+                {section === "positions" && <ProfilePositions username={username} />}
+                {section === "favorites" && <ProfileFavorites />}
+                {section === "activity" && <ProfileActivity username={username} />}
+                {section === "financials" && <ProfileFinancials username={username} />}
+                {section === "myMarkets" && <MyMarketsSection />}
+                {section === "marketChanges" && <MarketChangesSection />}
+                {section === "settings" && <ProfileSettings userData={userData} />}
+              </div>
+            </div>
           ) : (
             <>
               <IdentityCard userData={userData} t={t} isOwnProfile={isOwnProfile} />
-
-              {isActiveModerator && proposedMarket && (
-                <div
-                  style={{
-                    borderRadius: "14px",
-                    border: "1px solid rgba(255,193,7,0.35)",
-                    background: "rgba(255,193,7,0.07)",
-                    padding: "16px 18px",
-                  }}
-                >
-                  <SectionLabel color="#ffc107">{t('profile.proposedMarketCreated')}</SectionLabel>
-                  <div style={{ marginTop: "6px", font: `700 16px ${FONT_HEAD}`, color: TEXT }}>
-                    {proposedMarket.questionTitle}
-                  </div>
-                  <p style={{ margin: "6px 0 0", font: `500 13px ${FONT}`, color: MUTED }}>
-                    Market ID <span style={{ fontFamily: "monospace", color: TEXT }}>{proposedMarket.id}</span> is awaiting admin review.
-                    {marketCreationCost !== undefined && marketCreationCost !== null && (
-                      <> The proposal cost was <span style={{ color: TEXT, fontWeight: 700 }}>{marketCreationCost}</span> credits.</>
-                    )}
-                  </p>
-                </div>
-              )}
 
               <div>
                 <PillTabs tabs={mainTabs} active={activeTab} onChange={setMainTab} />
@@ -1175,9 +1169,6 @@ const NewProfile = () => {
 
               {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
               {activeTab === t('profile.performance') && <PerformanceSection username={username} t={t} />}
-              {activeTab === t('profile.financials') && <FinancialsSection username={username} t={t} />}
-              {activeTab === t('profile.myMarkets') && isActiveModerator && <MyMarketsSection />}
-              {activeTab === t('profile.marketChanges') && isActiveModerator && <MarketChangesSection />}
             </>
           )}
         </div>

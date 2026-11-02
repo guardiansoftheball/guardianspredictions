@@ -40,7 +40,7 @@ const formatSigned = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).to
 
 // Per-market P&L = current value (mark-to-market, or payout once resolved)
 // minus net amount spent (buys minus sale proceeds), as computed by the backend.
-function usePerformance(username) {
+export function usePerformance(username) {
   const { token } = useAuth();
   const [rows, setRows] = useState([]);
   const [failedCount, setFailedCount] = useState(0);
@@ -78,6 +78,8 @@ function usePerformance(username) {
               spent,
               pnl: value - spent,
               isResolved: !!p?.isResolved,
+              yesShares: Number(p?.yesSharesOwned) || 0,
+              noShares: Number(p?.noSharesOwned) || 0,
               hasShares: (Number(p?.yesSharesOwned) || 0) + (Number(p?.noSharesOwned) || 0) > 0,
             };
           } catch {
@@ -137,10 +139,10 @@ const PnlBar = ({ row, maxAbs, t }) => {
       onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)}
       onBlur={() => setHover(false)}
-      className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_88px] items-center gap-x-4 gap-y-1.5 rounded-xl px-3 py-2 no-underline"
+      className="grid grid-cols-[minmax(0,1fr)_64px] sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_88px] items-center gap-x-4 gap-y-1.5 rounded-xl px-3 py-2 no-underline"
       style={{ background: hover ? "rgba(255,255,255,0.05)" : "transparent", transition: "background .15s" }}
     >
-      <div className="min-w-0 flex items-center gap-2">
+      <div className="col-span-2 sm:col-span-1 min-w-0 flex items-center gap-2">
         <span
           title={row.title}
           className="truncate"
@@ -185,7 +187,7 @@ const PnlBar = ({ row, maxAbs, t }) => {
       </div>
 
       <span
-        className="sm:text-right tabular-nums"
+        className="text-right tabular-nums"
         style={{ font: `700 13px ${FONT_HEAD}`, color: positive ? COLOR.yesText : COLOR.noText }}
       >
         {formatSigned(row.pnl)}
@@ -194,12 +196,16 @@ const PnlBar = ({ row, maxAbs, t }) => {
   );
 };
 
-const PerformanceSection = ({ username, t }) => {
+const PerformanceSection = ({ username, t, hideStats = false, onSummary }) => {
   const { rows, failedCount, loading, error } = usePerformance(username);
   const [expanded, setExpanded] = useState(false);
 
   const stats = useMemo(() => summarize(rows), [rows]);
   const sorted = useMemo(() => [...rows].sort((a, b) => b.pnl - a.pnl), [rows]);
+
+  useEffect(() => {
+    if (!loading) onSummary?.(stats);
+  }, [loading, stats, onSummary]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorBanner message={`${t("performance.loadError")}: ${error}`} />;
@@ -220,20 +226,22 @@ const PerformanceSection = ({ username, t }) => {
       {failedCount > 0 && (
         <ErrorBanner message={t("performance.partial", { count: failedCount })} />
       )}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label={t("performance.totalPnl")} value={formatSigned(stats.totalPnl)} valueColor={pnlColor} />
-        <StatCard
-          label={t("performance.roi")}
-          value={stats.roi == null ? "—" : `${stats.roi >= 0 ? "+" : "−"}${Math.abs(stats.roi * 100).toFixed(1)}%`}
-          valueColor={stats.roi == null ? COLOR.text : pnlColor}
-        />
-        <StatCard
-          label={t("performance.winRate")}
-          value={stats.winRate == null ? "—" : `${Math.round(stats.winRate * 100)}%`}
-        />
-        <StatCard label={t("performance.openPositions")} value={stats.openCount} />
-      </div>
-      {stats.resolvedCount > 0 && (
+      {!hideStats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard label={t("performance.totalPnl")} value={formatSigned(stats.totalPnl)} valueColor={pnlColor} />
+          <StatCard
+            label={t("performance.roi")}
+            value={stats.roi == null ? "—" : `${stats.roi >= 0 ? "+" : "−"}${Math.abs(stats.roi * 100).toFixed(1)}%`}
+            valueColor={stats.roi == null ? COLOR.text : pnlColor}
+          />
+          <StatCard
+            label={t("performance.winRate")}
+            value={stats.winRate == null ? "—" : `${Math.round(stats.winRate * 100)}%`}
+          />
+          <StatCard label={t("performance.openPositions")} value={stats.openCount} />
+        </div>
+      )}
+      {!hideStats && stats.resolvedCount > 0 && (
         <p style={{ margin: "-4px 2px 0", font: `500 12px ${FONT}`, color: COLOR.muted2 }}>
           {t("performance.winRateDetail", { wins: stats.wins, total: stats.resolvedCount })}
         </p>
