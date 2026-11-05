@@ -10,7 +10,7 @@ import '../index.css';
 import Sidebar from './components/sidebar/Sidebar';
 
 const FULLSCREEN_ROUTES = ['/', '/new-home', '/new-markets', '/design-preview', '/create', '/stats', '/faq', '/changepassword'];
-const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/newprofile'];
+const FULLSCREEN_PREFIXES = ['/markets/', '/admin/markets/review', '/portfolio', '/users/', '/user/', '/newprofile'];
 const KNOWN_NON_FULLSCREEN = ['/old', '/about', '/profile', '/polls', '/notifications', '/admin', '/style'];
 
 function ErrorFallback({ error, resetErrorBoundary }) {

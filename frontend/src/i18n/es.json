@@ -172,6 +172,12 @@
     "create": "Crear",
     "myProfile": "Portafolio",
     "myBets": "Mis apuestas",
+    "balance": "Saldo",
+    "language": "Idioma",
+    "deposit": "Depositar",
+    "depositSoon": "Los depósitos llegan pronto",
+    "searchEmpty": "No encontramos mercados",
+    "searchSeeAll": "Ver todos los resultados de \"{{query}}\"",
     "signOut": "Cerrar sesion",
     "signIn": "Iniciar sesion",
     "createAccount": "Crear cuenta",
@@ -232,8 +238,6 @@
     "activityShares_other": "{{count}} acciones",
     "noActivity": "Todavía no hay actividad",
     "showMore": "Ver más",
-    "volumeTitle": "Apostado",
-    "volumeTooltip": "Apostado acumulado",
     "range_1w": "última semana",
     "range_1m": "último mes",
     "range_all": "desde el inicio",
@@ -284,7 +288,24 @@
     "saving": "Guardando…",
     "nameRequired": "El nombre no puede quedar vacío",
     "avatar": "Avatar",
-    "changeAvatar": "Cambiar emoji"
+    "changeAvatar": "Cambiar emoji",
+    "activityBoughtOther": "Compró",
+    "activitySoldOther": "Vendió",
+    "badgeBuy": "Compra",
+    "badgeSell": "Venta",
+    "pnlTitle": "Ganancia / pérdida",
+    "pnlTooltip": "Ganancia / pérdida",
+    "pnlHint": "Se mueve cuando se resuelve un mercado; el último punto incluye tus posiciones abiertas.",
+    "range_1d": "último día",
+    "rangeShort_1d": "1D"
+  },
+  "publicProfile": {
+    "portfolioValue": "Valor del portafolio",
+    "totalPnl": "PnL total",
+    "biggestWin": "Mayor ganancia",
+    "share": "Compartir perfil",
+    "linkCopied": "Link copiado",
+    "linkCopyError": "No se pudo copiar el link"
   },
   "profile": {
     "selectEmoji": "Seleccionar Emoji",
@@ -624,6 +645,8 @@
     }
   },
   "stats": {
+    "updatedAt": "Actualizado {{time}}",
+    "recalculate": "Recalcular",
     "pageTitle": "Estadisticas de la Plataforma",
     "pageEyebrow": "Plataforma",
     "pageHeading": "Estadisticas",
@@ -783,7 +806,9 @@
     "showAll": "Ver los {{count}} mercados",
     "showLess": "Ver menos",
     "loadError": "No se pudo cargar el rendimiento",
-    "partial": "No se pudieron cargar {{count}} mercados; los totales están incompletos. Recargá en un momento."
+    "partial": "No se pudieron cargar {{count}} mercados; los totales están incompletos. Recargá en un momento.",
+    "resolved": "resuelto",
+    "openLower": "abierto"
   },
   "watchlist": {
     "add": "Seguir mercado",

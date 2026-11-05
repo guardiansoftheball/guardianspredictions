@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_URL } from "../../../config";
 import { useAuth } from "../../../helpers/AuthContent";
 import { CARD } from "../../../styles/darkTokens";
 import { ErrorBanner } from "../../layouts/profile/ProfileUiKit";
-import PerformanceSection from "../../layouts/profile/PerformanceSection";
-import ProfileVolumeChart from "./ProfileVolumeChart";
+import { usePerformance, summarize, PerformanceView } from "../../layouts/profile/PerformanceSection";
+import ProfilePnlChart from "./ProfilePnlChart";
 
 const money = (n) => {
   const v = Math.round(Number(n) || 0);
@@ -37,8 +37,8 @@ const ProfileOverview = ({ username }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [predictionsCount, setPredictionsCount] = useState(null);
-  const [winRate, setWinRate] = useState(null);
-  const handleSummary = useCallback((s) => setWinRate(s.winRate), []);
+  const performance = usePerformance(username);
+  const winRate = useMemo(() => summarize(performance.rows).winRate, [performance.rows]);
 
   useEffect(() => {
     if (!username || !token) return undefined;
@@ -99,10 +99,10 @@ const ProfileOverview = ({ username }) => {
         <Stat label={t("account.predictions")} value={predictionsCount ?? "—"} />
       </div>
 
-      <ProfileVolumeChart username={username} />
+      <ProfilePnlChart rows={performance.rows} loading={performance.loading} />
 
       <div className="mt-2">
-        <PerformanceSection username={username} t={t} hideStats onSummary={handleSummary} />
+        <PerformanceView {...performance} t={t} hideStats />
       </div>
     </div>
   );

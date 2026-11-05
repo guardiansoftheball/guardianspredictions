@@ -11,7 +11,6 @@ import { skeletonForType } from "../../components/cards/SkeletonCard";
 import { useMarkets } from "../../hooks/useMarkets";
 import { usePaginatedCards } from "../../hooks/usePaginatedCards";
 import { listMarketTags } from "../../api/marketTagsApi";
-import { useWatchlist } from "../../hooks/useWatchlist";
 
 const normalize = (str) =>
   (str || "")
@@ -19,15 +18,8 @@ const normalize = (str) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
-// `watchedIds` is null for the "All" view, or the followed ids for "Following".
-function filterAndSortCards(cards, filters, watchedIds) {
+function filterAndSortCards(cards, filters) {
   let result = cards;
-
-  // Watchlist
-  if (watchedIds) {
-    const watched = new Set(watchedIds);
-    result = result.filter((card) => card.id != null && watched.has(String(card.id)));
-  }
 
   // Search — matches question text, team names, home/away names
   if (filters.search) {
@@ -97,7 +89,6 @@ function parseFilters(search) {
     event: params.get(URL_KEYS.event) || null,
     league: params.get(URL_KEYS.league) || null,
     sort: params.get(URL_KEYS.sort) || INITIAL_FILTERS.sort,
-    watchlist: params.get("watchlist") === "1",
   };
 }
 
@@ -107,39 +98,19 @@ function serializeFilters(filters) {
     const value = filters[key];
     if (value && value !== INITIAL_FILTERS[key]) params.set(param, value);
   }
-  if (filters.watchlist) params.set("watchlist", "1");
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
-
-const WatchlistEmpty = ({ t, onBrowse }) => (
-  <div className="flex flex-col items-center justify-center py-20 text-center text-white/50">
-    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
-      <svg width="22" height="30" viewBox="-0.5 -0.5 15.55 20.29" fill="none" aria-hidden="true">
-        <path
-          d="M0.91 0.5 H13.64 C13.86 0.5 14.05 0.68 14.05 0.91 V18.79 L7.27 12.02 L0.5 18.79 V0.91 C0.5 0.68 0.68 0.5 0.91 0.5 Z"
-          stroke="#C6E06C"
-          strokeWidth="1"
-        />
-      </svg>
-    </div>
-    <p className="text-lg font-semibold text-white mb-1">{t("watchlist.emptyTitle")}</p>
-    <p className="text-sm max-w-xs">{t("watchlist.emptyHint")}</p>
-    <button
-      type="button"
-      onClick={onBrowse}
-      className="mt-5 px-5 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:text-white hover:border-white/40 transition-colors"
-    >
-      {t("watchlist.browse")}
-    </button>
-  </div>
-);
 
 const NewMarkets = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const history = useHistory();
-  const { ids: watchedIds } = useWatchlist();
+
+  // The followed-markets view moved to the portfolio; keep old links working.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("watchlist") === "1") history.replace("/portfolio/favorites");
+  }, [location.search, history]);
   const statusParam = new URLSearchParams(location.search).get(URL_KEYS.status);
   const { cards: apiCards, loading: marketsLoading } = useMarkets({
     status: statusParam === "resolved" ? "resolved" : "active",
@@ -199,7 +170,7 @@ const NewMarkets = () => {
     if (key === "clear") {
       lastWrittenSearch.current = "";
       setSearchInput("");
-      writeFilters({ ...INITIAL_FILTERS, watchlist: false });
+      writeFilters({ ...INITIAL_FILTERS });
       return;
     }
     if (key === "search") {
@@ -210,8 +181,8 @@ const NewMarkets = () => {
   }, [writeFilters]);
 
   const filteredCards = useMemo(
-    () => filterAndSortCards(apiCards, filters, filters.watchlist ? watchedIds : null),
-    [apiCards, filters, watchedIds],
+    () => filterAndSortCards(apiCards, filters),
+    [apiCards, filters],
   );
 
   // Restart pagination only when the user changes filters, not when live
@@ -240,12 +211,11 @@ const NewMarkets = () => {
         <BlueGlow position="absolute" height="45%" y="40%" />
         <Navbar />
 
-        <div className="relative z-10 flex gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">
+        <div className="relative z-10 mx-auto flex w-full max-w-[1840px] gap-8 pt-8 px-10 max-lg:px-4 max-lg:flex-col pb-8">
           {/* Panel de filtros */}
           <aside className="w-[280px] z-10 shrink-0 max-lg:w-auto">
             <Filtros
               filters={filters}
-              watchedCount={watchedIds.length}
               onFilterChange={handleFilterChange}
               resultCount={filteredCards.length}
               marketChips={marketTags}
@@ -254,9 +224,7 @@ const NewMarkets = () => {
 
           {/* Cards */}
           <div className="flex-1 justify-items-center">
-            {filters.watchlist && !watchedIds.length ? (
-              <WatchlistEmpty t={t} onBrowse={() => handleFilterChange("watchlist", false)} />
-            ) : filteredCards.length === 0 && !marketsLoading ? (
+            {filteredCards.length === 0 && !marketsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-white/50">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

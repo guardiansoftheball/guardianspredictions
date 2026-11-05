@@ -78,7 +78,7 @@ const NewHome = () => {
       >
         {/* Light anchored to this section: fades to the base color right at the footer */}
         <BlueGlow position="absolute" height="42%" y="45%" />
-        <div className="relative w-full max-w-[1448px] mx-auto" style={{ zIndex: 1 }}>
+        <div className="relative w-full max-w-[1760px] mx-auto" style={{ zIndex: 1 }}>
           {/* Layer 1 — Ghost cards */}
           <div
             ref={gridRef}

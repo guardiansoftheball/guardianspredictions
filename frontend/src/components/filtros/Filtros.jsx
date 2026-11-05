@@ -65,12 +65,6 @@ const EventsIcon = () => (
   </svg>
 );
 
-const BookmarkIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-    <path d="M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z" />
-  </svg>
-);
-
 const MarketsIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
     <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
@@ -164,9 +158,9 @@ const TrashIcon = () => (
   </svg>
 );
 
-const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount, marketChips = [], watchedCount = 0 }) => {
+const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChange, resultCount, marketChips = [] }) => {
   const { t } = useTranslation();
-  const hasActiveFilters = !!(filters.search || filters.status || filters.event || filters.league || filters.watchlist);
+  const hasActiveFilters = !!(filters.search || filters.status || filters.event || filters.league);
 
   return (
   <>
@@ -254,17 +248,6 @@ const FilterPanelContent = ({ openSections, toggleSection, filters, onFilterChan
       />
     ))}
 
-    {/* Watchlist */}
-    <FilterSection
-      label={t('watchlist.mine')}
-      Icon={BookmarkIcon}
-      options={[{ label: watchedCount > 0 ? `${t('watchlist.filter')} (${watchedCount})` : t('watchlist.filter'), value: "following" }]}
-      selected={filters.watchlist ? "following" : null}
-      onSelect={(val) => onFilterChange("watchlist", val === "following")}
-      open={!!openSections.watchlist}
-      onToggle={() => toggleSection("watchlist")}
-    />
-
     {/* Markets (chips) */}
     <div className="py-4 border-t border-white/10" style={{ paddingBottom: 150 }}>
       <button
@@ -314,10 +297,10 @@ const INITIAL_FILTERS = {
   sort: "popular",
 };
 
-const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0, marketChips = [], watchedCount = 0 }) => {
+const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, resultCount = 0, marketChips = [] }) => {
   const { t } = useTranslation();
   const [openSections, setOpenSections] = useState(() => {
-    const initial = { markets: true, sort: true, watchlist: true };
+    const initial = { markets: true, sort: true };
     FILTER_SECTIONS.forEach((section) => {
       initial[section.key] = true;
     });
@@ -331,7 +314,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
   const toggleSection = (key) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const activeCount = [filters.status, filters.event, filters.league, filters.search, filters.watchlist].filter(Boolean).length;
+  const activeCount = [filters.status, filters.event, filters.league, filters.search].filter(Boolean).length;
 
   return (
     <>
@@ -344,8 +327,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
           onFilterChange={onFilterChange}
           resultCount={resultCount}
           marketChips={marketChips}
-          watchedCount={watchedCount}
-        />
+                  />
       </div>
 
       {/* ── MOBILE: search bar + filter button ── */}
@@ -410,8 +392,7 @@ const Filtros = ({ filters: externalFilters, onFilterChange: externalOnChange, r
                 onFilterChange={onFilterChange}
                 resultCount={resultCount}
                 marketChips={marketChips}
-                watchedCount={watchedCount}
-              />
+                              />
             </div>
           </aside>
         </>,

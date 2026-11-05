@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../../hooks/useToast";
 import logo from "../../assets/logo/logo.png";
 import {
   HomeSVG,
@@ -10,14 +11,14 @@ import {
 import LoginModal from "../modals/login/LoginModal";
 import RegisterModal from "../modals/register/RegisterModal";
 import ForgotPasswordModal from "../modals/forgotpassword/ForgotPasswordModal";
-import MyBetsPanel from "../panels/MyBetsPanel";
 import MobileSearchSheet from "./MobileSearchSheet";
+import NavSearch from "./NavSearch";
 import BottomSheet from "./BottomSheet";
 import { useAuth } from "../../helpers/AuthContent";
 import useUserCredit from "../utils/userFinanceTools/FetchUserCredit";
 import useFrontendConfig from "../../hooks/useFrontendConfig";
 import { listMarketTags } from "../../api/marketTagsApi";
-import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
+import { CARD_ELEVATED, FONT, FONT_HEAD, COLOR, PAGE_MAX_WIDTH } from "../../styles/darkTokens";
 import { useWatchlist } from "../../hooks/useWatchlist";
 import { WATCHLIST_PATH } from "../../hooks/useWatchToggle";
 const NAV_LINKS = [
@@ -25,6 +26,36 @@ const NAV_LINKS = [
   { labelKey: "nav.markets", to: "/new-markets", Icon: MarketsSVG },
   { labelKey: "nav.stats", to: "/stats", Icon: StatsSVG },
 ];
+
+// Line icons for the second nav row, same stroke as the user menu icons.
+const ROW_ICONS = {
+  "nav.trending": <><path d="m3 17 6-6 4 4 8-8" /><path d="M14 7h7v7" /></>,
+  "nav.markets": <><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="7" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" /><rect x="13.5" y="13.5" width="7" height="7" rx="2" /></>,
+  "nav.stats": <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+};
+
+const RowIcon = ({ name }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ opacity: 0.85 }}>
+    {ROW_ICONS[name]}
+  </svg>
+);
+
+// Links in the second nav row: quiet by default, white with an underline when active.
+const rowLinkStyle = (active) => ({
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: "7px",
+  height: "40px",
+  padding: 0,
+  fontSize: "14px",
+  fontWeight: active ? 500 : 400,
+  color: active ? "#FFFFFF" : "rgba(241,239,239,0.6)",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+  boxShadow: active ? "inset 0 -2px 0 #FFFFFF" : "none",
+  transition: "color .15s",
+});
 
 const linkStyle = {
   fontFamily: "'Roboto', sans-serif",
@@ -84,7 +115,6 @@ const UserChip = ({
   credit,
   onLogout,
   onProfile,
-  onMyBets,
   onWatchlist,
   watchedCount = 0,
   onHelp,
@@ -99,6 +129,11 @@ const UserChip = ({
   const [open, setOpen] = useState(false);
   const wrapperRef = React.useRef(null);
   const { pathname } = useLocation();
+  const history = useHistory();
+  const go = (fn) => () => {
+    setOpen(false);
+    fn?.();
+  };
 
   const initials = (username || "?").slice(0, 2).toUpperCase();
   const fmt = (n) => {
@@ -124,247 +159,217 @@ const UserChip = ({
 
   return (
     <div ref={wrapperRef} style={{ position: "relative" }}>
-      {/* Trigger */}
+      {/* Trigger: chevron + name + avatar, as in the Figma navbar */}
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
         style={{
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          background: open ? "rgba(255,255,255,0.07)" : "transparent",
-          border: `1px solid ${open ? "rgba(156,201,241,0.25)" : "transparent"}`,
-          borderRadius: "999px",
-          padding: "6px 14px 6px 6px",
+          background: "transparent",
+          border: "none",
+          padding: "2px",
           cursor: "pointer",
-          transition: "all .15s",
+          color: COLOR.text,
         }}
       >
-        {/* Avatar */}
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M2 4l4 4 4-4" stroke={COLOR.muted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span style={{ fontSize: "15px", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {username}
+        </span>
         <div
           style={{
-            width: "34px",
-            height: "34px",
+            width: "36px",
+            height: "36px",
             borderRadius: "999px",
             flexShrink: 0,
             background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
-            border: "1.5px solid rgba(156,201,241,0.35)",
+            boxShadow: open ? "0 0 0 2px rgba(156,201,241,0.45)" : "0 0 0 1px rgba(156,201,241,0.3)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontFamily: FONT,
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: "12px",
             color: COLOR.accent,
+            transition: "box-shadow .15s",
           }}
         >
           {initials}
         </div>
-
-        {/* Username + coins */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            lineHeight: 1.2,
-            textAlign: "left",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: FONT,
-              fontWeight: 700,
-              fontSize: "13px",
-              color: COLOR.text,
-            }}
-          >
-            @{username}
-          </span>
-          <span
-            style={{
-              fontFamily: FONT,
-              fontWeight: 600,
-              fontSize: "11px",
-              color: COLOR.accent,
-            }}
-          >
-            ${fmt(credit)}
-          </span>
-        </div>
-
-        {/* Chevron */}
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          style={{
-            marginLeft: "2px",
-            transition: "transform .2s",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        >
-          <path
-            d="M2 4l4 4 4-4"
-            stroke={COLOR.muted}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </button>
 
       {/* Dropdown */}
       {open && (
         <div
+          role="menu"
           style={{
             position: "absolute",
-            top: "calc(100% + 8px)",
+            top: "calc(100% + 10px)",
             right: 0,
-            minWidth: "180px",
+            width: "264px",
             zIndex: 100,
-            ...CARD_ELEVATED,
-            background: "rgba(10,22,38,0.97)",
-            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
-            overflow: "hidden",
+            borderRadius: "14px",
+            border: "1px solid rgba(255,255,255,0.08)",
+            background: "#11161f",
+            boxShadow: "0 18px 48px rgba(0,0,0,0.55)",
+            padding: "6px",
           }}
         >
-          {/* User info header */}
-          <div
-            style={{
-              padding: "14px 16px 12px",
-              borderBottom: "1px solid rgba(255,255,255,0.07)",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 10px 12px" }}>
             <div
               style={{
-                fontFamily: FONT,
+                width: "40px",
+                height: "40px",
+                borderRadius: "999px",
+                flexShrink: 0,
+                background: "linear-gradient(135deg, #1d3a5f, #2a5298)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 fontWeight: 700,
                 fontSize: "13px",
-                color: COLOR.text,
-              }}
-            >
-              @{username}
-            </div>
-            <div
-              style={{
-                fontFamily: FONT,
-                fontWeight: 600,
-                fontSize: "12px",
                 color: COLOR.accent,
-                marginTop: "3px",
               }}
             >
-              ${fmt(credit)}
+              {initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: "14px", color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                @{username}
+              </div>
+              <div style={{ fontSize: "12px", color: COLOR.muted, marginTop: "2px" }}>
+                {t("nav.balance")} <span style={{ color: COLOR.text }}>${fmt(credit)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Menu items */}
-          <div style={{ padding: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
-            {isAdmin && (
-              <DropdownItem
-                icon={<AdminIcon />}
-                label={t('nav.reviewMarkets')}
-                active={pathname === "/admin/markets/review"}
-                onClick={() => {
-                  setOpen(false);
-                  onAdminReview?.();
-                }}
-              />
-            )}
-            {canCreateMarket && (
-              <DropdownItem
-                icon={<CreateIcon />}
-                label={t('nav.create')}
-                active={pathname === "/create"}
-                onClick={() => {
-                  setOpen(false);
-                  onCreate?.();
-                }}
-              />
-            )}
-            {!isAdmin && (
-              <DropdownItem
-                icon={<PersonIcon />}
-                label={t('nav.myProfile')}
-                active={pathname === "/newprofile"}
-                onClick={() => {
-                  setOpen(false);
-                  onProfile?.();
-                }}
-              />
-            )}
-            <DropdownItem
-              icon={<BetsIcon />}
-              label={t('nav.myBets')}
-              onClick={() => {
-                setOpen(false);
-                onMyBets?.();
-              }}
-            />
-            <DropdownItem
-              icon={<WatchlistIcon />}
-              label={watchedCount > 0 ? `${t('nav.watchlist')} (${watchedCount})` : t('nav.watchlist')}
-              onClick={() => {
-                setOpen(false);
-                onWatchlist?.();
-              }}
-            />
-            <DropdownItem
-              icon={<HelpIcon />}
-              label={t('nav.helpFaq')}
-              active={pathname === "/faq"}
-              onClick={() => {
-                setOpen(false);
-                onHelp?.();
-              }}
-            />
-            <DropdownItem
-              icon={<LogoutIcon />}
-              label={t('nav.signOut')}
-              onClick={() => {
-                setOpen(false);
-                onLogout?.();
-              }}
-              danger
-            />
-          </div>
+          <MenuDivider />
+          {(isAdmin || canCreateMarket) && (
+            <>
+              {isAdmin && <DropdownItem icon={<AdminIcon />} label={t('nav.reviewMarkets')} active={pathname === "/admin/markets/review"} onClick={go(onAdminReview)} />}
+              {canCreateMarket && <DropdownItem icon={<CreateIcon />} label={t('nav.create')} active={pathname === "/create"} onClick={go(onCreate)} />}
+              <MenuDivider />
+            </>
+          )}
+          {!isAdmin && (
+            <>
+              <DropdownItem icon={<MenuIcon name="portfolio" />} label={t('nav.myProfile')} active={pathname === "/portfolio" || pathname === "/portfolio/overview"} onClick={go(() => history.push("/portfolio"))} />
+              <DropdownItem icon={<MenuIcon name="positions" />} label={t('account.positions')} active={pathname === "/portfolio/positions"} onClick={go(() => history.push("/portfolio/positions"))} />
+              <DropdownItem icon={<MenuIcon name="activity" />} label={t('account.activity')} active={pathname === "/portfolio/activity"} onClick={go(() => history.push("/portfolio/activity"))} />
+            </>
+          )}
+          <DropdownItem
+            icon={<MenuIcon name="favorites" />}
+            label={t('nav.watchlist')}
+            badge={watchedCount > 0 ? watchedCount : null}
+            onClick={go(onWatchlist)}
+          />
+          {!isAdmin && (
+            <DropdownItem icon={<MenuIcon name="settings" />} label={t('account.settings')} active={pathname === "/portfolio/settings"} onClick={go(() => history.push("/portfolio/settings"))} />
+          )}
+          <LanguageRow i18n={i18n} label={t('nav.language')} />
+          <DropdownItem icon={<MenuIcon name="help" />} label={t('nav.helpFaq')} active={pathname === "/faq"} onClick={go(onHelp)} />
+          <MenuDivider />
+          <DropdownItem icon={<MenuIcon name="logout" />} label={t('nav.signOut')} onClick={go(onLogout)} />
         </div>
       )}
     </div>
   );
 };
 
-const DropdownItem = ({ icon, label, onClick, danger, active }) => (
+const MENU_ICONS = {
+  portfolio: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
+  positions: <path d="M3 12h4l3-8 4 16 3-8h4" />,
+  activity: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  favorites: <path d="M6 3h12v18l-6-5-6 5z" />,
+  settings: <><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></>,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01" /></>,
+  logout: <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3" />,
+  language: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
+};
+
+const MenuIcon = ({ name }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {MENU_ICONS[name]}
+  </svg>
+);
+
+const LanguageRow = ({ i18n, label }) => {
+  const current = (i18n?.language || "en").startsWith("es") ? "es" : "en";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "7px 10px", fontSize: "14px", color: "rgba(234,240,247,0.72)" }}>
+      <span style={{ display: "flex", opacity: 0.85 }}><MenuIcon name="language" /></span>
+      <span style={{ flex: 1 }}>{label}</span>
+      <div style={{ display: "flex", padding: "2px", borderRadius: "8px", background: "rgba(255,255,255,0.06)" }}>
+        {["es", "en"].map((code) => (
+          <button
+            key={code}
+            type="button"
+            onClick={() => i18n.changeLanguage(code)}
+            aria-pressed={current === code}
+            style={{
+              border: "none",
+              borderRadius: "6px",
+              padding: "3px 9px",
+              fontSize: "12px",
+              fontWeight: 600,
+              cursor: "pointer",
+              background: current === code ? "rgba(255,255,255,0.14)" : "transparent",
+              color: current === code ? COLOR.text : COLOR.muted,
+            }}
+          >
+            {code.toUpperCase()}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const MenuDivider = () => <div style={{ height: "1px", background: "rgba(255,255,255,0.07)", margin: "6px 4px" }} />;
+
+const DropdownItem = ({ icon, label, onClick, active, badge }) => (
   <button
+    type="button"
+    role="menuitem"
     onClick={onClick}
     style={{
       width: "100%",
       display: "flex",
       alignItems: "center",
-      gap: "10px",
-      padding: "9px 18px",
-      borderRadius: "999px",
-      border: active ? "1px solid rgba(156,201,241,0.25)" : "none",
-      background: active ? "rgba(255,255,255,0.08)" : "transparent",
+      gap: "12px",
+      padding: "9px 10px",
+      borderRadius: "8px",
+      border: "none",
+      background: active ? "rgba(255,255,255,0.07)" : "transparent",
       cursor: "pointer",
-      fontFamily: FONT,
-      fontWeight: 600,
-      fontSize: "13px",
-      color: danger ? COLOR.noText : active ? "rgba(255,255,255,0.85)" : COLOR.text,
-      transition: "background .12s",
+      fontWeight: 400,
+      fontSize: "14px",
+      textAlign: "left",
+      color: active ? COLOR.text : "rgba(234,240,247,0.72)",
+      transition: "background .12s, color .12s",
     }}
     onMouseEnter={(e) => {
-      if (!active)
-        e.currentTarget.style.background = danger
-          ? "rgba(251,91,107,0.10)"
-          : "rgba(255,255,255,0.06)";
+      e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+      e.currentTarget.style.color = COLOR.text;
     }}
     onMouseLeave={(e) => {
-      if (!active) e.currentTarget.style.background = "transparent";
+      e.currentTarget.style.background = active ? "rgba(255,255,255,0.07)" : "transparent";
+      e.currentTarget.style.color = active ? COLOR.text : "rgba(234,240,247,0.72)";
     }}
   >
-    <span style={{ opacity: active ? 1 : 0.7, display: "flex" }}>{icon}</span>
-    {label}
+    <span style={{ display: "flex", opacity: 0.85 }}>{icon}</span>
+    <span style={{ flex: 1 }}>{label}</span>
+    {badge != null && (
+      <span style={{ fontSize: "12px", color: COLOR.muted, background: "rgba(255,255,255,0.06)", borderRadius: "999px", padding: "1px 8px" }}>
+        {badge}
+      </span>
+    )}
   </button>
 );
 
@@ -597,27 +602,28 @@ const LogoutIcon = () => (
   </svg>
 );
 
-const NAV_HEIGHT = 80; // px — matches padding-top + height
-const SCROLL_THRESHOLD = 80; // px before switching to fixed mode
+// In-flow nav: 24px top padding + 48px main row + 8px gap + 40px links row + 16px margin.
+const NAV_HEIGHT = 136; // px — placeholder height while the nav is fixed
+const SCROLL_THRESHOLD = 136; // px before switching to fixed mode (in-flow nav fully scrolled away)
 
 // Cached across pages so the Markets chevron doesn't flicker.
 let marketTagsCache = null;
 
 /**
- * @param {string} [contentWidth] - When set (e.g. "1400px"), the nav keeps its full-width
- *   background but aligns its content to a centered column of that width (40px gutters).
+ * @param {string} [contentWidth] - The nav keeps its full-width background but aligns its
+ *   content to a centered column of this width (40px gutters). Defaults to PAGE_MAX_WIDTH.
  */
-const Navbar = ({ contentWidth } = {}) => {
-  const sidePad = contentWidth
-    ? `max(40px, calc((100% - ${contentWidth}) / 2 + 40px))`
-    : "80px";
+const Navbar = ({ contentWidth = PAGE_MAX_WIDTH } = {}) => {
+  const sidePad = `max(40px, calc((100% - ${contentWidth}) / 2 + 40px))`;
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register' | 'forgot'
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const { login, logout, username, token, usertype, moderatorStatus, changePasswordNeeded } = useAuth();
   const isLoggedIn = !!username;
   const isAdmin = usertype === "ADMIN";
@@ -646,7 +652,10 @@ const Navbar = ({ contentWidth } = {}) => {
   // ── scroll-aware desktop nav ────────────────────────────────────────────────
   const [navFixed, setNavFixed] = useState(false); // switched to fixed position
   const [navVisible, setNavVisible] = useState(true); // show or hide via transform
+  // Off for the frame the nav switches to fixed, so it does not visibly slide away from y=0.
+  const [navAnimate, setNavAnimate] = useState(true);
   const lastScrollY = React.useRef(0);
+  const fixedRef = React.useRef(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -654,11 +663,27 @@ const Navbar = ({ contentWidth } = {}) => {
       const prev = lastScrollY.current;
 
       if (current > SCROLL_THRESHOLD) {
-        setNavFixed(true);
+        // Enter fixed mode already hidden: showing the fixed bar for a frame
+        // and then hiding it is what made the header flicker.
+        if (!fixedRef.current) {
+          fixedRef.current = true;
+          setNavAnimate(false);
+          requestAnimationFrame(() => requestAnimationFrame(() => setNavAnimate(true)));
+          setNavFixed(true);
+          setNavVisible(false);
+          lastScrollY.current = current;
+          return;
+        }
         if (Math.abs(current - prev) < 4) return;
         // scrolling down → hide, scrolling up → show
         setNavVisible(current < prev);
+      } else if (fixedRef.current && current > 0) {
+        // Near the top while fixed: stay fixed and visible until scrollY hits 0.
+        // Unfixing here would park the in-flow nav above the viewport, so it
+        // vanished and slid back in.
+        setNavVisible(true);
       } else {
+        fixedRef.current = false;
         setNavFixed(false);
         setNavVisible(true);
       }
@@ -671,20 +696,20 @@ const Navbar = ({ contentWidth } = {}) => {
   }, []);
   // ────────────────────────────────────────────────────────────────────────────
 
-  const [betsOpen, setBetsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     const path = history.location.pathname;
     const isPrivate =
-      path === "/newprofile" ||
+      path.startsWith("/portfolio") ||
       ["/create", "/admin", "/changepassword", "/notifications", "/profile"].some(
         (p) => path === p || path.startsWith(`${p}/`),
       );
     if (isPrivate) history.push("/");
   };
-  const handleProfile = () => history.push("/newprofile");
-  const handleMyBets = () => setBetsOpen(true);
+  const handleProfile = () => history.push("/portfolio");
+  // Bets live in the portfolio now (positions), not in a side panel.
+  const handleMyBets = () => history.push("/portfolio/positions");
   const handleWatchlist = () => history.push(WATCHLIST_PATH);
   const { ids: watchedIds } = useWatchlist();
 
@@ -699,6 +724,9 @@ const Navbar = ({ contentWidth } = {}) => {
     history.push(to);
   };
 
+
+  const activeLeague = pathname === "/new-markets" ? new URLSearchParams(location.search).get("league") : null;
+
   const desktopNavStyle = navFixed
     ? {
         position: "fixed",
@@ -706,30 +734,32 @@ const Navbar = ({ contentWidth } = {}) => {
         left: 0,
         right: 0,
         zIndex: 200,
-        height: "104px",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: `40px ${sidePad}`,
+        flexDirection: "column",
+        padding: `12px ${sidePad}`,
         boxSizing: "border-box",
         background: "rgba(10,20,34,0.88)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
         borderBottom: "1px solid rgba(255,255,255,0.07)",
         transform: navVisible ? "translateY(0)" : "translateY(-110%)",
-        // animate only when reappearing; instant hide
-        transition: navVisible
-          ? "transform 0.28s cubic-bezier(0.4,0,0.2,1)"
+        opacity: navVisible ? 1 : 0,
+        transition: navAnimate
+          ? navVisible
+            ? "transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease, background-color 0.2s, border-color 0.2s"
+            : "transform 0.24s cubic-bezier(0.4,0,1,1), opacity 0.24s ease"
           : "none",
       }
     : {
         position: "relative",
         zIndex: 20,
-        height: "64px",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: `40px ${sidePad} 0`,
+        flexDirection: "column",
+        gap: "8px",
+        padding: `24px ${sidePad} 0`,
         marginBottom: "16px",
         boxSizing: "border-box",
+        background: "transparent",
+        borderBottom: "1px solid transparent",
+        transition: "background-color 0.2s, border-color 0.2s",
       };
 
   return (
@@ -744,10 +774,12 @@ const Navbar = ({ contentWidth } = {}) => {
         />
       )}
       <nav className="hidden lg:flex" style={desktopNavStyle}>
-        {/* Logo */}
+        {/* Row 1: logo, search, account */}
+        {/* 3-column grid: search centred when there is room; side columns never shrink below their content, so the search gives way first */}
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(max-content, 1fr) minmax(0, 780px) minmax(max-content, 1fr)", alignItems: "center", gap: "28px", height: "48px" }}>
         <Link
           to="/"
-          style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+          style={{ display: "flex", alignItems: "center", justifySelf: "start" }}
         >
           <img
             src={logo}
@@ -756,150 +788,8 @@ const Navbar = ({ contentWidth } = {}) => {
           />
         </Link>
 
-        {/* Nav links */}
-        <div style={{ display: "flex", alignItems: "center" }}>
-          {NAV_LINKS.map((link) => {
-            const label = t(link.labelKey);
-            const isActive = link.to !== "/" && link.to === pathname;
-            const isMarkets = link.labelKey === "nav.markets";
-
-            if (isMarkets && marketTags.length > 0) {
-              return (
-                <div
-                  key={link.labelKey}
-                  style={{ position: "relative" }}
-                  className="group"
-                >
-                  <Link
-                    to={link.to}
-                    style={{
-                      ...linkStyle,
-                      padding: "0 clamp(10px, 1.6vw, 28px)",
-                      height: "25px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                      ...(isActive
-                        ? { color: "#FFFFFF", textDecoration: "underline", textUnderlineOffset: "6px" }
-                        : {}),
-                    }}
-                  >
-                    {label}
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      className="transition-transform duration-200 group-hover:rotate-180"
-                    >
-                      <path
-                        d="M2 4l4 4 4-4"
-                        stroke={COLOR.muted}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Link>
-                  {/* Hover dropdown */}
-                  <div
-                    className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200"
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      paddingTop: "10px",
-                      zIndex: 100,
-                    }}
-                  >
-                    <div
-                      style={{
-                        minWidth: "200px",
-                        ...CARD_ELEVATED,
-                        background: "rgba(10,22,38,0.97)",
-                        boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
-                        overflow: "hidden",
-                        padding: "6px",
-                      }}
-                    >
-                      {/* All Markets link */}
-                      <Link
-                        to="/new-markets"
-                        style={{
-                          display: "block",
-                          padding: "9px 16px",
-                          borderRadius: "9px",
-                          fontFamily: FONT,
-                          fontWeight: 700,
-                          fontSize: "13px",
-                          color: COLOR.text,
-                          textDecoration: "none",
-                          borderBottom: "1px solid rgba(255,255,255,0.07)",
-                          marginBottom: "4px",
-                          transition: "background .12s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                      >
-                        {t('filters.all') || 'All Markets'}
-                      </Link>
-                      {marketTags.map((tag) => (
-                        <Link
-                          key={tag}
-                          to={`/new-markets?league=${encodeURIComponent(tag)}`}
-                          style={{
-                            display: "block",
-                            padding: "9px 16px",
-                            borderRadius: "9px",
-                            fontFamily: FONT,
-                            fontWeight: 600,
-                            fontSize: "13px",
-                            color: COLOR.muted,
-                            textDecoration: "none",
-                            whiteSpace: "nowrap",
-                            transition: "background .12s, color .12s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                            e.currentTarget.style.color = COLOR.text;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = COLOR.muted;
-                          }}
-                        >
-                          {tag}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={link.labelKey}
-                to={link.to}
-                style={{
-                  ...linkStyle,
-                  padding: "0 clamp(10px, 1.6vw, 28px)",
-                  height: "25px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  ...(isActive
-                    ? { color: "#FFFFFF", textDecoration: "underline", textUnderlineOffset: "6px" }
-                    : {}),
-                }}
-              >
-                {label}
-              </Link>
-            );
-          })}
-          <LanguageDropdown i18n={i18n} />
+        <div style={{ minWidth: 0 }}>
+          <NavSearch t={t} />
         </div>
 
         {/* Auth / User */}
@@ -908,16 +798,50 @@ const Navbar = ({ contentWidth } = {}) => {
             display: "flex",
             alignItems: "center",
             gap: "16px",
-            flexShrink: 0,
+            justifySelf: "end",
           }}
         >
+          {!isLoggedIn && <LanguageDropdown i18n={i18n} />}
           {isLoggedIn ? (
+            <>
+            <button
+              type="button"
+              onClick={handleProfile}
+              aria-label={t('nav.balance')}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "15px", fontWeight: 500, color: COLOR.yesText, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
+            >
+              $ {userCredit == null ? "—" : Math.round(userCredit).toLocaleString("en-US")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.info(t('nav.depositSoon'))}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                height: "32px",
+                padding: "0 16px",
+                borderRadius: "999px",
+                border: "none",
+                cursor: "pointer",
+                background: "#34425F",
+                color: "#fff",
+                fontWeight: 500,
+                fontSize: "14px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+              </svg>
+              {t('nav.deposit')}
+            </button>
+            <span aria-hidden="true" style={{ width: "1px", height: "28px", background: "rgba(255,255,255,0.25)" }} />
             <UserChip
               username={username}
               credit={userCredit}
               onLogout={handleLogout}
               onProfile={handleProfile}
-              onMyBets={handleMyBets}
               onWatchlist={handleWatchlist}
               watchedCount={watchedIds.length}
               onHelp={() => history.push("/faq")}
@@ -929,6 +853,7 @@ const Navbar = ({ contentWidth } = {}) => {
               t={t}
               i18n={i18n}
             />
+            </>
           ) : (
             <>
               <button
@@ -968,6 +893,37 @@ const Navbar = ({ contentWidth } = {}) => {
             </>
           )}
         </div>
+        </div>
+
+        {/* Row 2: sections + market categories; hidden while the nav floats fixed */}
+        {!navFixed && (
+          <div style={{ height: "40px", overflowX: "auto", scrollbarWidth: "none" }}>
+          {/* Centred under the search; the inner w-max + auto margins keep the start reachable when it overflows */}
+          <div style={{ display: "flex", alignItems: "center", gap: "26px", height: "100%", width: "max-content", margin: "0 auto" }}>
+            {NAV_LINKS.map((link) => {
+              const active = link.to === "/" ? pathname === "/" : pathname === link.to && !activeLeague;
+              return (
+                <Link key={link.labelKey} to={link.to} style={rowLinkStyle(active)}>
+                  <RowIcon name={link.labelKey} />
+                  {t(link.labelKey)}
+                </Link>
+              );
+            })}
+            {marketTags.length > 0 && (
+              <span aria-hidden="true" style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
+            )}
+            {marketTags.map((tag) => (
+              <Link
+                key={tag}
+                to={`/new-markets?league=${encodeURIComponent(tag)}`}
+                style={rowLinkStyle(activeLeague === tag)}
+              >
+                {tag}
+              </Link>
+            ))}
+          </div>
+          </div>
+        )}
       </nav>
 
       {/* ── MOBILE TOP BAR ── */}
@@ -983,7 +939,7 @@ const Navbar = ({ contentWidth } = {}) => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleMyBets}
+              onClick={handleProfile}
               aria-label={`${t('nav.myBets')}: $${userCredit != null ? Math.round(userCredit) : "—"}`}
               className="rounded-full px-2.5 py-1.5 text-[16px] font-semibold tabular-nums text-white"
             >
@@ -1133,13 +1089,6 @@ const Navbar = ({ contentWidth } = {}) => {
         />
       )}
 
-      {isLoggedIn && (
-        <MyBetsPanel
-          isOpen={betsOpen}
-          onClose={() => setBetsOpen(false)}
-          username={username}
-        />
-      )}
     </>
   );
 };

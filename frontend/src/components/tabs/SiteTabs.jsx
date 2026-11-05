@@ -42,7 +42,7 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
         const pct = 100 / tabCount;
 
         return (
-            <div style={{ fontFamily: 'Manrope,system-ui,sans-serif' }}>
+            <div style={{ fontFamily: 'Roboto,system-ui,sans-serif' }}>
                 <div style={{ position: 'relative', display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     {tabs.map(tab => {
                         const isActive = currentTab === tab.label;
@@ -59,7 +59,7 @@ const SiteTabs = ({ tabs, onTabChange, defaultTab, activeTab, variant }) => {
                                     border: 'none',
                                     cursor: 'pointer',
                                     background: 'transparent',
-                                    fontFamily: 'Manrope,system-ui,sans-serif',
+                                    fontFamily: 'Roboto,system-ui,sans-serif',
                                     fontSize: 'clamp(11px, 3.1vw, 13px)',
                                     fontWeight: 700,
                                     color: isActive ? 'rgba(255,255,255,0.85)' : '#5d7189',

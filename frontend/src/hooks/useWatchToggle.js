@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "./useToast";
 import { useWatchlist } from "./useWatchlist";
 
-export const WATCHLIST_PATH = "/new-markets?watchlist=1";
+export const WATCHLIST_PATH = "/portfolio/favorites";
 
 // Toggles a market in the watchlist and confirms with a toast that links to
 // the "Following" view, so users learn where saved markets end up.

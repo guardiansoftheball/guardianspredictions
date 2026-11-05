@@ -45,7 +45,7 @@ export default function ToastProvider({ children }) {
       {createPortal(
         <div
           aria-live="polite"
-          className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"
+          className="fixed bottom-20 left-4 right-4 z-[9999] mx-auto flex flex-col items-center gap-3 pointer-events-none lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0 lg:items-end"
           style={{ maxWidth: "400px" }}
         >
           {toasts.map((t) => (

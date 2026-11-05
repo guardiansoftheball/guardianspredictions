@@ -17,10 +17,11 @@ const LEADERBOARD_PAGE_SIZE = 20;
 
 const COLORS = {
   celeste: '#9CC9F1',
-  amber: '#fbbf24',
-  purple: '#a78bfa',
-  orange: '#fb923c',
-  cyan: '#22d3ee',
+  // Muted to sit with the rest of the dark UI (cards, trade panel).
+  amber: '#d9a54a',
+  purple: '#9f8be0',
+  orange: '#e0905a',
+  cyan: '#4fb8c9',
   pink: '#f472b6',
   emerald: '#34d399',
   rose: '#fb7185',
@@ -80,7 +81,7 @@ const ErrorBanner = ({ msg }) => msg ? (
 const StatCard = ({ label, value, color }) => (
   <div style={{ ...CARD, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '112px', boxSizing: 'border-box' }}>
     <span style={{ fontSize: '13px', color: '#8B929C' }}>{label}</span>
-    <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', color: color || '#F3F4F6' }}>{value}</span>
+    <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', color: color || '#F3F4F6' }}>{value}</span>
   </div>
 );
 
@@ -331,7 +332,7 @@ const NewStats = () => {
         <TopGlow />
         <Navbar />
 
-        <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-8 pb-24">
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-8 pb-24">
 
           {/* ── Header ── */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
@@ -341,8 +342,8 @@ const NewStats = () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {lbFreshnessLabel && (
-                <span style={{ fontSize: '13px', color: '#8B929C', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
-                  Updated {lbFreshnessLabel}
+                <span style={{ fontSize: '13px', color: '#8B929C', fontVariantNumeric: 'tabular-nums' }}>
+                  {t('stats.updatedAt', { time: lbFreshnessLabel })}
                 </span>
               )}
               <button
@@ -357,7 +358,7 @@ const NewStats = () => {
                 }}
               >
                 <RefreshIcon />
-                Recalculate
+                {t('stats.recalculate')}
               </button>
             </div>
           </header>
@@ -413,19 +414,19 @@ const NewStats = () => {
                       <div key={user.username}>
                         {/* Desktop */}
                         <div className="hidden sm:grid" style={{ gridTemplateColumns: '56px minmax(0,1fr) 200px 80px 80px 130px', alignItems: 'center', height: '60px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '14px' }}>
-                          <div style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 500, color: rank === 1 ? '#F3F4F6' : '#8B929C' }}>{String(rank).padStart(2, '0')}</div>
+                          <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500, color: rank === 1 ? '#F3F4F6' : '#8B929C' }}>{String(rank).padStart(2, '0')}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>{initials}</div>
-                            <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none' }}>{user.username}</Link>
+                            <Link to={`/users/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none' }}>{user.username}</Link>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
                             <CenteredProfitBar profit={user.totalProfit} maxAbsProfit={maxAbsProfit} />
-                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: neg ? '#F2767A' : '#C9CDD3', width: '48px', textAlign: 'right' }}>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', color: neg ? '#F2767A' : '#C9CDD3', width: '48px', textAlign: 'right' }}>
                               {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
                             </span>
                           </div>
-                          <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</div>
-                          <div style={{ textAlign: 'right', fontFamily: "'Geist Mono', 'Roboto Mono', monospace", color: '#C9CDD3' }}>{fmt(user.totalSpent)}</div>
+                          <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#C9CDD3' }}>{fmt(user.totalCurrentValue)}</div>
+                          <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#C9CDD3' }}>{fmt(user.totalSpent)}</div>
                           <div style={{ textAlign: 'right', color: '#8B929C', fontSize: '13px' }}>
                             <span style={{ color: '#E7E9EC' }}>{user.activeMarkets}</span> {t('stats.leaderboard.active')} · <span style={{ color: '#E7E9EC' }}>{user.resolvedMarkets}</span> res.
                           </div>
@@ -433,10 +434,10 @@ const NewStats = () => {
                         {/* Mobile */}
                         <div className="sm:hidden" style={{ ...CARD, padding: '16px', marginBottom: '8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 700, color: '#F3F4F6', fontSize: '18px' }}>{String(rank).padStart(2, '0')}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#F3F4F6', fontSize: '18px' }}>{String(rank).padStart(2, '0')}</span>
                             <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
-                            <Link to={`/newprofile/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none', flex: 1 }}>{user.username}</Link>
-                            <span style={{ fontFamily: "'Geist Mono', 'Roboto Mono', monospace", fontWeight: 600, color: neg ? '#F2767A' : '#C9CDD3' }}>
+                            <Link to={`/users/${user.username}`} style={{ color: '#F3F4F6', fontWeight: 500, textDecoration: 'none', flex: 1 }}>{user.username}</Link>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: neg ? '#F2767A' : '#C9CDD3' }}>
                               {neg ? `−${fmt(Math.abs(user.totalProfit))}` : fmt(user.totalProfit)}
                             </span>
                           </div>
@@ -484,7 +485,7 @@ const NewStats = () => {
             {systemMetrics && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {smFreshnessLabel && (
-                  <div style={{ fontSize: '12px', color: '#7D848F', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>
+                  <div style={{ fontSize: '12px', color: '#7D848F', fontVariantNumeric: 'tabular-nums' }}>
                     {t('stats.metrics.freshnessLabel', { time: smFreshnessLabel })}
                   </div>
                 )}
@@ -499,21 +500,21 @@ const NewStats = () => {
                     </div>
                     <div style={{ height: '6px', width: '100%', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                       <div style={{
-                        height: '100%', borderRadius: '3px', transition: 'width 0.7s',
-                        width: `${Math.min((Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1)) * 100, 100)}%`,
+                        height: '100%', width: '100%', borderRadius: '3px', transformOrigin: 'left', transition: 'transform 0.7s',
+                        transform: `scaleX(${Math.min(Math.abs(systemMetrics.moneyUtilized.totalUtilized.value) / Math.max(Math.abs(systemMetrics.moneyCreated.userDebtCapacity.value), 1), 1)})`,
                         backgroundColor: COLORS.celeste,
                       }} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
-                      { label: t('stats.metrics.numUsers'), value: systemMetrics.moneyCreated.numUsers.value, icon: '👥' },
-                      { label: t('stats.metrics.userDebtCapacity'), value: systemMetrics.moneyCreated.userDebtCapacity.value, icon: '💳' },
-                      { label: t('stats.metrics.totalUtilized'), value: systemMetrics.moneyUtilized.totalUtilized.value, icon: '📊' },
+                      { label: t('stats.metrics.numUsers'), value: systemMetrics.moneyCreated.numUsers.value },
+                      { label: t('stats.metrics.userDebtCapacity'), value: systemMetrics.moneyCreated.userDebtCapacity.value },
+                      { label: t('stats.metrics.totalUtilized'), value: systemMetrics.moneyUtilized.totalUtilized.value },
                     ].map((m) => (
                       <div key={m.label} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ fontSize: '12px', color: '#8B929C', marginBottom: '6px' }}>{m.icon} {m.label}</div>
-                        <div style={{ fontSize: '20px', fontWeight: 600, color: '#F3F4F6', fontFamily: "'Geist Mono', 'Roboto Mono', monospace" }}>{fmt(m.value)}</div>
+                        <div style={{ fontSize: '12px', color: '#8B929C', marginBottom: '6px' }}>{m.label}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 600, color: '#F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt(m.value)}</div>
                       </div>
                     ))}
                   </div>

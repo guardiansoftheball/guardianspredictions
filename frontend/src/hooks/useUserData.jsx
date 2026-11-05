@@ -34,7 +34,8 @@ const useUserData = (username, usePrivateProfile = false) => {
       }
     };
 
-    if (!token) {
+    // Public profiles load without a session; only the private one needs a token.
+    if (!token && usePrivateProfile) {
       setUserLoading(false);
       return () => {
         ignore = true;

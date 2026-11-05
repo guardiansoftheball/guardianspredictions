@@ -44,7 +44,7 @@ export function UserLink({ username, isYou, youLabel }) {
     return (
         <span className="flex min-w-0 items-center gap-1.5">
             <Link
-                to={`/newprofile/${username}`}
+                to={`/users/${username}`}
                 className="truncate text-[14px] font-semibold text-[#eaf0f7] transition-colors hover:text-white focus-visible:underline focus-visible:outline-none"
             >
                 {username}

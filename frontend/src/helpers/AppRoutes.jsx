@@ -93,17 +93,19 @@ const AppRoutes = () => {
         )}
       </Route>
 
-      {/* New Profile Preview */}
-      <Route exact path='/newprofile'>
+      {/* Own account (portfolio) and public user profiles */}
+      <Route exact path='/portfolio/:section?'>
         {isRegularUser ? <NewProfile /> : <Redirect to='/' />}
       </Route>
-      <Route exact path='/newprofile/:username'>
+      <Route exact path='/users/:username'>
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />
         ) : (
           <NewProfile />
         )}
       </Route>
+      <Redirect exact from='/newprofile' to='/portfolio' />
+      <Redirect exact from='/newprofile/:username' to='/users/:username' />
 
       {/* Public Routes */}
       <Route exact path='/about'>
@@ -145,7 +147,7 @@ const AppRoutes = () => {
       <Route exact path='/polls'>
         <Redirect to='/' />
       </Route>
-      <Redirect exact from='/user/:username' to='/newprofile/:username' />
+      <Redirect exact from='/user/:username' to='/users/:username' />
       <Route exact path='/stats'>
         {isLoggedIn && mustChangePassword ? (
           <Redirect to='/changepassword' />

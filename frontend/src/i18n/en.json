@@ -172,6 +172,12 @@
     "create": "Create",
     "myProfile": "Portfolio",
     "myBets": "My bets",
+    "balance": "Balance",
+    "language": "Language",
+    "deposit": "Deposit",
+    "depositSoon": "Deposits are coming soon",
+    "searchEmpty": "No markets found",
+    "searchSeeAll": "See all results for \"{{query}}\"",
     "signOut": "Sign out",
     "signIn": "Sign in",
     "createAccount": "Create account",
@@ -232,8 +238,6 @@
     "activityShares_other": "{{count}} shares",
     "noActivity": "No activity yet",
     "showMore": "Show more",
-    "volumeTitle": "Wagered",
-    "volumeTooltip": "Total wagered",
     "range_1w": "last week",
     "range_1m": "last month",
     "range_all": "all time",
@@ -284,7 +288,24 @@
     "saving": "Saving…",
     "nameRequired": "Name can't be empty",
     "avatar": "Avatar",
-    "changeAvatar": "Change emoji"
+    "changeAvatar": "Change emoji",
+    "activityBoughtOther": "Bought",
+    "activitySoldOther": "Sold",
+    "badgeBuy": "Buy",
+    "badgeSell": "Sell",
+    "pnlTitle": "Profit / Loss",
+    "pnlTooltip": "Profit / Loss",
+    "pnlHint": "Moves when a market resolves; the last point includes your open positions.",
+    "range_1d": "last day",
+    "rangeShort_1d": "1D"
+  },
+  "publicProfile": {
+    "portfolioValue": "Portfolio value",
+    "totalPnl": "Total PnL",
+    "biggestWin": "Biggest win",
+    "share": "Share profile",
+    "linkCopied": "Link copied",
+    "linkCopyError": "Could not copy the link"
   },
   "profile": {
     "selectEmoji": "Select Emoji",
@@ -624,6 +645,8 @@
     }
   },
   "stats": {
+    "updatedAt": "Updated {{time}}",
+    "recalculate": "Recalculate",
     "pageTitle": "Platform Statistics",
     "pageEyebrow": "Platform",
     "pageHeading": "Statistics",
@@ -783,7 +806,9 @@
     "showAll": "Show all {{count}} markets",
     "showLess": "Show less",
     "loadError": "Couldn't load performance",
-    "partial": "{{count}} markets couldn't be loaded; totals are incomplete. Try reloading in a moment."
+    "partial": "{{count}} markets couldn't be loaded; totals are incomplete. Try reloading in a moment.",
+    "resolved": "resolved",
+    "openLower": "open"
   },
   "watchlist": {
     "add": "Follow market",

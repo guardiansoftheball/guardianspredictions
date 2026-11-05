@@ -28,7 +28,7 @@ import ResolveModalButton from "../modals/resolution/ResolveModalDark";
 import ResolutionAlert from "../resolutions/ResolutionAlert";
 import { stewardUsernameFor } from "../markets/StewardTag";
 import formatResolutionDate from "../../helpers/formatResolutionDate";
-import { FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
+import { FONT, FONT_HEAD, COLOR, DETAIL_MAX_WIDTH } from "../../styles/darkTokens";
 import { getMarketGroupDetails } from "../../api/marketsApi";
 import {
   submitBet,
@@ -1806,13 +1806,13 @@ function MultiChoiceTradePanel({
                     : "linear-gradient(135deg, #BAD659 0%, #a3c24a 100%)"
                   : submitting || !amount
                     ? "rgba(255,255,255,0.06)"
-                    : "linear-gradient(135deg, #9cc9f1 0%, #6aabde 100%)",
+                    : "#fff",
               color:
                 buyPhase === "success"
                   ? buyOutcome === "NO" ? "#1f0508" : "#1a2e05"
                   : submitting || !amount
                     ? MUTED2
-                    : "#0a1628",
+                    : "#0b0f1a",
               marginTop: "4px",
               opacity: submitting ? 0.7 : 1,
               overflow: "hidden",
@@ -2869,7 +2869,7 @@ function MarketLayout({
               <SkelText>@username</SkelText>
             </span>
           ) : (
-            <Link to={`/user/${creatorUsername}`} style={{
+            <Link to={`/users/${creatorUsername}`} style={{
               color: MUTED, textDecoration: "none",
               display: "inline-flex", alignItems: "center", gap: "4px",
             }}
@@ -4475,16 +4475,6 @@ function TestMarketDetailsLayout({
 }) {
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    if (document.getElementById("gp-fonts")) return;
-    const link = document.createElement("link");
-    link.id = "gp-fonts";
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@700;800&display=swap";
-    document.head.appendChild(link);
-  }, []);
-
   const isGroupMember = !!market?.marketGroup?.id;
 
   const commonProps = {
@@ -4508,13 +4498,13 @@ function TestMarketDetailsLayout({
       <div style={{ position: "relative" }}>
         <TopGlow />
         <div style={{ position: "relative", zIndex: 20 }}>
-          <Navbar contentWidth="1600px" />
+          <Navbar />
         </div>
         <div
           style={{
             position: "relative",
             zIndex: 10,
-            maxWidth: "1600px",
+            maxWidth: DETAIL_MAX_WIDTH,
             margin: "0 auto",
             padding: isMobile ? "16px 16px 60px" : "22px 40px 60px",
           }}

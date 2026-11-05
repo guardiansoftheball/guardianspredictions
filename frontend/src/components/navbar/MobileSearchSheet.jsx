@@ -46,7 +46,7 @@ const MobileSearchSheet = ({ open, onClose, leagues = [], t }) => {
     { key: "newest", label: t("filters.newest"), to: "/new-markets?sort=newest", icon: ICONS.newest },
     { key: "matches", label: t("filters.matches"), to: "/new-markets?event=matches", icon: ICONS.matches },
     { key: "resolved", label: t("filters.resolved"), to: "/new-markets?status=resolved", icon: ICONS.resolved },
-    { key: "following", label: t("nav.watchlist"), to: "/new-markets?watchlist=1", icon: ICONS.following },
+    { key: "following", label: t("nav.watchlist"), to: "/portfolio/favorites", icon: ICONS.following },
   ];
 
   return (

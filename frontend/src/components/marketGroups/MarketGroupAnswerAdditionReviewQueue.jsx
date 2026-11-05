@@ -144,7 +144,7 @@ export default function MarketGroupAnswerAdditionReviewQueue({
               </span>
               <span>
                 Proposed by{' '}
-                <Link to={`/newprofile/${addition.proposedBy}`} className='text-sky-300 hover:text-sky-200'>
+                <Link to={`/users/${addition.proposedBy}`} className='text-sky-300 hover:text-sky-200'>
                   @{addition.proposedBy}
                 </Link>
               </span>

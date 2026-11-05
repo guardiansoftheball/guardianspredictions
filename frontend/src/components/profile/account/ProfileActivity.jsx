@@ -48,7 +48,7 @@ export async function loadUserActivity(username, token) {
   return perMarket.flat().sort((a, b) => new Date(b.placedAt) - new Date(a.placedAt));
 }
 
-const ActivityRow = ({ item, locale, t }) => {
+const ActivityRow = ({ item, locale, t, thirdPerson }) => {
   const isYes = item.outcome === "YES";
   const isSell = item.action === "sell";
   return (
@@ -57,17 +57,16 @@ const ActivityRow = ({ item, locale, t }) => {
       className="flex items-center gap-3 border-t border-white/[0.06] px-4 py-3.5 no-underline transition-colors first:border-t-0 hover:bg-white/[0.03]"
     >
       <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-bold ${
-          isSell ? "bg-white/[0.06] text-white/70" : isYes ? "bg-[#BAD659]/15 text-[#C6E06C]" : "bg-[#fb5b6b]/15 text-[#fb8b96]"
+        className={`w-[60px] shrink-0 rounded-md py-1 text-center text-[11px] font-semibold uppercase tracking-wide ${
+          isSell ? "bg-[#f6ad55]/10 text-[#f6c38a]" : "bg-[#60a5fa]/10 text-[#93c5fd]"
         }`}
-        aria-hidden="true"
       >
-        {isSell ? "↗" : "↘"}
+        {t(isSell ? "account.badgeSell" : "account.badgeBuy")}
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold text-white">{item.title}</div>
         <div className="truncate text-[13px] text-white/55">
-          {t(isSell ? "account.activitySold" : "account.activityBought")}{" "}
+          {t(`account.activity${isSell ? "Sold" : "Bought"}${thirdPerson ? "Other" : ""}`)}{" "}
           <span className={isYes ? "text-[#C6E06C]" : "text-[#fb8b96]"}>{t(isYes ? "activity.yes" : "activity.no")}</span>
           {" · "}{t("account.activityAt", { price: item.price })}
         </div>
@@ -82,7 +81,7 @@ const ActivityRow = ({ item, locale, t }) => {
   );
 };
 
-const ProfileActivity = ({ username }) => {
+const ProfileActivity = ({ username, thirdPerson = false }) => {
   const { t, i18n } = useTranslation();
   const { token } = useAuth();
   const [items, setItems] = useState(null);
@@ -133,7 +132,7 @@ const ProfileActivity = ({ username }) => {
         <>
           <div style={{ ...CARD, padding: 0, overflow: "hidden" }}>
             {filtered.slice(0, visible).map((item) => (
-              <ActivityRow key={item.key} item={item} locale={i18n.language} t={t} />
+              <ActivityRow key={item.key} item={item} locale={i18n.language} t={t} thirdPerson={thirdPerson} />
             ))}
           </div>
           {visible < filtered.length && (

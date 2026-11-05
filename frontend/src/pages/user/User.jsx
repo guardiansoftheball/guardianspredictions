@@ -155,7 +155,7 @@ const PublicIdentityCard = ({ userData, username, isOwnProfile }) => {
             <div style={{ font: `800 18px ${FONT_HEAD}`, marginTop: "2px", color: TEXT }}>{creditDisplay}</div>
           </div>
           {isOwnProfile && (
-            <GhostButton as="link" to="/newprofile">
+            <GhostButton as="link" to="/portfolio">
               Edit profile
             </GhostButton>
           )}

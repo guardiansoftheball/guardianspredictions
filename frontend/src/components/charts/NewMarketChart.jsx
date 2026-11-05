@@ -4,8 +4,8 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 
-const FONT      = 'Manrope,system-ui,sans-serif';
-const FONT_HEAD = 'Sora,system-ui,sans-serif';
+const FONT      = 'Roboto,system-ui,sans-serif';
+const FONT_HEAD = 'Roboto,system-ui,sans-serif';
 const YES_COLOR = '#BAD659';
 const NO_COLOR  = '#fb5b6b';
 const MUTED2    = '#6b7f95';

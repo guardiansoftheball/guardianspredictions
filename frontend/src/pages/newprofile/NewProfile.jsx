@@ -6,14 +6,8 @@ import Footer from "../../components/footer/Footer";
 import { TopGlow } from "../../components/ui/BlueGlow";
 import LoadingSpinner from "../../components/loaders/LoadingSpinner";
 import MarkdownLite from "../../components/markdown/MarkdownLite";
-import ProfileModal from "../../components/buttons/profile/ProfileModal";
-import EmojiSelector from "../../components/buttons/profile/EmojiSelector";
-import DescriptionSelector from "../../components/buttons/profile/DescriptionSelector";
-import DisplayNameSelector from "../../components/buttons/profile/DisplayNameSelector";
-import PersonalLinksSelector from "../../components/buttons/profile/PersonalLinksSelector";
 import { groupLifecycleMarketRows } from "../../components/layouts/profile/MarketLifecycleTable";
 import useUserData from "../../hooks/useUserData";
-import PerformanceSection from "../../components/layouts/profile/PerformanceSection";
 import { useAuth } from "../../helpers/AuthContent";
 import ProfileSidebar from "../../components/profile/account/ProfileSidebar";
 import ProfileOverview from "../../components/profile/account/ProfileOverview";
@@ -22,6 +16,7 @@ import ProfileActivity from "../../components/profile/account/ProfileActivity";
 import ProfilePositions from "../../components/profile/account/ProfilePositions";
 import ProfileSettings from "../../components/profile/account/ProfileSettings";
 import ProfileFinancials from "../../components/profile/account/ProfileFinancials";
+import PublicProfile from "../../components/profile/public/PublicProfile";
 import { API_URL } from "../../config";
 import { listMyLifecycleMarkets } from "../../api/lifecycleMarketsApi";
 import { listMyMarketDescriptionAmendments } from "../../api/marketDescriptionAmendmentsApi";
@@ -29,14 +24,13 @@ import {
   listMarketGroupAnswerAdditionsForReview,
   reviewMarketGroupAnswerAdditionForSteward,
 } from "../../api/marketsApi";
-import { CARD, FONT, FONT_HEAD, COLOR } from "../../styles/darkTokens";
+import { CARD, FONT, FONT_HEAD, COLOR, DETAIL_MAX_WIDTH } from "../../styles/darkTokens";
 import {
   PAGE_SIZE,
   Chip,
   PillTabs,
   SectionCard,
   SectionLabel,
-  StatCard,
   EmptyState,
   ErrorBanner,
   SuccessBanner,
@@ -56,350 +50,7 @@ const MUTED2 = COLOR.muted2;
 const MUTED3 = COLOR.muted3;
 const ACCENT = COLOR.accent;
 const YES_TEXT = COLOR.yesText;
-const NO_TEXT = COLOR.noText;
 
-// ─── identity / user info ─────────────────────────────────────────────────────
-const IdentityCard = ({ userData, t, isOwnProfile = true }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [personalEmoji, setPersonalEmoji] = useState(userData?.personalEmoji || "");
-  const [personalDisplayName, setPersonalDisplayName] = useState(userData?.displayname || "");
-  const [personalDescription, setPersonalDescription] = useState(userData?.description || "");
-  const [personalLinks, setPersonalLinks] = useState({
-    personalLink1: userData?.personalink1 || "",
-    personalLink2: userData?.personalink2 || "",
-    personalLink3: userData?.personalink3 || "",
-    personalLink4: userData?.personalink4 || "",
-  });
-
-  const openModal = (type) => {
-    setModalType(type);
-    setIsModalOpen(true);
-  };
-  const closeModal = () => setIsModalOpen(false);
-
-  const modalTitle = {
-    emoji: t('profile.selectEmoji'),
-    displayname: t('profile.editDisplayName'),
-    description: t('profile.editDescription'),
-    links: t('profile.editLinks'),
-  }[modalType] || "";
-
-  const links = Object.values(personalLinks).filter(Boolean);
-
-  const usertype = String(userData?.usertype || "").toUpperCase();
-  const moderatorStatus = String(userData?.moderatorStatus || "").toLowerCase();
-
-  return (
-    <div className="sm:rounded-2xl sm:border sm:border-white/[0.09] sm:bg-white/[0.045] sm:px-5 sm:py-[18px]">
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* Avatar */}
-          <div
-            className="max-sm:!h-14 max-sm:!w-14 max-sm:!rounded-2xl max-sm:!text-[28px]"
-            style={{
-              width: "72px",
-              height: "72px",
-              borderRadius: "20px",
-              background: "rgba(156,201,241,0.10)",
-              border: "1px solid rgba(156,201,241,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "34px",
-              flexShrink: 0,
-            }}
-          >
-            {personalEmoji || "👤"}
-          </div>
-
-          {/* Identity */}
-          <div style={{ flex: 1, minWidth: "180px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <h1 style={{ margin: 0, font: `800 24px ${FONT_HEAD}`, color: TEXT, letterSpacing: "-.01em" }}>
-                {personalDisplayName || userData?.username}
-              </h1>
-              {usertype && <Chip tone="sky">{usertype}</Chip>}
-              {moderatorStatus && (
-                <Chip tone={moderatorStatus === "active" ? "green" : "amber"}>
-                  MOD {moderatorStatus.toUpperCase()}
-                </Chip>
-              )}
-            </div>
-            <div style={{ marginTop: "4px", font: `600 13px ${FONT}`, color: MUTED }}>
-              @{userData?.username}
-              {isOwnProfile && (
-                <>
-                  <span style={{ opacity: 0.4, margin: "0 8px" }}>•</span>
-                  <Link
-                    to={`/newprofile/${userData?.username}`}
-                    style={{ color: ACCENT, textDecoration: "none" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                    onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                  >
-                    {t('profile.viewPublicProfile')}
-                  </Link>
-                </>
-              )}
-            </div>
-            {personalDescription ? (
-              <p style={{ margin: "10px 0 0", font: `400 13.5px/1.6 ${FONT}`, color: "#b7c6d6", maxWidth: "560px" }}>
-                {personalDescription}
-              </p>
-            ) : (
-              <p style={{ margin: "10px 0 0", font: `400 13px ${FONT}`, color: MUTED3, fontStyle: "italic" }}>
-                {t('profile.noDescription')}
-              </p>
-            )}
-            {links.length > 0 && (
-              <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
-                {links.map((link) => (
-                  <a
-                    key={link}
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      padding: "4px 12px",
-                      borderRadius: "999px",
-                      border: "1px solid rgba(156,201,241,0.25)",
-                      background: "rgba(156,201,241,0.07)",
-                      color: ACCENT,
-                      font: `600 12px ${FONT}`,
-                      textDecoration: "none",
-                      maxWidth: "260px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {link.replace(/^https?:\/\//, "")}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Edit actions — desktop only (column, right side) */}
-          {isOwnProfile && (
-            <div className="hidden sm:flex" style={{ flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-              <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
-              <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
-              <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
-              <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
-            </div>
-          )}
-        </div>
-
-        {/* Edit actions — mobile only (row, below content) */}
-        {isOwnProfile && (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:hidden [&>*]:shrink-0" style={{ scrollbarWidth: "none" }}>
-            <GhostButton onClick={() => openModal("emoji")}>{t('profile.editEmoji')}</GhostButton>
-            <GhostButton onClick={() => openModal("displayname")}>{t('profile.editDisplayNameBtn')}</GhostButton>
-            <GhostButton onClick={() => openModal("description")}>{t('profile.editDescriptionBtn')}</GhostButton>
-            <GhostButton onClick={() => openModal("links")}>{t('profile.editLinksBtn')}</GhostButton>
-          </div>
-        )}
-      </div>
-
-      {isModalOpen && (
-        <ProfileModal isOpen={isModalOpen} onClose={closeModal} title={modalTitle}>
-          {modalType === "emoji" && (
-            <EmojiSelector
-              currentEmoji={personalEmoji}
-              onSave={(emoji) => {
-                setPersonalEmoji(emoji);
-                closeModal();
-              }}
-            />
-          )}
-          {modalType === "displayname" && (
-            <DisplayNameSelector
-              onSave={(displayname) => {
-                setPersonalDisplayName(displayname);
-                closeModal();
-              }}
-            />
-          )}
-          {modalType === "description" && (
-            <DescriptionSelector
-              onSave={(description) => {
-                setPersonalDescription(description);
-                closeModal();
-              }}
-            />
-          )}
-          {modalType === "links" && (
-            <PersonalLinksSelector
-              initialLinks={personalLinks}
-              onSave={(newLinks) => {
-                setPersonalLinks((prev) => ({ ...prev, ...newLinks }));
-                closeModal();
-              }}
-            />
-          )}
-        </ProfileModal>
-      )}
-    </div>
-  );
-};
-
-// ─── portfolio ────────────────────────────────────────────────────────────────
-const PortfolioSection = ({ username, t }) => {
-  const { token } = useAuth();
-  const [positions, setPositions] = useState([]);
-  const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    setPage(0);
-  }, [username]);
-
-  useEffect(() => {
-    const fetchPositions = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_URL}/v0/portfolio/${username}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) throw new Error(`Error fetching portfolio: ${response.statusText}`);
-        const data = await response.json();
-        setPositions(data.portfolioItems || []);
-        setPage(0);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (username && token) {
-      fetchPositions();
-    } else {
-      setPositions([]);
-      setLoading(false);
-    }
-  }, [username, token]);
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorBanner message={`Error loading portfolio: ${error}`} />;
-  if (!positions.length) return <EmptyState>{t('profile.noPositions')}</EmptyState>;
-
-  const totalYes = positions.reduce((sum, pos) => sum + pos.yesSharesOwned, 0);
-  const totalNo = positions.reduce((sum, pos) => sum + pos.noSharesOwned, 0);
-  const pageInfo = pagedRows(positions, page);
-
-  const th = {
-    padding: "10px 14px",
-    textAlign: "left",
-    font: `700 10.5px ${FONT}`,
-    letterSpacing: ".09em",
-    color: MUTED2,
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-  };
-  const td = { padding: "13px 14px", font: `500 13px ${FONT}`, color: TEXT, verticalAlign: "top" };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatCard label={t('profile.totalMarkets')} value={positions.length} />
-        <StatCard label={t('profile.yesShares')} value={totalYes} valueColor={YES_TEXT} />
-        <StatCard label={t('profile.noShares')} value={totalNo} valueColor={NO_TEXT} />
-      </div>
-
-      <Pagination label={t('profile.portfolio')} pageInfo={pageInfo} onPageChange={setPage} />
-
-      {/* Phones: list instead of table */}
-      <ul className="m-0 list-none p-0 sm:hidden">
-        {pageInfo.rows.map((position, index) => (
-          <li key={position.marketId || index} className="border-t border-white/[0.06] first:border-t-0">
-            <Link to={`/markets/${position.marketId}`} className="flex flex-col gap-2 py-3.5 no-underline">
-              <span className="text-[14px] font-semibold leading-snug text-white">
-                {position.questionTitle || t('profile.unknownMarket')}
-              </span>
-              <span className="flex flex-wrap items-center gap-2">
-                {position.yesSharesOwned > 0 && <Chip tone="green">{position.yesSharesOwned} YES</Chip>}
-                {position.noSharesOwned > 0 && <Chip tone="red">{position.noSharesOwned} NO</Chip>}
-                <span className="text-[12px] font-medium text-white/45">
-                  {t('profile.total')}: {position.yesSharesOwned + position.noSharesOwned}
-                </span>
-                <span className="ml-auto text-[12px] text-white/35">
-                  {new Date(position.lastBetPlaced).toLocaleDateString()}
-                </span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <div className="hidden sm:block" style={{ ...CARD, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.18)" }}>
-                <th style={th}>{t('profile.market')}</th>
-                <th style={{ ...th, textAlign: "center" }}>{t('profile.yes')}</th>
-                <th style={{ ...th, textAlign: "center" }}>{t('profile.no')}</th>
-                <th style={{ ...th, textAlign: "center" }}>{t('profile.total')}</th>
-                <th style={{ ...th, textAlign: "center" }}>{t('profile.lastBet')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageInfo.rows.map((position, index) => (
-                <tr
-                  key={position.marketId || index}
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-                >
-                  <td style={td}>
-                    <Link
-                      to={`/markets/${position.marketId}`}
-                      style={{ color: TEXT, textDecoration: "none", font: `600 13.5px ${FONT}` }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = ACCENT)}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = TEXT)}
-                    >
-                      {position.questionTitle || t('profile.unknownMarket')}
-                    </Link>
-                    <div style={{ marginTop: "3px", font: `500 11px ${FONT}`, color: MUTED3 }}>
-                      ID: {position.marketId}
-                    </div>
-                  </td>
-                  <td style={{ ...td, textAlign: "center" }}>
-                    {position.yesSharesOwned > 0 ? (
-                      <Chip tone="green">{position.yesSharesOwned} YES</Chip>
-                    ) : (
-                      <span style={{ color: MUTED3 }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ ...td, textAlign: "center" }}>
-                    {position.noSharesOwned > 0 ? (
-                      <Chip tone="red">{position.noSharesOwned} NO</Chip>
-                    ) : (
-                      <span style={{ color: MUTED3 }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ ...td, textAlign: "center", font: `700 13px ${FONT_HEAD}` }}>
-                    {position.yesSharesOwned + position.noSharesOwned}
-                  </td>
-                  <td style={{ ...td, textAlign: "center", color: MUTED }}>
-                    {new Date(position.lastBetPlaced).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── financials ───────────────────────────────────────────────────────────────
 // ─── my markets (lifecycle) ───────────────────────────────────────────────────
 const LIFECYCLE_STATUSES = { proposed: "Proposed", published: "Published", rejected: "Rejected" };
 
@@ -763,7 +414,7 @@ const AnswerOptionCard = ({ addition, status, reason, busy, canReview, onReasonC
       <Chip tone={statusTone(addition.status)}>{String(addition.status || "").toUpperCase()}</Chip>
       <span>
         Proposed by{" "}
-        <Link to={`/newprofile/${addition.proposedBy}`} style={{ color: YES_TEXT, textDecoration: "none" }}>
+        <Link to={`/users/${addition.proposedBy}`} style={{ color: YES_TEXT, textDecoration: "none" }}>
           @{addition.proposedBy}
         </Link>
       </span>
@@ -1041,23 +692,21 @@ const NewProfile = () => {
   const { t } = useTranslation();
   const { username: authUsername, logout } = useAuth();
   const history = useHistory();
-  const { username: paramUsername } = useParams();
+  const { username: paramUsername, section: sectionParam } = useParams();
   const location = useLocation();
   const username = paramUsername || authUsername;
-  const isOwnProfile = !paramUsername || paramUsername === authUsername;
+  const isOwnProfile = !paramUsername;
   const { userData, userLoading, userError } = useUserData(username, isOwnProfile);
-  const [mainTab, setMainTab] = useState(() => t('profile.portfolio'));
 
   useEffect(() => {
-    document.title = "Portfolio | Guardians Predictions";
-  }, []);
+    const name = isOwnProfile ? "Portfolio" : userData?.displayname || paramUsername;
+    document.title = `${name} | Guardians Predictions`;
+  }, [isOwnProfile, userData, paramUsername]);
 
   const isActiveModerator =
     String(userData?.usertype || "").toUpperCase() === "MODERATOR" &&
     String(userData?.moderatorStatus || "").toLowerCase() === "active";
 
-  const mainTabs = [t('profile.portfolio'), t('profile.performance')];
-  const activeTab = mainTabs.includes(mainTab) ? mainTab : t('profile.portfolio');
 
   const accountSections = [
     { key: "overview", label: t("account.overview") },
@@ -1070,9 +719,9 @@ const NewProfile = () => {
       : []),
     { key: "settings", label: t("account.settings") },
   ];
-  const requestedSection = new URLSearchParams(location.search).get("section");
+  const requestedSection = sectionParam || new URLSearchParams(location.search).get("section");
   const section = accountSections.some((s) => s.key === requestedSection) ? requestedSection : "overview";
-  const setSection = (key) => history.replace({ search: key === "overview" ? "" : `?section=${key}` });
+  const setSection = (key) => history.push(`/portfolio/${key}`);
   const handleLogout = () => {
     logout();
     history.push("/");
@@ -1089,12 +738,14 @@ const NewProfile = () => {
         <Navbar />
 
         <div
+          className="px-4 lg:px-10"
           style={{
             position: "relative",
             zIndex: 10,
-            maxWidth: isOwnProfile ? "1240px" : "1080px",
+            maxWidth: DETAIL_MAX_WIDTH,
             margin: "0 auto",
-            padding: "32px 20px 120px",
+            paddingTop: "32px",
+            paddingBottom: "120px",
             display: "flex",
             flexDirection: "column",
             gap: "16px",
@@ -1119,7 +770,7 @@ const NewProfile = () => {
                     {accountSections.find((s) => s.key === section)?.label}
                   </h1>
                   <Link
-                    to={`/newprofile/${username}`}
+                    to={`/users/${username}`}
                     className="flex items-center gap-2 rounded-full bg-white/[0.06] py-1.5 pl-1.5 pr-3.5 text-[13px] text-white/80 no-underline hover:bg-white/[0.1] hover:text-white"
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.08] text-[15px]">
@@ -1160,16 +811,7 @@ const NewProfile = () => {
               </div>
             </div>
           ) : (
-            <>
-              <IdentityCard userData={userData} t={t} isOwnProfile={isOwnProfile} />
-
-              <div>
-                <PillTabs tabs={mainTabs} active={activeTab} onChange={setMainTab} />
-              </div>
-
-              {activeTab === t('profile.portfolio') && <PortfolioSection username={username} t={t} />}
-              {activeTab === t('profile.performance') && <PerformanceSection username={username} t={t} />}
-            </>
+            <PublicProfile userData={userData} />
           )}
         </div>
       </div>

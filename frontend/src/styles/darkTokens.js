@@ -14,8 +14,15 @@ export const CARD_ELEVATED = {
   borderRadius: '14px',
 };
 
-export const FONT      = 'Manrope,system-ui,sans-serif';
-export const FONT_HEAD = 'Sora,system-ui,sans-serif';
+// One page column for the whole app: 1840px including the 40px side gutters
+// (1760px of content, the content width of the 1920px Figma frames),
+// so the navbar logo and page content always line up.
+export const PAGE_MAX_WIDTH = "1840px";
+// Detail pages (a market, a profile) read better narrower; the navbar follows.
+export const DETAIL_MAX_WIDTH = "1440px";
+
+export const FONT      = 'Roboto,system-ui,sans-serif';
+export const FONT_HEAD = 'Roboto,system-ui,sans-serif';
 
 export const COLOR = {
   text   : '#eaf0f7',

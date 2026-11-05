@@ -4,8 +4,8 @@ import { API_URL } from "../../../config";
 import { useAuth } from "../../../helpers/AuthContent";
 import { unwrapApiResponse } from "../../../utils/apiResponse";
 import LoadingSpinner from "../../loaders/LoadingSpinner";
-import { CARD, FONT, FONT_HEAD, COLOR } from "../../../styles/darkTokens";
-import { StatCard, EmptyState, ErrorBanner, SectionLabel } from "./ProfileUiKit";
+import { CARD, FONT, COLOR } from "../../../styles/darkTokens";
+import { StatCard, EmptyState, ErrorBanner } from "./ProfileUiKit";
 
 // Kept low: the API rate limit can be as tight as ~1 req/s with a small burst.
 const CONCURRENCY = 3;
@@ -99,7 +99,7 @@ export function usePerformance(username) {
       }
     };
 
-    if (username && token) {
+    if (username) {
       load();
     } else {
       setRows([]);
@@ -111,7 +111,7 @@ export function usePerformance(username) {
   return { rows, failedCount, loading, error };
 }
 
-function summarize(rows) {
+export function summarize(rows) {
   const totalPnl = rows.reduce((s, r) => s + r.pnl, 0);
   const deployed = rows.reduce((s, r) => s + Math.max(r.spent, 0), 0);
   const resolved = rows.filter((r) => r.isResolved);
@@ -123,89 +123,52 @@ function summarize(rows) {
     wins,
     resolvedCount: resolved.length,
     openCount: rows.filter((r) => !r.isResolved && r.hasShares).length,
+    openValue: rows.filter((r) => !r.isResolved).reduce((s, r) => s + r.value, 0),
+    biggestWin: rows.reduce((m, r) => Math.max(m, r.pnl), 0),
   };
 }
 
+// One market per row: title, invested/status meta and P&L, with a thin line
+// underneath whose length is the P&L relative to the biggest move.
 const PnlBar = ({ row, maxAbs, t }) => {
-  const [hover, setHover] = useState(false);
-  const pct = maxAbs > 0 ? (Math.abs(row.pnl) / maxAbs) * 50 : 0;
   const positive = row.pnl >= 0;
-  const color = positive ? COLOR.yes : COLOR.no;
+  const width = maxAbs > 0 ? Math.max((Math.abs(row.pnl) / maxAbs) * 100, row.pnl === 0 ? 0 : 1.5) : 0;
 
   return (
     <Link
       to={`/markets/${row.marketId}`}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onFocus={() => setHover(true)}
-      onBlur={() => setHover(false)}
-      className="grid grid-cols-[minmax(0,1fr)_64px] sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_88px] items-center gap-x-4 gap-y-1.5 rounded-xl px-3 py-2 no-underline"
-      style={{ background: hover ? "rgba(255,255,255,0.05)" : "transparent", transition: "background .15s" }}
+      className="group block border-t border-white/[0.06] px-1 py-3 no-underline first:border-t-0"
     >
-      <div className="col-span-2 sm:col-span-1 min-w-0 flex items-center gap-2">
-        <span
-          title={row.title}
-          className="truncate"
-          style={{ font: `600 13px ${FONT}`, color: COLOR.text }}
-        >
+      <div className="flex items-baseline gap-3">
+        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-white/90 group-hover:text-white" title={row.title}>
           {row.title || t("profile.unknownMarket")}
         </span>
-        {!row.isResolved && (
-          <span
-            className="shrink-0 rounded-full px-1.5 py-px"
-            style={{ font: `700 9.5px ${FONT}`, letterSpacing: ".06em", color: COLOR.muted, border: "1px solid rgba(255,255,255,0.14)" }}
-          >
-            {t("performance.open")}
-          </span>
-        )}
+        <span className="hidden shrink-0 text-[12px] text-white/40 sm:inline">
+          {t("performance.spent")} {row.spent.toLocaleString()} · {row.isResolved ? t("performance.resolved") : t("performance.openLower")}
+        </span>
+        <span
+          className="w-16 shrink-0 text-right text-[14px] font-semibold tabular-nums"
+          style={{ color: positive ? COLOR.yesText : COLOR.noText }}
+        >
+          {formatSigned(row.pnl)}
+        </span>
       </div>
-
-      {/* Diverging track: losses grow left from the zero line, gains grow right. */}
-      <div className="relative h-[14px]" aria-hidden="true">
-        <div className="absolute inset-y-0 left-1/2 w-px" style={{ background: "rgba(255,255,255,0.22)" }} />
+      <div className="mt-2 h-[2px] rounded-full bg-white/[0.06]">
         <div
-          className="absolute top-[2px] bottom-[2px]"
-          style={{
-            background: color,
-            opacity: hover ? 1 : 0.85,
-            width: `${Math.max(pct, row.pnl === 0 ? 0 : 0.6)}%`,
-            ...(positive
-              ? { left: "calc(50% + 1px)", borderRadius: "0 4px 4px 0" }
-              : { right: "calc(50% + 1px)", borderRadius: "4px 0 0 4px" }),
-          }}
+          className="h-full rounded-full transition-opacity group-hover:opacity-100"
+          style={{ width: `${width}%`, background: positive ? COLOR.yes : COLOR.no, opacity: 0.75 }}
         />
-        {hover && (
-          <div
-            role="tooltip"
-            className="absolute z-10 bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-2"
-            style={{ background: "#0c1a2c", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 8px 24px rgba(0,0,0,.4)", font: `500 12px ${FONT}`, color: COLOR.muted }}
-          >
-            <div>{t("performance.spent")}: <span style={{ color: COLOR.text }}>{row.spent.toLocaleString()}</span></div>
-            <div>{row.isResolved ? t("performance.payout") : t("performance.currentValue")}: <span style={{ color: COLOR.text }}>{row.value.toLocaleString()}</span></div>
-          </div>
-        )}
       </div>
-
-      <span
-        className="text-right tabular-nums"
-        style={{ font: `700 13px ${FONT_HEAD}`, color: positive ? COLOR.yesText : COLOR.noText }}
-      >
-        {formatSigned(row.pnl)}
-      </span>
     </Link>
   );
 };
 
-const PerformanceSection = ({ username, t, hideStats = false, onSummary }) => {
-  const { rows, failedCount, loading, error } = usePerformance(username);
+// Renders already-loaded rows, so pages holding performance data can reuse it.
+export const PerformanceView = ({ rows, failedCount = 0, loading, error, t, hideStats = false }) => {
   const [expanded, setExpanded] = useState(false);
 
   const stats = useMemo(() => summarize(rows), [rows]);
   const sorted = useMemo(() => [...rows].sort((a, b) => b.pnl - a.pnl), [rows]);
-
-  useEffect(() => {
-    if (!loading) onSummary?.(stats);
-  }, [loading, stats, onSummary]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorBanner message={`${t("performance.loadError")}: ${error}`} />;
@@ -247,9 +210,9 @@ const PerformanceSection = ({ username, t, hideStats = false, onSummary }) => {
         </p>
       )}
 
-      <div style={{ ...CARD, padding: "18px 14px 12px" }}>
-        <div className="flex items-baseline justify-between gap-3 px-3 mb-3">
-          <SectionLabel>{t("performance.byMarket")}</SectionLabel>
+      <div style={{ ...CARD, padding: "18px 20px 12px" }}>
+        <div className="flex items-baseline justify-between gap-3 mb-2">
+          <h3 className="m-0 text-[15px] font-semibold text-white">{t("performance.byMarket")}</h3>
           <span style={{ font: `500 11.5px ${FONT}`, color: COLOR.muted2 }}>{t("performance.pnlHint")}</span>
         </div>
         <div className="flex flex-col">
@@ -279,5 +242,3 @@ const PerformanceSection = ({ username, t, hideStats = false, onSummary }) => {
     </div>
   );
 };
-
-export default PerformanceSection;

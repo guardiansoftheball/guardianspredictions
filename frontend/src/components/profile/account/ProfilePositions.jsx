@@ -30,15 +30,16 @@ const SideChip = ({ outcome, shares, t }) => {
 };
 
 const PositionRow = ({ row, t }) => {
-  const up = row.pnl >= 0;
+  const up = row.pnl > 0;
+  const flat = Math.round(row.pnl) === 0;
   const pct = row.spent > 0 ? Math.round((row.pnl / row.spent) * 100) : null;
   return (
     <Link
       to={`/markets/${row.marketId}`}
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-white/[0.06] px-4 py-3.5 no-underline transition-colors first:border-t-0 hover:bg-white/[0.03] md:grid-cols-[minmax(0,1fr)_90px_90px_110px]"
+      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-white/[0.06] px-5 py-4 no-underline transition-colors first:border-t-0 hover:bg-white/[0.03] md:grid-cols-[minmax(0,1fr)_90px_90px_110px]"
     >
       <div className="min-w-0">
-        <div className="truncate text-[14px] font-semibold text-white">{row.title || t("profile.unknownMarket")}</div>
+        <div className="truncate text-[15px] font-semibold text-white">{row.title || t("profile.unknownMarket")}</div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {row.yesShares > 0 && <SideChip outcome="YES" shares={row.yesShares} t={t} />}
           {row.noShares > 0 && <SideChip outcome="NO" shares={row.noShares} t={t} />}
@@ -47,21 +48,21 @@ const PositionRow = ({ row, t }) => {
           )}
         </div>
       </div>
-      <div className="hidden text-right text-[13px] tabular-nums text-white/60 md:block">{money(row.spent)}</div>
-      <div className="hidden text-right text-[13px] tabular-nums text-white md:block">{money(row.value)}</div>
+      <div className="hidden text-right text-[14px] tabular-nums text-white/60 md:block">{money(row.spent)}</div>
+      <div className="hidden text-right text-[14px] tabular-nums text-white md:block">{money(row.value)}</div>
       <div className="text-right">
-        <div className={`text-[14px] font-semibold tabular-nums ${up ? "text-[#C6E06C]" : "text-[#fb8b96]"}`}>
-          {up ? "+" : "-"}{money(row.pnl)}
+        <div className={`text-[16px] font-semibold tabular-nums ${flat ? "text-white/70" : up ? "text-[#C6E06C]" : "text-[#fb8b96]"}`}>
+          {flat ? "" : up ? "+" : "-"}{money(row.pnl)}
         </div>
-        {pct != null && <div className="text-[11px] tabular-nums text-white/40">{up ? "+" : ""}{pct}%</div>}
+        {pct != null && !flat && <div className="text-[11px] tabular-nums text-white/40">{up ? "+" : ""}{pct}%</div>}
       </div>
     </Link>
   );
 };
 
-const ProfilePositions = ({ username }) => {
+// Presentational list, so pages that already loaded performance rows can reuse it.
+export const PositionsList = ({ rows, loading, error }) => {
   const { t } = useTranslation();
-  const { rows, loading, error } = usePerformance(username);
   const [filter, setFilter] = useState("all");
 
   const sorted = useMemo(
@@ -86,7 +87,7 @@ const ProfilePositions = ({ username }) => {
             type="button"
             onClick={() => setFilter(key)}
             aria-pressed={filter === key}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+            className={`rounded-full px-4 py-2 text-[14px] font-semibold transition-colors ${
               filter === key ? "bg-white/[0.12] text-white" : "text-white/50 hover:text-white"
             }`}
           >
@@ -100,7 +101,7 @@ const ProfilePositions = ({ username }) => {
         <EmptyState>{t("account.noPositions")}</EmptyState>
       ) : (
         <div style={{ ...CARD, padding: 0, overflow: "hidden" }}>
-          <div className="hidden grid-cols-[minmax(0,1fr)_90px_90px_110px] gap-x-4 border-b border-white/[0.06] px-4 py-2.5 text-[12px] text-white/40 md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_90px_90px_110px] gap-x-4 border-b border-white/[0.06] px-5 py-3 text-[13px] text-white/40 md:grid">
             <span>{t("profile.market")}</span>
             <span className="text-right">{t("account.invested")}</span>
             <span className="text-right">{t("account.currentValue")}</span>
@@ -114,5 +115,7 @@ const ProfilePositions = ({ username }) => {
     </div>
   );
 };
+
+const ProfilePositions = ({ username }) => <PositionsList {...usePerformance(username)} />;
 
 export default ProfilePositions;
