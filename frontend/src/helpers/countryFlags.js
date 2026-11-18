@@ -1,3 +1,44 @@
+// Liga Profesional crests served from /public/teams/lpf. Keys are the labels
+// used in market answers (lower-case), including common short names.
+const LPF_CRESTS = {
+  "argentinos juniors": "aaaj", "arg. juniors": "aaaj",
+  "estudiantes rc": "aae",
+  aldosivi: "caa",
+  banfield: "cab",
+  "barracas central": "cabc", barracas: "cabc",
+  belgrano: "cabcor",
+  boca: "cabj", "boca juniors": "cabj",
+  "central córdoba": "cacc", "central cordoba": "cacc",
+  "gimnasia mendoza": "gem",
+  huracán: "cah", huracan: "cah",
+  independiente: "cai",
+  lanús: "cal", lanus: "cal",
+  platense: "cap",
+  "rosario central": "carc", "r. central": "carc",
+  river: "carp", "river plate": "carp",
+  sarmiento: "cas",
+  "san lorenzo": "casla",
+  tigre: "cat",
+  talleres: "catc",
+  "atlético tucumán": "catu", "atletico tucuman": "catu", "atl. tucumán": "catu",
+  unión: "cau", union: "cau",
+  vélez: "cavs", velez: "cavs", "vélez sarsfield": "cavs",
+  gimnasia: "cge", "gimnasia la plata": "cge",
+  "independiente rivadavia": "csir", "ind. rivadavia": "csir",
+  riestra: "cdr",
+  estudiantes: "edlp", "estudiantes de la plata": "edlp",
+  instituto: "iacc",
+  "newell's": "nob", "newell’s": "nob", newells: "nob",
+  racing: "rc", "racing club": "rc",
+  "defensa y justicia": "dyj", defensa: "dyj",
+  "liga profesional": "lpf_main", lpf: "lpf_main",
+};
+
+const crestUrl = (file) => `/teams/lpf/${file}.webp`;
+
+/** True when the URL is a club crest (draw with contain, no round crop). */
+export const isCrest = (url) => typeof url === "string" && url.startsWith("/teams/");
+
 const COUNTRY_CODES = {
   "Argentina": "ar",
   "Brazil": "br",
@@ -100,6 +141,8 @@ const COUNTRY_CODES = {
  */
 export function getFlag(name) {
   if (!name) return null;
+  const crest = LPF_CRESTS[name.toLowerCase().trim()];
+  if (crest) return crestUrl(crest);
   const code = COUNTRY_CODES[name];
   if (!code) return null;
   return `https://flagcdn.com/w160/${code}.png`;
@@ -112,6 +155,10 @@ export function getFlag(name) {
 export function getFlagFromText(text) {
   if (!text) return null;
   const lower = text.toLowerCase();
+  // Longest names first so "Rosario Central" wins over "Central".
+  const clubs = Object.keys(LPF_CRESTS).sort((a, b) => b.length - a.length);
+  const club = clubs.find((name) => lower.includes(name));
+  if (club) return crestUrl(LPF_CRESTS[club]);
   for (const [country, code] of Object.entries(COUNTRY_CODES)) {
     if (lower.includes(country.toLowerCase())) {
       return `https://flagcdn.com/w160/${code}.png`;

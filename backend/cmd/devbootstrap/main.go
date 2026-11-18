@@ -143,9 +143,9 @@ func run() error {
 	fmt.Printf("Admin: admin\n")
 	fmt.Printf("Users: %s01 through %s%02d\n", prefix, prefix, count)
 	fmt.Printf("Moderator fixture: %s01\n", prefix)
-	fmt.Printf("Markets: Market A, Market B, Market C + 2 World Cup binary markets owned by %s01\n", prefix)
-	fmt.Printf("Market Groups: Argentina vs Brazil, Mexico vs United States, Germany vs Netherlands, Who will go further in the 2026 World Cup?, Who advances further Colombia or Uruguay?\n")
-	fmt.Printf("Tags: Category A, Category B, Category C, World Cup, CONMEBOL, UEFA\n")
+	fmt.Printf("Markets: 3 Liga Profesional / Copa Argentina binary markets owned by %s01\n", prefix)
+	fmt.Printf("Market Groups: 16 groups across Liga Profesional, Copa Argentina and Supercopa Argentina\n")
+	fmt.Printf("Tags: Liga Profesional, Copa Argentina, Supercopa Argentina\n")
 	fmt.Printf("InitialAccountBalance: %d\n", initialBalance)
 	fmt.Printf("CreditAvailableBeforeBets: %d\n", initialBalance+maximumDebtAllowed)
 	fmt.Printf("MustChangePassword: false\n")
@@ -235,39 +235,25 @@ func upsertBootstrapMarkets(db *gorm.DB, prefix string, initialProbability float
 	owner := fmt.Sprintf("%s01", prefix)
 	markets := []bootstrapMarket{
 		{
-			title:       "Market A",
-			description: "Development fixture market A.",
-			tagSlug:     "category-a",
-			tagName:     "Category A",
+			title:       "¿River sale campeón de la Liga Profesional 2026?",
+			description: "Se resuelve en SÍ si River Plate termina primero en la tabla anual de la Liga Profesional 2026.",
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
 			tagColorKey: "sky",
 		},
 		{
-			title:       "Market B",
-			description: "Development fixture market B.",
-			tagSlug:     "category-b",
-			tagName:     "Category B",
+			title:       "¿Habrá más de 2.5 goles en el Superclásico?",
+			description: "Se resuelve en SÍ si Boca y River convierten 3 goles o más entre los dos en los 90 minutos.",
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "¿Algún equipo chico llega a semifinales de la Copa Argentina?",
+			description: "Se resuelve en SÍ si un club fuera de los cinco grandes llega a semifinales.",
+			tagSlug:     "copa-argentina",
+			tagName:     "Copa Argentina",
 			tagColorKey: "emerald",
-		},
-		{
-			title:       "Market C",
-			description: "Development fixture market C.",
-			tagSlug:     "category-c",
-			tagName:     "Category C",
-			tagColorKey: "amber",
-		},
-		{
-			title:       "Will Argentina defend their 2026 World Cup title?",
-			description: "Will Argentina win the 2026 FIFA World Cup?",
-			tagSlug:     "world-cup",
-			tagName:     "World Cup",
-			tagColorKey: "sky",
-		},
-		{
-			title:       "Will there be a goal-scoring record at the 2026 World Cup?",
-			description: "Will the 2026 World Cup set a new record for total goals scored?",
-			tagSlug:     "world-cup",
-			tagName:     "World Cup",
-			tagColorKey: "sky",
 		},
 	}
 
@@ -433,44 +419,132 @@ func upsertBootstrapMarketGroups(db *gorm.DB, prefix string, initialProbability 
 
 	groups := []bootstrapMarketGroup{
 		{
-			title:       "Argentina vs Brazil",
-			description: "Who will win the match between Argentina and Brazil?",
-			answers:     []string{"Argentina", "Brazil", "Draw"},
-			tagSlug:     "world-cup",
-			tagName:     "World Cup",
+			title:       "Boca vs River",
+			description: "Superclásico de la Liga Profesional. ¿Quién gana en los 90 minutos?",
+			answers:     []string{"Boca", "River", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
 			tagColorKey: "sky",
 		},
 		{
-			title:       "Mexico vs United States",
-			description: "Who will win the match between Mexico and United States?",
-			answers:     []string{"Mexico", "United States", "Draw"},
-			tagSlug:     "conmebol",
-			tagName:     "CONMEBOL",
+			title:       "Racing vs Independiente",
+			description: "Clásico de Avellaneda por la Liga Profesional.",
+			answers:     []string{"Racing", "Independiente", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Rosario Central vs Newell's",
+			description: "Clásico rosarino por la Liga Profesional.",
+			answers:     []string{"Rosario Central", "Newell's", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "San Lorenzo vs Huracán",
+			description: "Clásico de barrio por la Liga Profesional.",
+			answers:     []string{"San Lorenzo", "Huracán", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "¿Quién gana el Clausura 2026?",
+			description: "Campeón del Clausura de la Liga Profesional 2026. Instituto y Boca llegan punteros de sus grupos.",
+			answers:     []string{"Boca", "Instituto", "Vélez", "River"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Vélez vs Belgrano",
+			description: "Octavos de final del Clausura de la Liga Profesional, viernes 20/11 20:00.",
+			answers:     []string{"Vélez", "Belgrano", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Defensa y Justicia vs Barracas Central",
+			description: "Octavos de final del Clausura de la Liga Profesional, sábado 21/11 15:00.",
+			answers:     []string{"Defensa y Justicia", "Barracas Central", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Argentinos Juniors vs Independiente",
+			description: "Octavos de final del Clausura de la Liga Profesional, sábado 21/11 17:00.",
+			answers:     []string{"Argentinos Juniors", "Independiente", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Rosario Central vs Gimnasia Mendoza",
+			description: "Octavos de final del Clausura de la Liga Profesional, domingo 22/11 16:00.",
+			answers:     []string{"Rosario Central", "Gimnasia Mendoza", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "River vs Lanús",
+			description: "Octavos de final del Clausura de la Liga Profesional, domingo 22/11 19:00.",
+			answers:     []string{"River", "Lanús", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Instituto vs Huracán",
+			description: "Octavos de final del Clausura de la Liga Profesional, domingo 22/11 22:00.",
+			answers:     []string{"Instituto", "Huracán", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Gimnasia La Plata vs Newell's",
+			description: "Octavos de final del Clausura de la Liga Profesional, lunes 23/11 17:00.",
+			answers:     []string{"Gimnasia La Plata", "Newell's", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Boca vs Independiente Rivadavia",
+			description: "Octavos de final del Clausura de la Liga Profesional, miércoles 25/11 21:00.",
+			answers:     []string{"Boca", "Independiente Rivadavia", "Draw"},
+			tagSlug:     "liga-profesional",
+			tagName:     "Liga Profesional",
+			tagColorKey: "sky",
+		},
+		{
+			title:       "Talleres vs Belgrano",
+			description: "Clásico cordobés por los cuartos de final de la Copa Argentina.",
+			answers:     []string{"Talleres", "Belgrano", "Draw"},
+			tagSlug:     "copa-argentina",
+			tagName:     "Copa Argentina",
 			tagColorKey: "emerald",
 		},
 		{
-			title:       "Germany vs Netherlands",
-			description: "Who will win the match between Germany and Netherlands?",
-			answers:     []string{"Germany", "Netherlands", "Draw"},
-			tagSlug:     "uefa",
-			tagName:     "UEFA",
-			tagColorKey: "amber",
-		},
-		{
-			title:       "Who will go further in the 2026 World Cup?",
-			description: "Spain vs France - who advances further?",
-			answers:     []string{"Spain", "France"},
-			tagSlug:     "uefa",
-			tagName:     "UEFA",
-			tagColorKey: "amber",
-		},
-		{
-			title:       "Who advances further, Colombia or Uruguay?",
-			description: "CONMEBOL showdown in the 2026 World Cup.",
-			answers:     []string{"Colombia", "Uruguay"},
-			tagSlug:     "conmebol",
-			tagName:     "CONMEBOL",
+			title:       "¿Quién avanza: Estudiantes o Lanús?",
+			description: "Semifinal de la Copa Argentina, partido único.",
+			answers:     []string{"Estudiantes", "Lanús"},
+			tagSlug:     "copa-argentina",
+			tagName:     "Copa Argentina",
 			tagColorKey: "emerald",
+		},
+		{
+			title:       "Vélez vs Platense",
+			description: "Final de la Supercopa Argentina.",
+			answers:     []string{"Vélez", "Platense", "Draw"},
+			tagSlug:     "supercopa",
+			tagName:     "Supercopa Argentina",
+			tagColorKey: "amber",
 		},
 	}
 
@@ -531,16 +605,16 @@ func upsertBootstrapMarketGroup(db *gorm.DB, seed bootstrapMarketGroup, owner st
 	now := time.Now().UTC()
 	approvedAt := now
 	group := models.MarketGroup{
-		QuestionTitle:     seed.title,
-		Description:       seed.description,
-		GroupType:         "MULTIPLE_CHOICE_BINARY",
-		ProbabilityPolicy: "INDEPENDENT_BINARY",
-		ResolutionPolicy:  "INDEPENDENT_CHILDREN",
-		LifecycleStatus:   "published",
+		QuestionTitle:      seed.title,
+		Description:        seed.description,
+		GroupType:          "MULTIPLE_CHOICE_BINARY",
+		ProbabilityPolicy:  "INDEPENDENT_BINARY",
+		ResolutionPolicy:   "INDEPENDENT_CHILDREN",
+		LifecycleStatus:    "published",
 		CreatorUsername:    owner,
 		StewardUsername:    owner,
-		ApprovedBy:        "devbootstrap",
-		ApprovedAt:        &approvedAt,
+		ApprovedBy:         "devbootstrap",
+		ApprovedAt:         &approvedAt,
 		ResolutionDateTime: now.AddDate(0, 0, 30),
 	}
 
@@ -558,14 +632,14 @@ func upsertBootstrapMarketGroup(db *gorm.DB, seed bootstrapMarketGroup, owner st
 	}
 
 	updates := map[string]any{
-		"description":         group.Description,
-		"group_type":          group.GroupType,
-		"probability_policy":  group.ProbabilityPolicy,
-		"resolution_policy":   group.ResolutionPolicy,
-		"lifecycle_status":    group.LifecycleStatus,
-		"steward_username":    group.StewardUsername,
-		"approved_by":         group.ApprovedBy,
-		"approved_at":         group.ApprovedAt,
+		"description":          group.Description,
+		"group_type":           group.GroupType,
+		"probability_policy":   group.ProbabilityPolicy,
+		"resolution_policy":    group.ResolutionPolicy,
+		"lifecycle_status":     group.LifecycleStatus,
+		"steward_username":     group.StewardUsername,
+		"approved_by":          group.ApprovedBy,
+		"approved_at":          group.ApprovedAt,
 		"resolution_date_time": group.ResolutionDateTime,
 	}
 	if err := db.Model(&models.MarketGroup{}).Where("id = ?", existing.ID).Updates(updates).Error; err != nil {

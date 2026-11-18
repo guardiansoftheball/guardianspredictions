@@ -106,7 +106,7 @@ func TestUpsertBootstrapMarketsCreatesPublishedTaggedMarkets(t *testing.T) {
 	}
 
 	var market models.Market
-	if err := db.Where("question_title = ? AND creator_username = ?", "Market A", "testuser01").First(&market).Error; err != nil {
+	if err := db.Where("question_title = ? AND creator_username = ?", "¿River sale campeón de la Liga Profesional 2026?", "testuser01").First(&market).Error; err != nil {
 		t.Fatalf("load Market A: %v", err)
 	}
 	if market.LifecycleStatus != "published" || market.IsResolved {
@@ -123,10 +123,10 @@ func TestUpsertBootstrapMarketsCreatesPublishedTaggedMarkets(t *testing.T) {
 	}
 
 	var tag models.MarketTag
-	if err := db.Where("slug = ?", "category-a").First(&tag).Error; err != nil {
+	if err := db.Where("slug = ?", "liga-profesional").First(&tag).Error; err != nil {
 		t.Fatalf("load Category A tag: %v", err)
 	}
-	if tag.DisplayName != "Category A" || !tag.IsActive {
+	if tag.DisplayName != "Liga Profesional" || !tag.IsActive {
 		t.Fatalf("Category A tag mismatch: %+v", tag)
 	}
 

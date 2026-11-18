@@ -58,16 +58,18 @@ const PredictionCard = ({
 
         {/* Options rows */}
         <div className="flex flex-col gap-3">
-          {options.map((opt, i) => (
-            <PredictionRow
-              key={i}
-              label={opt.label}
-              pct={opt.pct}
-              onYes={onYes}
-              onNo={onNo}
-
-            />
-          ))}
+          {[...options]
+            .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0))
+            .slice(0, 2)
+            .map((opt, i) => (
+              <PredictionRow
+                key={i}
+                label={opt.label}
+                pct={opt.pct}
+                onYes={onYes}
+                onNo={onNo}
+              />
+            ))}
         </div>
 
         {/* Footer */}
@@ -112,11 +114,11 @@ function buildStops(color) {
   const dark = darkenHex(color, 0.15);
   return (
     <>
-      <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="20%"  stopColor={color} stopOpacity="1" />
-      <stop offset="37%"  stopColor={dark} stopOpacity="1" />
-      <stop offset="68%"  stopColor="#FFFFFF" stopOpacity="1" />
-      <stop offset="96%"  stopColor={color} stopOpacity="1" />
+      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="20%" stopColor={color} stopOpacity="1" />
+      <stop offset="37%" stopColor={dark} stopOpacity="1" />
+      <stop offset="68%" stopColor="#FFFFFF" stopOpacity="1" />
+      <stop offset="96%" stopColor={color} stopOpacity="1" />
       <stop offset="100%" stopColor="#999999" stopOpacity="0.55" />
     </>
   );
@@ -173,6 +175,5 @@ const YesNoButton = ({ label, color, pct, onClick }) => {
     </button>
   );
 };
-
 
 export default PredictionCard;

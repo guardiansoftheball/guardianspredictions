@@ -3,6 +3,19 @@ import BookmarkButton from "./BookmarkButton";
 import LivePct from "./LivePct";
 import CardButton from "./CardButton";
 
+// Short code for the bet buttons, so long club names fit: one word → first
+// 3 letters ("Vélez" → VEL), several words → initials ("San Lorenzo" → SL).
+const teamCode = (name = "") => {
+  const words = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/['’.]/g, "")
+    .split(/\s+/)
+    .filter((w) => w && !/^(y|de|la|del)$/i.test(w));
+  const code = words.length > 1 ? words.map((w) => w[0]).join("") : (words[0] || "").slice(0, 3);
+  return code.toUpperCase();
+};
+
 const MatchCard = ({
   homeTeam = { name: "Atlético Madrid", logo: null, pct: 70 },
   awayTeam = { name: "Barcelona", logo: null, pct: 30 },
@@ -41,7 +54,7 @@ const MatchCard = ({
         {/* Buttons */}
         <div className="flex gap-[6px]">
           <CardButton
-            label={homeTeam.name}
+            label={teamCode(homeTeam.name)}
             color="#bad659"
             variant="yes"
             pct={homeTeam.pct}
@@ -55,7 +68,7 @@ const MatchCard = ({
             onClick={onDraw}
           />
           <CardButton
-            label={awayTeam.name}
+            label={teamCode(awayTeam.name)}
             color="#f89182"
             variant="no"
             pct={awayTeam.pct}

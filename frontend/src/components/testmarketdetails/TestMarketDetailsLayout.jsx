@@ -50,6 +50,7 @@ import { SkeletonRows } from "../layouts/activity/dark/activityKit";
 import { YES_THEME, NO_THEME, getOptionTheme } from "../../styles/optionThemes";
 import PositionSummary, { normalizePosition } from "./PositionSummary";
 import RelatedMarkets from "./RelatedMarkets";
+import { getFlag, isCrest } from "../../helpers/countryFlags";
 import AmountInput from "./AmountInput";
 
 // ─── design tokens ────────────────────────────────────────────────────────────
@@ -2213,36 +2214,6 @@ function OptionRow({ answer, index, total, selected, onClick }) {
   );
 }
 
-// ─── Country code mapping for team flags ────────────────────────────────────
-const TEAM_COUNTRY_CODE = {
-  argentina: "ar", brazil: "br", mexico: "mx", "united states": "us", usa: "us",
-  germany: "de", netherlands: "nl", spain: "es", france: "fr", colombia: "co",
-  uruguay: "uy", england: "gb-eng", portugal: "pt", italy: "it", japan: "jp",
-  "south korea": "kr", australia: "au", canada: "ca", croatia: "hr", belgium: "be",
-  morocco: "ma", senegal: "sn", switzerland: "ch", denmark: "dk", poland: "pl",
-  sweden: "se", norway: "no", chile: "cl", peru: "pe", ecuador: "ec",
-  paraguay: "py", bolivia: "bo", venezuela: "ve", "costa rica": "cr",
-  panama: "pa", honduras: "hn", jamaica: "jm", qatar: "qa", "saudi arabia": "sa",
-  iran: "ir", "czech republic": "cz", czechia: "cz", austria: "at", turkey: "tr",
-  wales: "gb-wls", scotland: "gb-sct", ireland: "ie", iceland: "is",
-  serbia: "rs", ukraine: "ua", romania: "ro", ghana: "gh", nigeria: "ng",
-  cameroon: "cm", egypt: "eg", tunisia: "tn", algeria: "dz",
-  "new zealand": "nz", china: "cn", india: "in", russia: "ru",
-  hungary: "hu", greece: "gr", slovakia: "sk", slovenia: "si",
-  "bosnia and herzegovina": "ba", albania: "al", montenegro: "me",
-  "north macedonia": "mk", finland: "fi", draw: null,
-};
-
-function getCountryCode(teamName) {
-  if (!teamName) return null;
-  return TEAM_COUNTRY_CODE[teamName.toLowerCase().trim()] || null;
-}
-
-function getFlagUrl(code) {
-  if (!code) return null;
-  return `https://flagcdn.com/w160/${code}.png`;
-}
-
 // ─── Seeded random for stable "match day" per market ─────────────────────────
 function seededRandom(seed) {
   let x = Math.sin(seed) * 10000;
@@ -2262,12 +2233,13 @@ function parseMatchTeams(title, answers) {
   const vsMatch = title?.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
   if (vsMatch) return [vsMatch[1].trim(), vsMatch[2].trim()];
 
-  // Fallback: use first two non-Draw answers
+  // Fallback: only a real match (two sides + Draw). Open questions like
+  // "¿Quién gana el Clausura?" list teams too but are not a match.
   if (Array.isArray(answers)) {
-    const teams = answers
-      .map((a) => a.answerLabel || a.market?.yesLabel || a.label)
-      .filter((l) => l && l.toLowerCase() !== "draw");
-    if (teams.length >= 2) return [teams[0], teams[1]];
+    const labels = answers.map((a) => a.answerLabel || a.market?.yesLabel || a.label).filter(Boolean);
+    const hasDraw = labels.some((l) => l.toLowerCase() === "draw");
+    const teams = labels.filter((l) => l.toLowerCase() !== "draw");
+    if (hasDraw && teams.length === 2) return [teams[0], teams[1]];
   }
   return null;
 }
@@ -2277,8 +2249,8 @@ function MatchBanner({ title, answers, marketId, isMobile }) {
   if (!teams) return null;
 
   const [teamA, teamB] = teams;
-  const codeA = getCountryCode(teamA);
-  const codeB = getCountryCode(teamB);
+  const codeA = getFlag(teamA);
+  const codeB = getFlag(teamB);
 
   // Only show banner if at least one team has a flag
   if (!codeA && !codeB) return null;
@@ -2311,13 +2283,13 @@ function MatchBanner({ title, answers, marketId, isMobile }) {
     }}>
       {code ? (
         <img
-          src={getFlagUrl(code)}
+          src={code}
           alt={name}
           style={{
             width: flagSize,
             height: flagSize,
-            borderRadius: "50%",
-            objectFit: "cover",
+            borderRadius: isCrest(code) ? 0 : "50%",
+            objectFit: isCrest(code) ? "contain" : "cover",
             flexShrink: 0,
           }}
         />
