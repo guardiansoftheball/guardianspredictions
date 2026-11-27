@@ -116,11 +116,9 @@ const ProfileFinancials = ({ username }) => {
   if (data === undefined) return <LoadingSpinner />;
   if (!data) return <EmptyState>{t("profile.noFinancialData")}</EmptyState>;
 
-  const balance = data.accountBalance ?? 0;
+  // Starting credit counts as the user's own money (same as the navbar and portfolio).
+  const balance = (data.accountBalance ?? 0) + (data.maximumDebtAllowed ?? 0);
   const inPlay = data.amountInPlay ?? 0;
-  const borrowed = data.amountBorrowed ?? 0;
-  const debtLimit = data.maximumDebtAllowed ?? 0;
-  const creditUsed = debtLimit > 0 ? Math.min(1, borrowed / debtLimit) : 0;
   const groups = buildFinancialItemGroups(data);
 
   return (
@@ -135,22 +133,6 @@ const ProfileFinancials = ({ username }) => {
               { label: t("account.openPositions"), value: inPlay, color: TEAL },
             ]}
           />
-        </Panel>
-
-        <Panel title={t("account.finCreditTitle")} hint={t("account.finCreditHint", { limit: money(debtLimit) })}>
-          <div className="flex items-baseline justify-between">
-            <span className="text-[24px] font-semibold tabular-nums text-white">{money(borrowed)}</span>
-            <span className="text-[13px] text-white/45">{t("account.finOf", { limit: money(debtLimit) })}</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${creditUsed * 100}%`, background: creditUsed > 0.8 ? RED : ORANGE }}
-            />
-          </div>
-          <div className="mt-2 text-[12px] text-white/45">
-            {t("account.finCreditLeft", { amount: money(Math.max(0, debtLimit - borrowed)) })}
-          </div>
         </Panel>
 
         <Panel title={t("account.finSpentTitle")} hint={t("account.finSpentHint")}>

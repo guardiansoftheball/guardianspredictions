@@ -10,8 +10,8 @@ Usage: ./SocialPredict dev-bootstrap-users [OPTIONS]
 
 Create or reset development-only login fixtures.
 
-This command refuses to run unless APP_ENV=development in .env.
-It writes to the development database through the dev Docker network.
+This command refuses to run unless APP_ENV=development in .env, or --demo is
+passed to seed a demo/staging server running the production images.
 
 Created/updated users:
   admin       ADMIN user
@@ -20,9 +20,8 @@ Created/updated users:
   ...
 
 Created/updated fixture markets:
-  Market A    published, owned/stewarded by testuser01, tagged Category A
-  Market B    published, owned/stewarded by testuser01, tagged Category B
-  Market C    published, owned/stewarded by testuser01, tagged Category C
+  Liga Profesional, Copa Argentina and Supercopa Argentina matches and
+  questions, owned/stewarded by testuser01
 
 Defaults:
   password: password
@@ -34,17 +33,20 @@ Options:
   --password VALUE   Password for every bootstrapped user
   --count N          Number of REGULAR test users to create, 1-100
   --prefix VALUE     Prefix for regular users, e.g. player -> player01
+  --demo             Allow seeding a production-image server (demo/staging only)
   --help             Show this help
 
 Example:
   ./SocialPredict dev-bootstrap-users
   ./SocialPredict dev-bootstrap-users --count 20 --prefix player
+  ./SocialPredict dev-bootstrap-users --demo
 EOF
 }
 
 password="password"
 count="10"
 prefix="testuser"
+demo="false"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -60,6 +62,9 @@ while [ "$#" -gt 0 ]; do
       shift
       prefix="${1:-}"
       ;;
+    --demo)
+      demo="true"
+      ;;
     --help|-h|help)
       print_dev_bootstrap_help
       return 0
@@ -73,8 +78,8 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-if [ "${APP_ENV:-}" != "development" ]; then
-  print_error "Refusing to run dev bootstrap unless APP_ENV=development. Current APP_ENV='${APP_ENV:-unset}'."
+if [ "${APP_ENV:-}" != "development" ] && [ "${demo}" != "true" ]; then
+  print_error "Refusing to run dev bootstrap unless APP_ENV=development (use --demo for a demo server). Current APP_ENV='${APP_ENV:-unset}'."
   exit 1
 fi
 
@@ -86,6 +91,13 @@ fi
 if ! [[ "${prefix}" =~ ^[a-z][a-z0-9]*$ ]]; then
   print_error "--prefix must start with a lowercase letter and contain only lowercase letters and numbers."
   exit 1
+fi
+
+# Production images ship a compiled devbootstrap binary; run it in the backend service.
+if [ "${APP_ENV:-}" = "production" ]; then
+  print_status "Seeding demo data in the production backend ..."
+  docker compose --env-file "${SCRIPT_DIR}/.env" -f "${SCRIPT_DIR}/scripts/docker-compose-prod.yaml" exec -T     -e DEMO_SEED=true     -e "DEV_BOOTSTRAP_PASSWORD=${password}"     -e "DEV_BOOTSTRAP_USER_COUNT=${count}"     -e "DEV_BOOTSTRAP_USER_PREFIX=${prefix}"     backend devbootstrap
+  return 0
 fi
 
 if ! docker ps --format '{{.Names}}' | grep -qx "${BACKEND_CONTAINER_NAME}"; then

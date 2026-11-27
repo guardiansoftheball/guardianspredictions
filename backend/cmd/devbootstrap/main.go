@@ -58,8 +58,11 @@ func main() {
 
 func run() error {
 	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
-	if appEnv != "development" {
-		return fmt.Errorf("refusing to run outside APP_ENV=development; current APP_ENV=%q", appEnv)
+	// DEMO_SEED=true is an explicit opt-in for demo servers (e.g. a staging
+	// deploy someone wants to click through); never set it on a real site.
+	demoSeed := strings.EqualFold(strings.TrimSpace(os.Getenv("DEMO_SEED")), "true")
+	if appEnv != "development" && !demoSeed {
+		return fmt.Errorf("refusing to run outside APP_ENV=development (set DEMO_SEED=true to seed a demo server); current APP_ENV=%q", appEnv)
 	}
 
 	password := envString("DEV_BOOTSTRAP_PASSWORD", defaultPassword)

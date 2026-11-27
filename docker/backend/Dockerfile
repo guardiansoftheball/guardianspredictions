@@ -7,7 +7,8 @@ WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /app/server .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /app/server . \
+	&& CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /app/devbootstrap ./cmd/devbootstrap
 
 FROM alpine:3.24.1
 
@@ -15,6 +16,7 @@ RUN addgroup -S app && adduser -S -G app app \
 	&& mkdir -p /data/socialpredict/uploads/social-share \
 	&& chown -R app:app /data/socialpredict
 COPY --from=builder /app/server /usr/local/bin/server
+COPY --from=builder /app/devbootstrap /usr/local/bin/devbootstrap
 RUN chown app:app /usr/local/bin/server
 USER app
 ENV BACKEND_PORT=8080

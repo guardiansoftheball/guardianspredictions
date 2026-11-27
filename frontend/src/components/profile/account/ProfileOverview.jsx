@@ -61,10 +61,11 @@ const ProfileOverview = ({ username }) => {
   if (error) return <ErrorBanner message={error} />;
 
   const show = (v) => (data ? money(v) : "—");
-  const balance = data?.accountBalance ?? 0;
+  // The starting credit (maximumDebtAllowed) is the user's to bet with, so
+  // "available" is balance + credit — the same figure the navbar shows.
+  const balance = (data?.accountBalance ?? 0) + (data?.maximumDebtAllowed ?? 0);
   const inPlay = data?.amountInPlayActive ?? data?.amountInPlay ?? 0;
-  const borrowed = data?.amountBorrowed ?? 0;
-  const barTotal = Math.max(0, balance) + inPlay + borrowed;
+  const barTotal = Math.max(0, balance) + inPlay;
   const share = (v) => (barTotal > 0 ? `${(v / barTotal) * 100}%` : "0%");
 
   return (
@@ -73,7 +74,11 @@ const ProfileOverview = ({ username }) => {
         <Panel className="flex flex-col">
           <div className="text-[13px] text-white/60">{t("account.availableBalance")}</div>
           <div className="mt-2 text-[28px] font-semibold md:text-[32px] leading-none tabular-nums text-white">{show(balance)}</div>
-          <div className="mt-3 text-[12px] text-white/40">{t("account.availableHint")}</div>
+          <div className="mt-3 text-[12px] text-white/40">
+            {data
+              ? t("account.availableHint")
+              : " "}
+          </div>
         </Panel>
 
         <Panel>
@@ -85,11 +90,9 @@ const ProfileOverview = ({ username }) => {
           <div className="my-4 flex h-1 gap-0.5 overflow-hidden rounded-full bg-white/[0.06]">
             <div style={{ width: share(Math.max(0, balance)), background: "#60a5fa" }} />
             <div style={{ width: share(inPlay), background: "#4fd1c5" }} />
-            <div style={{ width: share(borrowed), background: "#f6ad55" }} />
           </div>
           <BreakdownRow color="#60a5fa" label={t("account.available")} value={show(balance)} />
           <BreakdownRow color="#4fd1c5" label={t("account.openPositions")} value={show(inPlay)} />
-          {borrowed > 0 && <BreakdownRow color="#f6ad55" label={t("account.borrowed")} value={show(borrowed)} />}
         </Panel>
       </div>
 
