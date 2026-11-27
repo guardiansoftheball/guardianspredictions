@@ -28,8 +28,10 @@ if is_arm; then
       export DOCKER_DEFAULT_PLATFORM="linux/amd64"
     fi
   else
-    # localhost/prod pull from registry; prefer emulation unless registry is multi-arch
-    if [ -z "${FORCE_PLATFORM}" ]; then
+    # localhost/prod build images on the host
+    if [ "${BUILD_NATIVE_ARM64}" = "true" ]; then
+      export FORCE_PLATFORM="linux/arm64"
+    elif [ -z "${FORCE_PLATFORM}" ]; then
       export FORCE_PLATFORM="linux/amd64"
       export DOCKER_DEFAULT_PLATFORM="linux/amd64"
     fi

@@ -46,6 +46,29 @@ fi
 # Helpers
 # --------------------------------------------------------------------------------------
 sp_up() {
+  local up_args=()
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --build)
+        up_args+=("--build")
+        ;;
+      --help|-h)
+        cat <<EOF
+Usage: ./SocialPredict up [--build]
+
+  --build   Rebuild the application images before starting the containers
+EOF
+        return 0
+        ;;
+      *)
+        echo "Unknown up option '$1'. Use --build."
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
   if [ "${APP_ENV}" = "production" ]; then
     # Ensure external network exists
     docker network inspect socialpredict_external_network > /dev/null 2>&1 || \
@@ -60,7 +83,11 @@ sp_up() {
     fi
   fi
 
-  docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" up -d
+  if [ "${#up_args[@]}" -gt 0 ]; then
+    docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" up -d "${up_args[@]}"
+  else
+    docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" up -d
+  fi
 
   if [ "${APP_ENV}" = "development" ]; then
     echo "SocialPredict may be found at http://localhost:${FRONTEND_PORT} ."
@@ -74,6 +101,37 @@ sp_up() {
 
 sp_down() {
   docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" down -v
+}
+
+sp_build() {
+  local build_args=()
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --no-cache)
+        build_args+=("--no-cache")
+        ;;
+      --help|-h)
+        cat <<EOF
+Usage: ./SocialPredict build [--no-cache]
+
+  --no-cache   Rebuild every layer without Docker build cache
+EOF
+        return 0
+        ;;
+      *)
+        echo "Unknown build option '$1'. Use --no-cache."
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  if [ "${#build_args[@]}" -gt 0 ]; then
+    docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" build "${build_args[@]}"
+  else
+    docker compose --env-file "${SCRIPT_DIR}/.env" "${COMPOSE_FILES[@]}" build
+  fi
 }
 
 print_cleanup_help() {
@@ -176,62 +234,62 @@ sp_cleanup() {
   esac
 }
 
+exec_container() {
+  local service="$1"
+  local container_name="${2:-}"
+
+  if [ -n "${container_name}" ] && docker inspect "${container_name}" > /dev/null 2>&1; then
+    echo "${container_name}"
+    return 0
+  fi
+
+  compose_cmd ps -q "${service}" | head -n 1
+}
+
 sp_exec() {
   local target="${1:-}"
+  local service=""
+  local container_name=""
 
   case "${target}" in
     nginx)
-      if [ "$#" -lt 2 ]; then
-        docker exec -it "${NGINX_CONTAINER_NAME}" /bin/bash
-      else
-        if [ "$2" == "/bin/bash" ] || [ "$2" == /bin/sh ]; then
-          docker exec -it "${NGINX_CONTAINER_NAME}" /bin/bash
-        else
-          shift
-          docker exec -i "${NGINX_CONTAINER_NAME}" "$@"
-        fi
-      fi
+      service="webserver"
+      container_name="${NGINX_CONTAINER_NAME}"
       ;;
     backend)
-      if [ "$#" -lt 2 ]; then
-        docker exec -it "${BACKEND_CONTAINER_NAME}" /bin/bash
-      else
-        if [ "$2" == "/bin/bash" ] || [ "$2" == "/bin/sh" ]; then
-          docker exec -it "${BACKEND_CONTAINER_NAME}" /bin/bash
-        else
-          shift
-          docker exec -i "${BACKEND_CONTAINER_NAME}" "$@"
-        fi
-      fi
+      service="backend"
+      container_name="${BACKEND_CONTAINER_NAME}"
       ;;
     frontend)
-      if [ "$#" -lt 2 ]; then
-        docker exec -it "${FRONTEND_CONTAINER_NAME}" /bin/bash
-      else
-        if [ "$2" == "/bin/bash" ] || [ "$2" == "/bin/sh" ]; then
-          docker exec -it "${FRONTEND_CONTAINER_NAME}" /bin/bash
-        else
-          shift
-          docker exec -i "${FRONTEND_CONTAINER_NAME}" "$@"
-        fi
-      fi
+      service="frontend"
+      container_name="${FRONTEND_CONTAINER_NAME}"
       ;;
     postgres|db)
-      if [ "$#" -lt 2 ]; then
-        docker exec -it "${POSTGRES_CONTAINER_NAME}" /bin/bash
-      else
-        if [ "$2" == "/bin/bash" ] || [ "$2" == "/bin/sh" ]; then
-          docker exec -it "${POSTGRES_CONTAINER_NAME}" /bin/bash
-        else
-          docker exec -i "${POSTGRES_CONTAINER_NAME}" "$@"
-        fi
-      fi
+      service="db"
+      container_name="${POSTGRES_CONTAINER_NAME}"
       ;;
     *)
       echo "Unknown service '${target}'. Use one of: nginx | backend | frontend | postgres"
       exit 1
       ;;
   esac
+
+  shift
+
+  local container
+  container="$(exec_container "${service}" "${container_name}" || true)"
+  if [ -z "${container}" ]; then
+    echo "No running container for '${target}'."
+    exit 1
+  fi
+
+  if [ "$#" -eq 0 ]; then
+    docker exec -it "${container}" /bin/sh
+  elif [ "$1" == "/bin/bash" ] || [ "$1" == "/bin/sh" ]; then
+    docker exec -it "${container}" "$1"
+  else
+    docker exec -i "${container}" "$@"
+  fi
 }
 
 compose_cmd() {
@@ -385,7 +443,12 @@ EOF
 # --------------------------------------------------------------------------------------
 case "${1:-}" in
   up)
-    sp_up
+    shift
+    sp_up "$@"
+    ;;
+  build)
+    shift
+    sp_build "$@"
     ;;
   down)
     sp_down
@@ -403,7 +466,7 @@ case "${1:-}" in
     sp_cleanup "$@"
     ;;
   *)
-    echo "Usage: $0 {up|down|exec <service> [command]|logs <service|container-name|all> [-f|--follow]|cleanup docker [options]}"
+    echo "Usage: $0 {up [--build]|build [--no-cache]|down|exec <service> [command]|logs <service|container-name|all> [-f|--follow]|cleanup docker [options]}"
     exit 1
     ;;
 esac

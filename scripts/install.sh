@@ -354,41 +354,22 @@ Production/domain example:
 EOF
 }
 
-# Check if Docker Image exists on the system
-check_image() {
-  local image_name=$1
-  local dockerfile=$2
-  local directory=$3
-
-  echo "### Checking for $image_name Image ..."
-  if docker image inspect "$image_name" > /dev/null 2>&1; then
-    read -r -p "$image_name Image Found. Do you want to re-build it? (y/N) " decision
-    if [[ "$decision" =~ ^[Yy]$ ]]; then
-      echo "Deleting Image ..."
-      docker rmi "$image_name"
-      echo "Image Deleted."
-      build_image
-    else
-      :
-    fi
-  else
-    echo "$image_name Image Not Found."
-    build_image
-  fi
+# Local image tags per environment
+set_image_names() {
+  local suffix="$1"
+  set_env_value "BACKEND_IMAGE_NAME" "guardianspredictions-backend:${suffix}"
+  set_env_value "FRONTEND_IMAGE_NAME" "guardianspredictions-frontend:${suffix}"
 }
 
-# Build Docker Image
-build_image() {
-  echo "Building $image_name now."
-  docker build --no-cache -t "$image_name" -f "$dockerfile" "$directory"
-  echo "$image_name Image Built."
+# Build the images declared in the active compose file
+build_images() {
+  echo "Building application images ..."
+  docker compose --env-file "${SCRIPT_DIR}/.env" "$@" build
+  echo "Application images built."
 }
 
 # Build procedure for Development Environment
 build_dev() {
-  BACKEND_IMAGE_NAME="${BACKEND_IMAGE_NAME:-socialpredict-dev-backend}"
-  FRONTEND_IMAGE_NAME="${FRONTEND_IMAGE_NAME:-socialpredict-dev-frontend}"
-
   # Update APP_ENV
   "${SED_INPLACE[@]}" "s|^APP_ENV=.*|APP_ENV=development|" "${SCRIPT_DIR}/.env"
 
@@ -411,25 +392,17 @@ build_dev() {
   "${SED_INPLACE[@]}" "/^EMAIL=.*/d" "${SCRIPT_DIR}/.env"
 
   # Update Image Names
-  "${SED_INPLACE[@]}" "s|^BACKEND_IMAGE_NAME=.*|BACKEND_IMAGE_NAME=${BACKEND_IMAGE_NAME}|" "${SCRIPT_DIR}/.env"
-  "${SED_INPLACE[@]}" "s|^FRONTEND_IMAGE_NAME=.*|FRONTEND_IMAGE_NAME=${FRONTEND_IMAGE_NAME}|" "${SCRIPT_DIR}/.env"
+  set_image_names "dev"
 
   apply_rate_limit_profile "secure-default"
 
   ensure_jwt_signing_key
 
-  print_status "Searching for Docker Images ..."
+  print_status "Building Docker images ..."
 
-  DIRECTORY="${SCRIPT_DIR}"
-  BACKEND_DOCKERFILE="${SCRIPT_DIR}/docker/backend/Dockerfile.dev"
-  FRONTEND_DOCKERFILE="${SCRIPT_DIR}/docker/frontend/Dockerfile.dev"
-
-  check_image "$BACKEND_IMAGE_NAME" "${BACKEND_DOCKERFILE}" "${DIRECTORY}"
-  check_image "$FRONTEND_IMAGE_NAME" "${FRONTEND_DOCKERFILE}" "${DIRECTORY}"
+  build_images -f "${SCRIPT_DIR}/scripts/docker-compose-dev.yaml"
 
   echo
-  sleep 1;
-
   echo "Images built."
   echo "Use "./SocialPredict up" to start the containers"
   echo "And "./SocialPredict down" to stop them."
@@ -470,14 +443,22 @@ services:
 EOF
   echo "Wrote docker-compose.override.yml to pin platform = ${FORCE_PLATFORM:-linux/amd64}"
 
+  # Update Image Names
+  set_image_names "localhost"
+
   apply_rate_limit_profile "secure-default"
 
   ensure_jwt_signing_key
 
-  docker compose \
+  print_status "Building Docker images ..."
+
+  build_images \
     -f "${SCRIPT_DIR}/scripts/docker-compose-local.yaml" \
-    -f "${SCRIPT_DIR}/scripts/docker-compose.override.yml" \
-    --env-file "${SCRIPT_DIR}/.env" pull
+    -f "${SCRIPT_DIR}/scripts/docker-compose.override.yml"
+
+  echo
+  echo "Images built."
+  echo "Use \"./SocialPredict up\" to start the containers"
 }
 
 # Build procedure for Production Environment
@@ -534,12 +515,15 @@ build_production() {
 
   ensure_jwt_signing_key
 
-  # Pull images
-  echo "Pulling images ..."
-  docker compose --env-file "${SCRIPT_DIR}"/.env --file "${SCRIPT_DIR}/scripts/docker-compose-prod.yaml" pull
+  # Update Image Names
+  set_image_names "production"
+
+  # Build images
+  echo "Building images ..."
+  build_images --file "${SCRIPT_DIR}/scripts/docker-compose-prod.yaml"
   echo
 
-  echo "Images pulled."
+  echo "Images built."
   echo
   echo "Your admin credentials are:"
   echo "Username: admin"
@@ -580,12 +564,15 @@ build_production_args() {
 
   ensure_jwt_signing_key
 
-  # Pull images
-  echo "Pulling images ..."
-  docker compose --env-file "${SCRIPT_DIR}"/.env --file "${SCRIPT_DIR}/scripts/docker-compose-prod.yaml" pull
+  # Update Image Names
+  set_image_names "production"
+
+  # Build images
+  echo "Building images ..."
+  build_images --file "${SCRIPT_DIR}/scripts/docker-compose-prod.yaml"
   echo
 
-  echo "Images pulled."
+  echo "Images built."
   echo
   echo "Your admin credentials are:"
   echo "Username: admin"

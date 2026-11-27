@@ -71,8 +71,9 @@ print_help() {
 Usage: ./SocialPredict COMMAND
 
 Commands:
-  install     Initialize SocialPredict
+  install     Initialize SocialPredict and build the application images
   up          Start SocialPredict containers
+  build       Rebuild the application images for the active environment
   down        Stop SocialPredict containers
   exec        Execute command on SocialPredict containers
   logs        View logs from SocialPredict containers
@@ -99,8 +100,16 @@ case "$COMMAND" in
     ;;
   up)
     init
+    shift
     export CALLED_FROM_SOCIALPREDICT=yes
-    source "${SCRIPT_DIR}/scripts/docker-commands.sh" up
+    source "${SCRIPT_DIR}/scripts/docker-commands.sh" up "$@"
+    unset CALLED_FROM_SOCIALPREDICT
+    ;;
+  build)
+    init
+    shift
+    export CALLED_FROM_SOCIALPREDICT=yes
+    source "${SCRIPT_DIR}/scripts/docker-commands.sh" build "$@"
     unset CALLED_FROM_SOCIALPREDICT
     ;;
   down)
