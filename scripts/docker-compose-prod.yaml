@@ -18,6 +18,10 @@ services:
   backend-startup-writer:
     container_name: "${BACKEND_CONTAINER_NAME}-startup-writer"
     image: "${BACKEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
     restart: unless-stopped
     stop_grace_period: 20s
     environment:
@@ -46,6 +50,10 @@ services:
 
   backend:
     image: "${BACKEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
     restart: unless-stopped
     stop_grace_period: 20s
     environment:
@@ -76,6 +84,10 @@ services:
   frontend:
     container_name: "${FRONTEND_CONTAINER_NAME}"
     image: "${FRONTEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/frontend/Dockerfile
     restart: unless-stopped
     networks:
       - socialpredict_internal_network

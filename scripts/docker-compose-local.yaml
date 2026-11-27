@@ -21,7 +21,11 @@ services:
 
   backend:
     container_name: "${BACKEND_CONTAINER_NAME}"
-    image: "${BACKEND_IMAGE_NAME}"          # e.g. ghcr.io/openpredictionmarkets/socialpredict-backend
+    image: "${BACKEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
     restart: unless-stopped
     networks:
       - socialpredict_network
@@ -46,7 +50,11 @@ services:
 
   frontend:
     container_name: "${FRONTEND_CONTAINER_NAME}"
-    image: "${FRONTEND_IMAGE_NAME}"         # e.g. ghcr.io/openpredictionmarkets/socialpredict-frontend
+    image: "${FRONTEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/frontend/Dockerfile
     restart: unless-stopped
     networks:
       - socialpredict_network

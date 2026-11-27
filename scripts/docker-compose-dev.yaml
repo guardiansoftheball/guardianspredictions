@@ -20,7 +20,11 @@ services:
 
   backend:
     container_name: "${BACKEND_CONTAINER_NAME}"
-    image: socialpredict-dev-backend:latest
+    image: "${BACKEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile.dev
     environment:
       APP_ENV: ${APP_ENV}
       CONTAINER_NAME: ${BACKEND_CONTAINER_NAME}
@@ -47,7 +51,11 @@ services:
 
   frontend:
     container_name: "${FRONTEND_CONTAINER_NAME}"
-    image: socialpredict-dev-frontend:latest
+    image: "${FRONTEND_IMAGE_NAME}"
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: docker/frontend/Dockerfile.dev
     environment:
       APP_ENV: ${APP_ENV}
     networks:
