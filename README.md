@@ -210,6 +210,7 @@ Latest forecast note: [Capacity Forecast Dossier, 2026-06-02](./loadtest/dossier
 ### Deploying to the Web
 
 - [How to Set Up Your Own Website](/README/STAGE_SETUP.md)
+- [Guardians Fork Deployment Guide: single Linux host, locally built images](/README/GUARDIANS-DEPLOYMENT.md)
 - [HostOps Scaffold and Infra Boundary Notes](/README/INFRA/README-INFRA-HOSTOPS.md)
 - [Staging Deployment Guide](/README/INFRA/README-INFRA-STAGING.md)
 - [Production Deployment Guide](/README/INFRA/README-INFRA-PRODUCTION.md)
