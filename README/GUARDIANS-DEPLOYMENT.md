@@ -19,7 +19,7 @@ Requisitos previos: `DOMAIN` resolviendo a la IP del host y puertos 80 y 443 lib
 - `install` escribe `.env`, genera credenciales, renderiza `data/traefik/config/traefik.yaml` y construye las imágenes.
 - Al terminar imprime el usuario `admin` y el password generado, que queda en `.env` como `ADMIN_PASSWORD`.
 - Acceso: `https://ejemplo.com`.
-- Host temporal con IP pública y sin TLS: `--tls-mode http` y `-d <IP>`.
+- Host sin TLS propio (IP pública o túnel que termina TLS): `--tls-mode http`, sin `-m`, y corrección de las URLs públicas a `https://` según [certificados SSL](./GUARDIANS/GUARDIANS-SSL.md).
 
 Detalle: [entornos](./GUARDIANS/GUARDIANS-ENTORNOS.md#production) y [certificados SSL](./GUARDIANS/GUARDIANS-SSL.md).
 

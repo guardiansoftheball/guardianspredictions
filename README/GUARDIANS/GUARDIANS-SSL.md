@@ -149,6 +149,77 @@ docker restart socialpredict-traefik-container
 
 Al cambiar `DOMAIN`, el router pide un certificado nuevo para el dominio nuevo y el anterior deja de usarse.
 
+## TLS terminado fuera del host (túnel cloudflared)
+
+Caso: Cloudflare termina TLS en un subdominio propio y entrega HTTP al host por un túnel. Let's Encrypt no participa: el desafío HTTP-01 no llega al host porque el subdominio no apunta a su IP.
+
+```
+./SocialPredict install -e production -d dev-predict.guardiansid.io --tls-mode http
+```
+
+- `--tls-mode http` renderiza `traefik-http.template`: entrypoint `:80` como default, sin `websecure`, sin `certificatesResolvers` y sin redirección.
+- `-m` no hace falta.
+- `DOMAIN` tiene que ser el subdominio público: el router de Traefik usa `Host(DOMAIN)` y el túnel reenvía ese Host.
+
+`install` escribe las URLs públicas con esquema `http://`. Detrás del túnel la URL real es `https://`, así que se corrigen antes de levantar:
+
+```
+sed -i "s|^DOMAIN_URL=.*|DOMAIN_URL='https://dev-predict.guardiansid.io'|" .env
+sed -i "s|^API_URL=.*|API_URL=https://dev-predict.guardiansid.io/api|" .env
+sed -i "s|^PUBLIC_BASE_URL=.*|PUBLIC_BASE_URL='https://dev-predict.guardiansid.io'|" .env
+```
+
+El contenedor de frontend escribe `window.__ENV__.API_URL` como `${DOMAIN_URL}/api` al arrancar; con `http://` el navegador bloquea las llamadas por contenido mixto. `TLS_MODE=http` se mantiene: solo controla el borde de Traefik.
+
+Si el túnel propaga `X-Forwarded-For` con la IP del cliente, el rate limit puede identificar clientes por esa IP:
+
+```
+echo "TRUST_PROXY_HEADERS=true" >> .env
+```
+
+Ingress del túnel:
+
+```yaml
+tunnel: <UUID>
+credentials-file: /home/<user>/.cloudflared/<UUID>.json
+
+ingress:
+  - hostname: dev-predict.guardiansid.io
+    service: http://localhost:80
+  - service: http_status:404
+```
+
+```
+cloudflared tunnel route dns <nombre-del-tunel> dev-predict.guardiansid.io
+cloudflared tunnel run <nombre-del-tunel>
+```
+
+cloudflared conserva el `Host` original. Si se fija `httpHostHeader`, tiene que coincidir con `DOMAIN`.
+
+Verificación local con el Host del subdominio:
+
+```
+curl -sS -H "Host: dev-predict.guardiansid.io" http://127.0.0.1/health
+curl -sS -H "Host: dev-predict.guardiansid.io" http://127.0.0.1/readyz
+curl -sS -H "Host: dev-predict.guardiansid.io" http://127.0.0.1/env-config.js
+```
+
+Un 404 en esas pruebas indica que el `Host` no coincide con `DOMAIN`.
+
+El host no necesita puertos abiertos al público: el túnel inicia la conexión desde el host hacia Cloudflare. Traefik sigue publicando 80 y 443; en modo http el 443 no tiene servicio detrás.
+
+Cambio de subdominio, con el stack ya instalado:
+
+```
+sed -i "s|^DOMAIN=.*|DOMAIN='nuevo.ejemplo.com'|" .env
+sed -i "s|^DOMAIN_URL=.*|DOMAIN_URL='https://nuevo.ejemplo.com'|" .env
+sed -i "s|^API_URL=.*|API_URL=https://nuevo.ejemplo.com/api|" .env
+sed -i "s|^PUBLIC_BASE_URL=.*|PUBLIC_BASE_URL='https://nuevo.ejemplo.com'|" .env
+docker compose --env-file .env -f scripts/docker-compose-prod.yaml up -d --force-recreate webserver backend frontend
+```
+
+El template http no depende de `DOMAIN`; el router se arma con el label de `webserver` en el compose, así que Traefik no se toca.
+
 ## Redirección y cabeceras
 
 - Con `TLS_MODE=https`, el entrypoint `web` redirige todo a `websecure`. Comprobación: `curl -sI http://ejemplo.com | head -n 5` devuelve el `Location` con `https://`.
